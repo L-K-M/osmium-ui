@@ -48,7 +48,9 @@ const MENU_TOP = 19;
 
 /** Make `bar` (styled .osm-menubar, 20px tall; place it along the top
  * of the page) a menu bar with `menus`, left to right. Anything else
- * appended to the bar, a clock say, is the app's to place. */
+ * appended to the bar, a clock say, is the app's to place. Removing
+ * the bar from the page ends it; mount a fresh element to show one
+ * again. */
 export function mountMenuBar(bar: HTMLElement, menus: readonly Menu[]): void {
   bar.classList.add("osm-menubar");
   bar.setAttribute("role", "menubar");
@@ -226,7 +228,9 @@ export function mountMenuBar(bar: HTMLElement, menus: readonly Menu[]): void {
   });
 
   // The bar's pointer and key tracking is the document's: a bar taken
-  // out of the page closes its open menu and drops those listeners.
+  // out of the page closes its open menu and drops those listeners at
+  // the next pointer move or key press, for good. To show a menu bar
+  // again, mount a fresh element.
   const gone = new AbortController();
   function detached(): boolean {
     if (bar.isConnected) return false;
@@ -237,7 +241,7 @@ export function mountMenuBar(bar: HTMLElement, menus: readonly Menu[]): void {
 
   // An open menu follows the pointer, pressed or not (sticky menus).
   document.addEventListener("pointermove", (e) => {
-    if (open >= 0 && !detached()) track(e.clientX, e.clientY);
+    if (!detached() && open >= 0) track(e.clientX, e.clientY);
   }, { signal: gone.signal });
 
   // A press anywhere but on a title or in the menu closes the menu and
@@ -263,7 +267,7 @@ export function mountMenuBar(bar: HTMLElement, menus: readonly Menu[]): void {
   // Keyboard, while a menu is open: arrows move through items and
   // menus, Return chooses, Escape closes.
   document.addEventListener("keydown", (e) => {
-    if (open < 0 || detached()) return;
+    if (detached() || open < 0) return;
     const n = entries.length;
     const step = (d: number) => {
       for (let k = 1; k <= n; k++) {
