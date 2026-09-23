@@ -1,0 +1,61 @@
+name: Release
+
+on:
+  push:
+    tags:
+      - 'v*'
+
+concurrency:
+  group: release-${{ github.ref }}
+  cancel-in-progress: false
+
+permissions:
+  contents: write
+
+jobs:
+  release:
+    name: Verify and draft library release
+    runs-on: ubuntu-24.04
+    timeout-minutes: 15
+    steps:
+      - uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7.0.1
+        with:
+          fetch-depth: 0
+          persist-credentials: false
+
+      - name: Verify release source
+        id: source
+        run: |
+          tag_version="${GITHUB_REF_NAME#v}"
+          pkg_version="$(node -p 'require("./package.json").version')"
+          if [ "$tag_version" != "$pkg_version" ]; then
+            echo "::error::tag v$tag_version != package.json version $pkg_version"
+            exit 1
+          fi
+
+          if [ "$(git cat-file -t "$GITHUB_REF")" != 'tag' ]; then
+            echo "::error::$GITHUB_REF must be an annotated tag"
+            exit 1
+          fi
+
+          git fetch --no-tags origin main:refs/remotes/origin/main
+          if ! git merge-base --is-ancestor "$GITHUB_SHA" origin/main; then
+            echo "::error::release commit is not on main"
+            exit 1
+          fi
+
+          echo "version=$tag_version" >> "$GITHUB_OUTPUT"
+
+      - name: Verify the library
+        run: |
+          npm ci
+          npm run typecheck
+          npm test
+
+      # A source library: the release is the tag plus notes, no artifacts.
+      - name: Publish draft
+        uses: softprops/action-gh-release@3bb12739c298aeb8a4eeaf626c5b8d85266b0e65 # v2.6.2
+        with:
+          name: osmium-ui ${{ steps.source.outputs.version }}
+          draft: true
+          generate_release_notes: true
