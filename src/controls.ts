@@ -677,6 +677,10 @@ export interface OsmiumList {
 let listSeq = 0;
 /** Movement that turns a touch press into a scroll, not a selection. */
 const TOUCH_SLOP = 6;
+/** A touch this soon after the list last scrolled lands on a list that
+ * is still coasting from a flick: it stops the scroll, as in native
+ * lists, rather than choosing a row the reader couldn't aim at. */
+const SCROLL_SETTLE_MS = 100;
 
 /** A single-selection list box in `host` (styled .osm-list): rows are
  * options; with a mouse the selection follows the pointer while it's
@@ -702,6 +706,9 @@ export function mountList(host: HTMLElement, opts: ListOptions): OsmiumList {
   let sel = -1;
   let typed = "";
   let typedAt = 0;
+  let scrolledAt = -Infinity;
+  view.addEventListener("scroll", () => { scrolledAt = performance.now(); },
+                        { passive: true });
 
   function reveal(i: number): void {
     const r = rows[i];
@@ -736,7 +743,10 @@ export function mountList(host: HTMLElement, opts: ListOptions): OsmiumList {
     if (e.button !== 0) return;
     if (e.pointerType !== "mouse") {
       // Touch and pen: a tap selects; anything that moves is a scroll
-      // (the browser's pan cancels the pointer).
+      // (the browser's pan cancels the pointer), and a tap on a list
+      // still coasting only stops it. Mouse presses always select, as a
+      // click does on a Mac list that is still scrolling.
+      if (performance.now() - scrolledAt < SCROLL_SETTLE_MS) return;
       const x0 = e.clientX, y0 = e.clientY;
       view.setPointerCapture(e.pointerId);
       const up = (ev: PointerEvent) => {
