@@ -6,7 +6,7 @@
 
    Needs installOsmium() (src/install.ts) at runtime: it registers the
    bitmap fonts and defines the --osm-sprite-* images. Markup and
-   behavior live in src/window.ts and src/controls.ts. */
+   behavior live in src/window.ts, src/controls.ts and src/menubar.ts. */
 
 :root {
   --osm-frame: #cccccc;      /* window frame face */
@@ -387,7 +387,9 @@
 
 /* ---- bevel buttons --------------------------------------------------- */
 /* 40 x 40 with a 32 x 32 icon (--osm-icon); selected is pushed in. The
-   Geneva 9 caption goes right below it. */
+   Geneva 9 caption goes right below it. Monitors & Sound's pane buttons
+   are this size; give the button an even width for wider ones, such as
+   Desktop Pictures' 54 x 40 (the icon stays centered). */
 .osm-bevel {
   position: relative;
   box-sizing: border-box;
@@ -403,7 +405,7 @@
 /* The icon rides above the border image, whose fill covers the
    element's own background. */
 .osm-bevel::before {
-  content: ""; position: absolute; left: 1px; top: 1px;
+  content: ""; position: absolute; left: calc(50% - 16px); top: 1px;
   width: 32px; height: 32px;
   background: var(--osm-icon, none) 0 0 / 32px 32px no-repeat;
 }
@@ -490,6 +492,63 @@
   color: #fff;
 }
 .osm-menu-item[aria-disabled="true"] { color: #888; }
+/* A separator (MENU_SEPARATOR): 6px, an engraved line on rows 2 and 3
+   across the whole menu, bevel included (Mac OS 8.0's Apple menu). */
+.osm-menu-separator {
+  height: 6px;
+  background:
+    linear-gradient(#888, #888) 0 2px / 100% 1px no-repeat,
+    linear-gradient(#fff, #fff) 0 3px / 100% 1px no-repeat;
+}
+
+/* ---- menu bar -------------------------------------------------------- */
+/* 20px (menubar.ts): a raised dd bar (white top and left, 99 bottom and
+   right) over a black line, the screen's rounded corners at either
+   end. Place it along the top of the page. Its menus are .osm-menu. */
+.osm-menubar {
+  position: relative;
+  height: 20px;
+  background:
+    linear-gradient(#000, #000) 0 19px / 100% 1px no-repeat,
+    linear-gradient(#999, #999) 1px 18px / calc(100% - 1px) 1px no-repeat,
+    linear-gradient(#999, #999) right 0 top 1px / 1px 18px no-repeat,
+    linear-gradient(#fff, #fff) 0 0 / 100% 1px no-repeat,
+    linear-gradient(#fff, #fff) 0 0 / 1px 18px no-repeat,
+    #ddd;
+  color: #000;
+  font: var(--osm-font-system);
+  font-synthesis: none; -webkit-font-smoothing: none;
+  cursor: default;
+  user-select: none; -webkit-user-select: none;
+}
+.osm-menubar::before, .osm-menubar::after {
+  content: ""; position: absolute; top: 0; z-index: 1;
+  width: 8px; height: 8px;
+  pointer-events: none;
+}
+.osm-menubar::before { left: 0; background: var(--osm-sprite-menubar-corner-left); }
+.osm-menubar::after { right: 0; background: var(--osm-sprite-menubar-corner-right); }
+/* A title's box is its highlight: text 9px in, baseline on row 13.
+   The content box is exactly one line, or <button> would center the
+   text on a half pixel. */
+.osm-menubar-title {
+  position: absolute; top: 0;
+  box-sizing: border-box; height: 19px;
+  margin: 0; padding: 2px 0 1px 9px; border: 0;
+  background: none;
+  color: #000; font: inherit; text-align: left; white-space: nowrap;
+  appearance: none; -webkit-appearance: none;
+  outline: none;
+  cursor: default;
+}
+.osm-menubar-title.osm-open {
+  background:
+    linear-gradient(#6666cc, #6666cc) 0 0 / 100% 1px no-repeat,
+    linear-gradient(#000088, #000088) 0 100% / 100% 1px no-repeat,
+    #333399;
+  color: #fff;
+}
+.osm-menubar-icon { display: block; width: 16px; height: 16px; }
 
 /* ---- scroll bars ----------------------------------------------------- */
 /* A 16px vertical bar (controls.ts): arrows at both ends, the fixed
@@ -541,6 +600,59 @@
 }
 .osm-inactive .osm-scrollbar > * { visibility: hidden; }
 
+/* A 16px horizontal bar along the bottom (attachScrollbar with
+   "horizontal"): the vertical bar transposed, arrows at the left and
+   right ends, in the same states. */
+.osm-hscrollbar {
+  position: absolute; left: -1px; right: -1px; bottom: -1px;
+  height: 16px;
+  background:
+    var(--osm-sprite-scroll-htrack-left) 16px 0 / 2px 16px no-repeat,
+    var(--osm-sprite-scroll-htrack) 0 0 / 1px 16px repeat-x;
+  touch-action: none;
+}
+.osm-sb-left, .osm-sb-right {
+  position: absolute; top: 0; width: 16px; height: 16px; z-index: 2;
+}
+.osm-sb-left { left: 0; background: var(--osm-sprite-scroll-left); }
+.osm-sb-right { right: 0; background: var(--osm-sprite-scroll-right); }
+.osm-sb-left.osm-pressed {
+  background-image: var(--osm-sprite-scroll-left-pressed);
+}
+.osm-sb-right.osm-pressed {
+  background-image: var(--osm-sprite-scroll-right-pressed);
+}
+.osm-hscrollbar .osm-sb-thumb {
+  left: 15px; top: 0;
+  width: 19px; height: 16px;
+  background:
+    var(--osm-sprite-scroll-hthumb) 0 0 / 17px 16px no-repeat,
+    var(--osm-sprite-scroll-htrack-left) 17px 0 / 2px 16px no-repeat;
+}
+.osm-hscrollbar .osm-sb-thumb.osm-pressed {
+  background-image: var(--osm-sprite-scroll-hthumb-pressed),
+                    var(--osm-sprite-scroll-htrack-left);
+}
+.osm-hscrollbar.osm-sb-off {
+  background: #eee;
+  box-shadow: inset 0 1px #000, inset 0 -1px #000;
+}
+.osm-sb-off .osm-sb-left {
+  background-image: var(--osm-sprite-scroll-left-dimmed);
+}
+.osm-sb-off .osm-sb-right {
+  background-image: var(--osm-sprite-scroll-right-dimmed);
+}
+.osm-inactive .osm-hscrollbar {
+  background: #eee;
+  box-shadow: inset 0 0 0 1px #555;
+}
+.osm-inactive .osm-hscrollbar > * { visibility: hidden; }
+/* With both bars, each stops short of the square between them (where a
+   window's grow box goes), overlapping the other's edge. */
+.osm-has-hscrollbar > .osm-scrollbar { bottom: 14px; }
+.osm-has-scrollbar > .osm-hscrollbar { right: 14px; }
+
 /* ---- lists ----------------------------------------------------------- */
 /* List box: white, black edge, Black & White highlight (the default
    Mac OS 8 highlight color). Rows scroll inside .osm-list-view; with a
@@ -559,6 +671,7 @@
 }
 .osm-list-view::-webkit-scrollbar { display: none; }
 .osm-list.osm-has-scrollbar .osm-list-view { right: 15px; }
+.osm-list.osm-has-hscrollbar .osm-list-view { bottom: 15px; overflow-x: auto; }
 .osm-row { position: relative; white-space: nowrap; overflow: hidden; }
 .osm-list-empty {
   padding: 24px 12px; color: #888;
@@ -590,7 +703,8 @@
 /* Finder list-view column headers, 21px: raised cc cells; the sorted
    column's cell is sunk (88 face), and its cells shade dd while the
    others stay ee, with a white rule under every row. */
-.osm-colheads { display: flex; height: 21px; }
+/* A list's header option scrolls the headers sideways with its rows. */
+.osm-colheads { display: flex; height: 21px; overflow: hidden; }
 .osm-colhead {
   position: relative;
   box-sizing: border-box;
@@ -642,3 +756,6 @@
 }
 /* Headers run edge to edge under the placard: ring them inside. */
 .osm-kbd .osm-colhead:focus-visible { outline-offset: -3px; }
+.osm-kbd .osm-menubar-title:focus-visible {
+  outline: 2px solid #6666cc; outline-offset: -2px;
+}

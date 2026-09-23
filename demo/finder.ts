@@ -1,8 +1,9 @@
 // "Osmium HD": a Finder window in list view. A header placard, column
 // headers that sort (the sorted column's header sinks and its cells
-// shade), rows with small icons, a scroll bar and keyboard navigation
-// from mountList, and a dimmed horizontal scroll bar beside the grow
-// box. Double-clicking one of the demo's own items opens its window.
+// shade), rows with small icons, and from mountList both scroll bars
+// and keyboard navigation. The columns keep their widths, so a narrow
+// window scrolls sideways, headers and all. Double-clicking one of the
+// demo's own items opens its window.
 import { centerText, mountList } from "../src/index.js";
 import type { Size } from "../src/index.js";
 import { el } from "./dom.js";
@@ -109,9 +110,7 @@ export function buildFinder(content: HTMLElement,
                      `${ITEMS.length} items, 312.4 MB available`);
   const heads = el("div", "osm-colheads fnd-heads");
   const listEl = el("div", "fnd-list");
-  const hbar = el("div", "fnd-hbar");
-  hbar.setAttribute("aria-hidden", "true");
-  root.append(placard, heads, listEl, hbar);
+  root.append(placard, heads, listEl);
   content.append(root);
   centerText(placard);
 
@@ -119,6 +118,8 @@ export function buildFinder(content: HTMLElement,
   const list = mountList(listEl, {
     rowHeight: ROW_H,
     label: "Osmium HD",
+    scrollbars: "both",
+    header: heads,
     onOpen(i) {
       const target = items[i]?.opens;
       if (target) env.open?.(target);

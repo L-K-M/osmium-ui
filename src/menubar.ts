@@ -1,17 +1,21 @@
-// A Mac OS 8 menu bar for the desktop demo: Charcoal titles on the
-// Platinum bar, pull-down menus drawn like the kit's pop-up menus
-// (.osm-menu), and a clock. Menus are "sticky" as in Mac OS 8: a click
-// on a title leaves its menu open, a press-drag-release chooses, and
-// while a menu is open, moving over another title switches to it.
+// The Mac OS 8 menu bar: Charcoal titles on the Platinum bar, and
+// pull-down menus drawn like the pop-up menus (.osm-menu), with dimmed
+// items and separators. Menus are "sticky" as in Mac OS 8: a click on
+// a title leaves its menu open, a press-drag-release chooses, and while
+// a menu is open, moving over another title switches to it. From the
+// keyboard, Return, Space or Down Arrow on a title opens its menu; the
+// arrow keys move through items and menus, Return chooses and Escape
+// closes.
 //
 // Geometry, from Mac OS 8.0 screenshots: titles are spaced 13px apart
 // (pen to pen minus advance); a title's highlight runs 9px either side
 // of its text, rows 0..18 of the 20px bar; its menu hangs from the
 // highlight's left edge, its top outline on the bar's bottom line.
-import { installOsmium } from "../src/index.js";
-import { el, swallowClick } from "./dom.js";
-import { sprite } from "./icons.js";
-import type { SpriteName } from "./icons.js";
+import {
+  MENU_SEPARATOR, inside, menuSeparator, part, swallowClick, textWidth,
+} from "./controls.js";
+import type { MenuSeparator } from "./controls.js";
+import { installOsmium } from "./install.js";
 
 export interface MenuItem {
   readonly title: string;
@@ -19,13 +23,15 @@ export interface MenuItem {
   readonly action?: () => void;
 }
 
-/** An item, or null for a separator line. */
-export type MenuEntry = MenuItem | null;
+/** An item, or MENU_SEPARATOR for a dividing line. */
+export type MenuEntry = MenuItem | MenuSeparator;
 
 export interface Menu {
   /** The title text, or its accessible name when `icon` is given. */
   readonly title: string;
-  readonly icon?: SpriteName;
+  /** A 16 x 16 sprite registered with registerSprites, drawn instead of
+   * the title text (the Apple menu's apple, say). */
+  readonly icon?: string;
   /** Built each time the menu opens, so items reflect current state. */
   items(): readonly MenuEntry[];
 }
@@ -40,19 +46,24 @@ const ICON_W = 16;
 /** The bar's bottom line, where menus hang from. */
 const MENU_TOP = 19;
 
+/** Make `bar` (styled .osm-menubar, 20px tall; place it along the top
+ * of the page) a menu bar with `menus`, left to right. Anything else
+ * appended to the bar, a clock say, is the app's to place. Removing
+ * the bar from the page ends it; mount a fresh element to show one
+ * again. */
 export function mountMenuBar(bar: HTMLElement, menus: readonly Menu[]): void {
-  bar.classList.add("mb");
+  bar.classList.add("osm-menubar");
   bar.setAttribute("role", "menubar");
   const titles = menus.map((m) => {
-    const t = el("button", "mb-title");
+    const t = part("button", "osm-menubar-title") as HTMLButtonElement;
     t.type = "button";
     t.setAttribute("role", "menuitem");
     t.setAttribute("aria-haspopup", "menu");
     t.setAttribute("aria-expanded", "false");
     t.tabIndex = -1;
     if (m.icon) {
-      const icon = el("span", "mb-icon");
-      icon.style.backgroundImage = sprite(m.icon);
+      const icon = part("span", "osm-menubar-icon");
+      icon.style.backgroundImage = `var(--osm-sprite-${m.icon})`;
       t.append(icon);
       t.setAttribute("aria-label", m.title);
     } else {
@@ -61,16 +72,14 @@ export function mountMenuBar(bar: HTMLElement, menus: readonly Menu[]): void {
     bar.append(t);
     return t;
   });
-  titles[0]!.tabIndex = 0;
-  const clock = el("div", "mb-clock");
-  bar.append(clock);
+  if (titles[0]) titles[0].tabIndex = 0;
 
   // Titles sit at measured pens, so the layout waits for the fonts.
   const layout = () => {
     let pen = FIRST_PEN;
     menus.forEach((m, i) => {
       const t = titles[i]!;
-      const w = m.icon ? ICON_W : textWidth(t);
+      const w = m.icon ? ICON_W : textWidth(t.textContent ?? "", t);
       t.style.left = `${pen - TITLE_PAD}px`;
       t.style.width = `${w + 2 * TITLE_PAD}px`;
       pen += w + TITLE_GAP;
@@ -78,13 +87,6 @@ export function mountMenuBar(bar: HTMLElement, menus: readonly Menu[]): void {
   };
   layout();
   void installOsmium().catch(() => {}).finally(layout);
-
-  const tick = () => {
-    clock.textContent = new Date().toLocaleTimeString("en-US",
-      { hour: "numeric", minute: "2-digit" });
-  };
-  tick();
-  setInterval(tick, 10_000);
 
   // ---- the open menu ----------------------------------------------------
   let open = -1;
@@ -104,7 +106,8 @@ export function mountMenuBar(bar: HTMLElement, menus: readonly Menu[]): void {
   }
 
   function enabled(i: number): boolean {
-    return !!entries[i]?.action;
+    const e = entries[i];
+    return e !== undefined && e !== MENU_SEPARATOR && !!e.action;
   }
 
   function show(i: number): void {
@@ -112,34 +115,38 @@ export function mountMenuBar(bar: HTMLElement, menus: readonly Menu[]): void {
     hide();
     open = i;
     const t = titles[i]!;
-    t.classList.add("mb-open");
+    t.classList.add("osm-open");
     t.setAttribute("aria-expanded", "true");
     entries = menus[i]!.items();
-    list = el("ul", "osm-menu mb-menu");
+    list = part("ul", "osm-menu");
     list.setAttribute("role", "menu");
     list.setAttribute("aria-label", menus[i]!.title);
     list.tabIndex = -1;
     for (const e of entries) {
-      const li = el("li", e ? "osm-menu-item" : "mb-separator");
-      if (!e) {
-        li.setAttribute("role", "separator");
-      } else {
-        li.textContent = e.title;
-        li.setAttribute("role", "menuitem");
-        if (!e.action) li.setAttribute("aria-disabled", "true");
+      if (e === MENU_SEPARATOR) {
+        list.append(menuSeparator());
+        continue;
       }
+      const li = part("li", "osm-menu-item");
+      li.textContent = e.title;
+      li.setAttribute("role", "menuitem");
+      if (!e.action) li.setAttribute("aria-disabled", "true");
       list.append(li);
     }
-    list.style.left = t.style.left;
-    list.style.top = `${MENU_TOP}px`;
     document.body.append(list);
+    // Hung from the title's highlight, kept on screen with its shadow.
+    const r = t.getBoundingClientRect();
+    const left = Math.max(0, Math.min(Math.round(r.left),
+                                      window.innerWidth - list.offsetWidth - 2));
+    list.style.left = `${left}px`;
+    list.style.top = `${Math.round(bar.getBoundingClientRect().top) + MENU_TOP}px`;
     list.focus({ preventScroll: true });
     hi = -1;
   }
 
   function hide(): void {
     if (open < 0) return;
-    titles[open]!.classList.remove("mb-open");
+    titles[open]!.classList.remove("osm-open");
     titles[open]!.setAttribute("aria-expanded", "false");
     list?.remove();
     list = null;
@@ -168,8 +175,8 @@ export function mountMenuBar(bar: HTMLElement, menus: readonly Menu[]): void {
   function choose(i: number): void {
     const e = entries[i];
     const m = list;
-    if (!e?.action || !m) return;
-    const action = e.action;
+    if (!enabled(i) || !m || e === undefined || e === MENU_SEPARATOR) return;
+    const action = e.action!;
     highlight(-1);
     setTimeout(() => { if (list === m) highlight(i); }, 50);
     setTimeout(() => {
@@ -220,10 +227,22 @@ export function mountMenuBar(bar: HTMLElement, menus: readonly Menu[]): void {
     window.addEventListener("pointercancel", up, true);
   });
 
+  // The bar's pointer and key tracking is the document's: a bar taken
+  // out of the page closes its open menu and drops those listeners at
+  // the next pointer move or key press, for good. To show a menu bar
+  // again, mount a fresh element.
+  const gone = new AbortController();
+  function detached(): boolean {
+    if (bar.isConnected) return false;
+    close();
+    gone.abort();
+    return true;
+  }
+
   // An open menu follows the pointer, pressed or not (sticky menus).
   document.addEventListener("pointermove", (e) => {
-    if (open >= 0) track(e.clientX, e.clientY);
-  });
+    if (!detached() && open >= 0) track(e.clientX, e.clientY);
+  }, { signal: gone.signal });
 
   // A press anywhere but on a title or in the menu closes the menu and
   // does nothing else; one inside the menu chooses on release.
@@ -245,11 +264,10 @@ export function mountMenuBar(bar: HTMLElement, menus: readonly Menu[]): void {
     swallowClick();
   }
 
-  // Keyboard: arrows move through items and menus, Return chooses,
-  // Escape closes. A focused title opens its menu with Return, Space
-  // or Down Arrow.
+  // Keyboard, while a menu is open: arrows move through items and
+  // menus, Return chooses, Escape closes.
   document.addEventListener("keydown", (e) => {
-    if (open < 0) return;
+    if (detached() || open < 0) return;
     const n = entries.length;
     const step = (d: number) => {
       for (let k = 1; k <= n; k++) {
@@ -269,7 +287,7 @@ export function mountMenuBar(bar: HTMLElement, menus: readonly Menu[]): void {
     else return;
     e.preventDefault();
     e.stopPropagation();
-  }, true);
+  }, { capture: true, signal: gone.signal });
   titles.forEach((t, i) => t.addEventListener("keydown", (e) => {
     if (open >= 0 || !["Enter", " ", "ArrowDown"].includes(e.key)) return;
     e.preventDefault();
@@ -278,19 +296,3 @@ export function mountMenuBar(bar: HTMLElement, menus: readonly Menu[]): void {
     for (let k = 0; k < n; k++) if (enabled(k)) { highlight(k); break; }
   }));
 }
-
-function inside(e: Element, x: number, y: number): boolean {
-  const r = e.getBoundingClientRect();
-  return x >= r.left && x < r.right && y >= r.top && y < r.bottom;
-}
-
-/** Advance width of an element's text in its own font. */
-function textWidth(e: HTMLElement): number {
-  const ctx = (measure ??= document.createElement("canvas")).getContext("2d");
-  if (!ctx) return e.scrollWidth;
-  const cs = getComputedStyle(e);
-  ctx.font = `${cs.fontWeight} ${cs.fontSize} ${cs.fontFamily}`;
-  return Math.round(ctx.measureText(e.textContent ?? "").width);
-}
-let measure: HTMLCanvasElement | undefined;
-

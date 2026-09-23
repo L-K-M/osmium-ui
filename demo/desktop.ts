@@ -6,12 +6,13 @@
 // while a titlebar press activates and drags in one gesture); close
 // boxes hide windows, which the menu bar and the desktop icons reopen;
 // collapse boxes windowshade; the Finder window zooms and grows.
-import { installOsmium, mountWindow } from "../src/index.js";
+import {
+  MENU_SEPARATOR, installOsmium, mountMenuBar, mountWindow,
+} from "../src/index.js";
 import type { OsmiumWindow, Size } from "../src/index.js";
 import { el, swallowClick } from "./dom.js";
 import { registerDemoSprites, sprite } from "./icons.js";
 import type { SpriteName } from "./icons.js";
-import { mountMenuBar } from "./menubar.js";
 import { registerPatterns } from "./patterns.js";
 import type { Pattern } from "./patterns.js";
 import { WINDOWS } from "./windows.js";
@@ -311,10 +312,11 @@ void installOsmium().catch(() => {}).finally(placeLabels);
 const openable = (id: WindowId) => ({
   title: windows.get(id)!.spec.title, action: () => open(id),
 });
-mountMenuBar(document.getElementById("menubar")!, [
+const menubar = document.getElementById("menubar")!;
+mountMenuBar(menubar, [
   { title: "Osmium", icon: "logo", items: () => [
     { title: "About Osmium UI…", action: () => open("about") },
-    null,
+    MENU_SEPARATOR,
     openable("panel"),
     openable("controls"),
     openable("finder"),
@@ -328,15 +330,26 @@ mountMenuBar(document.getElementById("menubar")!, [
     ];
   } },
   { title: "Edit", items: () => [
-    { title: "Undo" }, null, { title: "Cut" }, { title: "Copy" },
-    { title: "Paste" }, { title: "Clear" }, null, { title: "Select All" },
+    { title: "Undo" }, MENU_SEPARATOR, { title: "Cut" }, { title: "Copy" },
+    { title: "Paste" }, { title: "Clear" }, MENU_SEPARATOR,
+    { title: "Select All" },
   ] },
   { title: "Special", items: () => [
     { title: "Clean Up", action: cleanUp },
     { title: "Empty Trash…" },
-    null,
+    MENU_SEPARATOR,
     { title: "Restart", action: () => location.reload() },
   ] },
 ]);
+
+// The clock at the menu bar's right end.
+const clock = el("div", "dsk-clock");
+menubar.append(clock);
+const tick = () => {
+  clock.textContent = new Date().toLocaleTimeString("en-US",
+    { hour: "numeric", minute: "2-digit" });
+};
+tick();
+setInterval(tick, 10_000);
 
 cleanUp();

@@ -41,3 +41,8 @@ jobs:
       - run: swift build
       - run: make -C demo/macos
       - run: test -x demo/macos/OsmiumDemo.app/Contents/MacOS/OsmiumDemo
+      # Swift 6 language mode: its data-race checks cover the window
+      # host too, which the demo compiles in. Warnings fail the build: a
+      # delegate method that only nearly matches its requirement is a
+      # warning, and AppKit would never call it.
+      - run: make -C demo/macos SWIFT_VERSION=6 SWIFTFLAGS=-warnings-as-errors

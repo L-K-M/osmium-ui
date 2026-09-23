@@ -1,7 +1,7 @@
 // The demo's own pixel art, registered with registerSprites() as
-// --osm-sprite-<name> custom properties: the menu bar's logo and screen
-// corners, desktop and About icons (32 x 32), Finder list icons
-// (16 x 16) and control panel pane icons (32 x 32). Grids use the
+// --osm-sprite-<name> custom properties: the menu bar's logo, desktop
+// and About icons (32 x 32), Finder list icons (16 x 16) and control
+// panel pane icons (32 x 32). Grids use the
 // kit's palette keys (a hex digit is a gray level, n/l/m/p/q the
 // lavender ramp, '.' is transparent) plus the colors in PALETTE.
 import { registerSprites } from "../src/index.js";
@@ -31,30 +31,6 @@ const LOGO = [
   "................",
   "................",
   "................",
-];
-
-/** The screen's rounded top corners, over the menu bar's ends (from a
- * Mac OS 8.0 capture). */
-const CORNER_LEFT = [
-  "000005ad",
-  "0005afff",
-  "005dfddd",
-  "05dfdddd",
-  "0afddddd",
-  "5fdddddd",
-  "afdddddd",
-  "dfdddddd",
-];
-
-const CORNER_RIGHT = [
-  "da500000",
-  "dcb85000",
-  "dddb8500",
-  "ddddb850",
-  "dddddb80",
-  "dddddda5",
-  "ddddddb7",
-  "ddddddc8",
 ];
 
 // ---- desktop icons (32 x 32) ---------------------------------------
@@ -485,8 +461,6 @@ const PANE_PICTURE = [
 
 const SPRITES = {
   logo: LOGO,
-  "corner-left": CORNER_LEFT,
-  "corner-right": CORNER_RIGHT,
   "icon-disk": DISK,
   "icon-app": APP,
   "icon-panel": PANEL,

@@ -6,13 +6,15 @@
 // assistive tech keep working.
 import { installOsmium } from "./install.js";
 
-function part(tag: string, cls: string): HTMLElement {
+// part, inside, textWidth and swallowClick are also menubar.ts's.
+
+export function part(tag: string, cls: string): HTMLElement {
   const e = document.createElement(tag);
   e.className = cls;
   return e;
 }
 
-function inside(el: Element, x: number, y: number): boolean {
+export function inside(el: Element, x: number, y: number): boolean {
   const r = el.getBoundingClientRect();
   return x >= r.left && x < r.right && y >= r.top && y < r.bottom;
 }
@@ -83,7 +85,7 @@ function isDisabled(el: Element): boolean {
 /** Advance width of `text` in `el`'s font. Canvas metrics work for
  * hidden elements too, and the bitmap fonts' advances are whole
  * pixels. */
-function textWidth(text: string, el: Element): number {
+export function textWidth(text: string, el: Element): number {
   const ctx = (measure ??= document.createElement("canvas")).getContext("2d");
   if (!ctx) return 0;
   const cs = getComputedStyle(el);
@@ -207,15 +209,62 @@ export function bindDialogKeys(ok: HTMLButtonElement | null,
 
 // ---- pop-up menus -----------------------------------------------------
 
+/** A menu's dividing line, among a pop-up's items or a menu bar menu's
+ * entries. It can't be highlighted or chosen, but it has an index like
+ * the items around it. */
+export const MENU_SEPARATOR: unique symbol = Symbol("osm-menu-separator");
+export type MenuSeparator = typeof MENU_SEPARATOR;
+
 /** Menu item height. */
 const ITEM_H = 16;
+/** Separator height, its engraved line on rows 2 and 3 (Mac OS 8.0's
+ * Apple menu). */
+const SEPARATOR_H = 6;
 /** Width of a pop-up's arrow section, which its menu doesn't cover. */
 const ARROW_W = 21;
 /** Item text inset plus room after it, for sizing the menu. */
 const ITEM_PAD = 18 + 12 + 2; // inset, right margin, outline
 
+/** Where entry `index` starts in a menu: the height of the entries
+ * above it. */
+export function entryTop(entries: readonly unknown[], index: number): number {
+  let y = 0;
+  for (let i = 0; i < Math.min(index, entries.length); i++)
+    y += entries[i] === MENU_SEPARATOR ? SEPARATOR_H : ITEM_H;
+  return y;
+}
+
+/** A separator's element in an open menu. */
+export function menuSeparator(): HTMLElement {
+  const li = part("li", "osm-menu-separator");
+  li.setAttribute("role", "separator");
+  return li;
+}
+
+/** Swallow the click that ends the current press: a press that only
+ * dismissed a menu must do nothing else, or a label or checkbox under
+ * it would act. */
+export function swallowClick(): void {
+  const eat = (ev: Event) => {
+    // detail 0: a keyboard-activated click, not this press's.
+    if ((ev as MouseEvent).detail === 0) { done(); return; }
+    ev.stopPropagation();
+    ev.preventDefault();
+    done();
+  };
+  const done = () => {
+    document.removeEventListener("click", eat, true);
+    document.removeEventListener("pointerdown", done, true);
+  };
+  document.addEventListener("click", eat, true);
+  // A press that never becomes a click mustn't eat the next one.
+  setTimeout(() => document.addEventListener("pointerdown", done, true));
+}
+
 export interface PopupOptions {
-  items: readonly string[];
+  /** The menu's items, with MENU_SEPARATOR for a dividing line. */
+  items: readonly (string | MenuSeparator)[];
+  /** The current item's index; never a separator's. */
   selected: number;
   onChange(index: number): void;
   label?: string;
@@ -223,20 +272,19 @@ export interface PopupOptions {
 
 export interface Popup {
   readonly selected: number;
-  setItems(items: readonly string[], selected: number): void;
+  setItems(items: readonly (string | MenuSeparator)[], selected: number): void;
   setSelected(index: number): void;
 }
 
 let popupSeq = 0;
 
-/** A pop-up menu's top edge: the current item over the button, moved
- * down or up as needed to keep the menu (and its 2px shadow) on
- * screen. */
-export function menuTop(buttonTop: number, selected: number, count: number,
+/** A pop-up menu's top edge: the current item over the button (`above`
+ * is the height of the entries before it), moved down or up as needed
+ * to keep the menu, `height` tall, and its 2px shadow on screen. */
+export function menuTop(buttonTop: number, above: number, height: number,
                         viewportH: number): number {
-  const h = count * ITEM_H + 2;
-  const top = buttonTop - Math.max(0, selected) * ITEM_H;
-  return Math.min(Math.max(0, top), Math.max(0, viewportH - h - 2));
+  const top = buttonTop - above;
+  return Math.min(Math.max(0, top), Math.max(0, viewportH - height - 2));
 }
 
 /** A pop-up button: shows the current item; its menu opens over the
@@ -257,28 +305,38 @@ export function mountPopup(btn: HTMLButtonElement,
   btn.setAttribute("aria-haspopup", "listbox");
   btn.setAttribute("aria-expanded", "false");
 
+  const isItem = (i: number) => typeof items[i] === "string";
   const render = () => {
-    btn.textContent = items[selected] ?? "";
+    const text = items[selected];
+    btn.textContent = typeof text === "string" ? text : "";
     // An aria-label replaces a button's content in its name, so it
     // carries the current item too.
     if (opts.label)
-      btn.setAttribute("aria-label", `${opts.label} ${items[selected] ?? ""}`);
+      btn.setAttribute("aria-label", `${opts.label} ${btn.textContent}`);
   };
   render();
 
   function highlight(i: number): void {
     if (!menu) return;
-    hi = i;
-    menu.querySelectorAll(".osm-menu-item").forEach((li, k) =>
-      li.classList.toggle("osm-highlight", k === i));
-    if (i >= 0) menu.setAttribute("aria-activedescendant", `${id}-${i}`);
+    hi = isItem(i) ? i : -1;
+    Array.from(menu.children).forEach((li, k) =>
+      li.classList.toggle("osm-highlight", k === hi));
+    if (hi >= 0) menu.setAttribute("aria-activedescendant", `${id}-${hi}`);
     else menu.removeAttribute("aria-activedescendant");
   }
 
+  /** The entry under the pointer, separators included; -1 outside. */
   function itemAt(x: number, y: number): number {
     if (!menu || !inside(menu, x, y)) return -1;
-    const lis = Array.from(menu.querySelectorAll(".osm-menu-item"));
-    return lis.findIndex((li) => inside(li, x, y));
+    return Array.from(menu.children).findIndex((li) => inside(li, x, y));
+  }
+
+  /** The next item from `from` in direction `d`, skipping separators;
+   * `from` itself when there's none. */
+  function nextItem(from: number, d: 1 | -1): number {
+    for (let i = from + d; i >= 0 && i < items.length; i += d)
+      if (isItem(i)) return i;
+    return from;
   }
 
   function open(byKey: boolean): void {
@@ -294,6 +352,10 @@ export function mountPopup(btn: HTMLButtonElement,
     menu.tabIndex = -1;
     if (opts.label) menu.setAttribute("aria-label", opts.label);
     items.forEach((text, i) => {
+      if (text === MENU_SEPARATOR) {
+        menu!.appendChild(menuSeparator());
+        return;
+      }
       const li = part("li", "osm-menu-item");
       li.id = `${id}-${i}`;
       li.setAttribute("role", "option");
@@ -305,11 +367,12 @@ export function mountPopup(btn: HTMLButtonElement,
     // The menu covers the text part of the button (outline to the
     // arrow's separator) and grows to fit its widest item, kept on
     // screen together with its 2px shadow.
-    const widest = Math.max(0, ...items.map((t) => textWidth(t, btn)));
+    const widest = Math.max(0, ...items.map((t) =>
+      typeof t === "string" ? textWidth(t, btn) : 0));
     const w = Math.max(Math.round(r.width) - ARROW_W, widest + ITEM_PAD);
-    const h = items.length * ITEM_H + 2;
-    const top = menuTop(Math.round(r.top), selected, items.length,
-                        window.innerHeight);
+    const h = entryTop(items, items.length) + 2;
+    const above = entryTop(items, Math.max(0, selected));
+    const top = menuTop(Math.round(r.top), above, h, window.innerHeight);
     const left = Math.max(0, Math.min(Math.round(r.left),
                                       window.innerWidth - w - 2));
     menu.style.left = `${left}px`;
@@ -320,8 +383,7 @@ export function mountPopup(btn: HTMLButtonElement,
       // Taller than the screen: scroll so the current item still
       // sits over the button.
       menu.style.overflowY = "auto";
-      menu.scrollTop = Math.max(0, Math.max(0, selected) * ITEM_H -
-                                   (Math.round(r.top) - top));
+      menu.scrollTop = Math.max(0, above - (Math.round(r.top) - top));
     }
     btn.classList.add("osm-pressed");
     btn.setAttribute("aria-expanded", "true");
@@ -370,7 +432,7 @@ export function mountPopup(btn: HTMLButtonElement,
 
   function choose(i: number): void {
     const m = menu;
-    if (!m) return;
+    if (!m || !isItem(i)) return;
     // One blink of the chosen item, then the menu goes away.
     m.querySelectorAll(".osm-menu-item").forEach((li) =>
       li.classList.remove("osm-highlight"));
@@ -394,29 +456,17 @@ export function mountPopup(btn: HTMLButtonElement,
       e.stopPropagation();
       e.preventDefault();
       close();
-      const eat = (ev: Event) => {
-        // detail 0: a keyboard-activated click, not this press's.
-        if ((ev as MouseEvent).detail === 0) { done(); return; }
-        ev.stopPropagation();
-        ev.preventDefault();
-        done();
-      };
-      const done = () => {
-        document.removeEventListener("click", eat, true);
-        document.removeEventListener("pointerdown", done, true);
-      };
-      document.addEventListener("click", eat, true);
-      // A press that never becomes a click mustn't eat the next one.
-      setTimeout(() => document.addEventListener("pointerdown", done, true));
+      swallowClick();
     }
   }
 
   function onMenuKey(e: KeyboardEvent): void {
     const n = items.length;
-    if (e.key === "ArrowDown") highlight(Math.min(n - 1, hi + 1));
-    else if (e.key === "ArrowUp") highlight(Math.max(0, hi < 0 ? 0 : hi - 1));
-    else if (e.key === "Home") highlight(0);
-    else if (e.key === "End") highlight(n - 1);
+    if (e.key === "ArrowDown") highlight(nextItem(hi, 1));
+    else if (e.key === "ArrowUp")
+      highlight(hi < 0 ? nextItem(-1, 1) : nextItem(hi, -1));
+    else if (e.key === "Home") highlight(nextItem(-1, 1));
+    else if (e.key === "End") highlight(nextItem(n, -1));
     else if (e.key === "Enter" || e.key === " ") {
       if (hi >= 0 && !e.repeat) choose(hi);
     } else if (e.key === "Escape" || e.key === "Tab") close();
@@ -425,7 +475,11 @@ export function mountPopup(btn: HTMLButtonElement,
       const from = hi + 1;
       for (let d = 0; d < n; d++) {
         const i = (from + d) % n;
-        if (items[i]!.toLowerCase().startsWith(k)) { highlight(i); break; }
+        const t = items[i];
+        if (typeof t === "string" && t.toLowerCase().startsWith(k)) {
+          highlight(i);
+          break;
+        }
       }
     } else return;
     e.preventDefault();
@@ -447,8 +501,10 @@ export function mountPopup(btn: HTMLButtonElement,
       if (ev.type === "pointercancel") return;
       const i = itemAt(ev.clientX, ev.clientY);
       const moved = Math.abs(ev.clientX - x0) + Math.abs(ev.clientY - y0) > 3;
-      if (i >= 0 && moved) choose(i);
-      else if (moved && !inside(btn, ev.clientX, ev.clientY) &&
+      // A drag that ends on a separator chooses nothing.
+      if (i >= 0 && moved) {
+        if (isItem(i)) choose(i); else close();
+      } else if (moved && !inside(btn, ev.clientX, ev.clientY) &&
                !(menu && inside(menu, ev.clientX, ev.clientY))) close();
     };
     const move = (ev: PointerEvent) => {
@@ -487,53 +543,100 @@ export function mountPopup(btn: HTMLButtonElement,
 
 // ---- scroll bars ------------------------------------------------------
 
-/** Arrow height, separator included (the thumb overlaps the separator
+/** Arrow length, separator included (the thumb overlaps the separator
  * at either end of its travel). */
-const ARROW_H = 16;
-/** Thumb bitmap height, both black lines included. */
-const THUMB_H = 17;
+const ARROW_LEN = 16;
+/** Thumb bitmap length, both black lines included. */
+const THUMB_LEN = 17;
 /** Delay before a held arrow or track press starts repeating, and the
  * repeat period. */
 const REPEAT_DELAY_MS = 250;
 const REPEAT_MS = 50;
+
+/** Which way a scroll bar runs: down the right edge of what it scrolls,
+ * or along the bottom. */
+export type ScrollAxis = "vertical" | "horizontal";
 
 export interface Scrollbar {
   /** Re-read the view's extent (call after content changes size). */
   update(): void;
 }
 
-/** Thumb top (its black top line) for a scroll fraction, in a bar of
- * height `h`: from the up arrow's separator to the down arrow's. */
-export function thumbTop(h: number, frac: number): number {
-  const travel = h - 2 * ARROW_H - THUMB_H + 2;
-  return ARROW_H - 1 + Math.round(Math.min(1, Math.max(0, frac)) * travel);
+/** Where the thumb starts (its black leading line) for a scroll
+ * fraction, in a bar `len` long: from the first arrow's separator to
+ * the second's. */
+export function thumbStart(len: number, frac: number): number {
+  const travel = len - 2 * ARROW_LEN - THUMB_LEN + 2;
+  return ARROW_LEN - 1 + Math.round(Math.min(1, Math.max(0, frac)) * travel);
 }
 
-/** Give `view` (a scrolling child of `host`) an Osmium scroll bar on
- * the right edge of `host`, overlapping its 1px edge. `line` is the
- * arrow step. The view keeps native wheel and keyboard scrolling. */
-export function attachScrollbar(host: HTMLElement, view: HTMLElement,
-                                line: number): Scrollbar {
-  const bar = part("div", "osm-scrollbar");
-  bar.setAttribute("aria-hidden", "true"); // the view scrolls natively
-  const up = part("div", "osm-sb-up");
-  const down = part("div", "osm-sb-down");
-  const thumb = part("div", "osm-sb-thumb");
-  bar.append(thumb, up, down);
-  host.appendChild(bar);
-  host.classList.add("osm-has-scrollbar");
+/** A scroll bar's view of its axis: the view's scroll range and
+ * position, and where the bar, the thumb and the pointer are along it. */
+interface AxisOps {
+  max(): number;
+  pos(): number;
+  scrollTo(p: number): void;
+  /** The view's visible extent, a page. */
+  page(): number;
+  length(): number;
+  /** A pointer position along the bar, from its start. */
+  along(x: number, y: number): number;
+  thumb(): number;
+  placeThumb(t: number): void;
+}
 
-  const max = () => view.scrollHeight - view.clientHeight;
-  const barH = () => bar.offsetHeight;
+function axisOps(axis: ScrollAxis, view: HTMLElement, bar: HTMLElement,
+                 thumb: HTMLElement): AxisOps {
+  if (axis === "vertical") {
+    return {
+      max: () => view.scrollHeight - view.clientHeight,
+      pos: () => view.scrollTop,
+      scrollTo: (p) => { view.scrollTop = p; },
+      page: () => view.clientHeight,
+      length: () => bar.offsetHeight,
+      along: (_x, y) => y - bar.getBoundingClientRect().top,
+      thumb: () => thumb.offsetTop,
+      placeThumb: (t) => { thumb.style.top = `${t}px`; },
+    };
+  }
+  return {
+    max: () => view.scrollWidth - view.clientWidth,
+    pos: () => view.scrollLeft,
+    scrollTo: (p) => { view.scrollLeft = p; },
+    page: () => view.clientWidth,
+    length: () => bar.offsetWidth,
+    along: (x) => x - bar.getBoundingClientRect().left,
+    thumb: () => thumb.offsetLeft,
+    placeThumb: (t) => { thumb.style.left = `${t}px`; },
+  };
+}
+
+/** Give `view` (a scrolling child of `host`) an Osmium scroll bar,
+ * overlapping `host`'s 1px edge: on its right edge, or with
+ * "horizontal" along its bottom. `line` is the arrow step. The view
+ * keeps native wheel and keyboard scrolling. */
+export function attachScrollbar(host: HTMLElement, view: HTMLElement,
+                                line: number,
+                                axis: ScrollAxis = "vertical"): Scrollbar {
+  const vertical = axis === "vertical";
+  const bar = part("div", vertical ? "osm-scrollbar" : "osm-hscrollbar");
+  bar.setAttribute("aria-hidden", "true"); // the view scrolls natively
+  const back = part("div", vertical ? "osm-sb-up" : "osm-sb-left");
+  const forward = part("div", vertical ? "osm-sb-down" : "osm-sb-right");
+  const thumb = part("div", "osm-sb-thumb");
+  bar.append(thumb, back, forward);
+  host.appendChild(bar);
+  host.classList.add(vertical ? "osm-has-scrollbar" : "osm-has-hscrollbar");
+
+  const ax = axisOps(axis, view, bar, thumb);
   let dragging = false;
 
   function update(): void {
-    const m = max();
-    const h = barH();
+    const m = ax.max();
+    const len = ax.length();
     bar.classList.toggle("osm-sb-off", m <= 0);
-    thumb.style.display = h < 2 * ARROW_H + THUMB_H ? "none" : "";
-    if (!dragging && m > 0)
-      thumb.style.top = `${thumbTop(h, view.scrollTop / m)}px`;
+    thumb.style.display = len < 2 * ARROW_LEN + THUMB_LEN ? "none" : "";
+    if (!dragging && m > 0) ax.placeThumb(thumbStart(len, ax.pos() / m));
   }
 
   /** Run `step` now and then repeatedly while the press lasts and
@@ -564,11 +667,11 @@ export function attachScrollbar(host: HTMLElement, view: HTMLElement,
     el.addEventListener("pointercancel", end);
   }
 
-  for (const [arrow, dir] of [[up, -1], [down, 1]] as const) {
+  for (const [arrow, dir] of [[back, -1], [forward, 1]] as const) {
     arrow.addEventListener("pointerdown", (e) => {
-      if (e.button !== 0 || max() <= 0) return;
+      if (e.button !== 0 || ax.max() <= 0) return;
       arrow.classList.add("osm-pressed");
-      repeat(arrow, e, () => { view.scrollTop += dir * line; },
+      repeat(arrow, e, () => ax.scrollTo(ax.pos() + dir * line),
              (x, y) => {
                const over = inside(arrow, x, y);
                arrow.classList.toggle("osm-pressed", over);
@@ -579,17 +682,15 @@ export function attachScrollbar(host: HTMLElement, view: HTMLElement,
 
   // Track: page toward the pointer until the thumb reaches it.
   bar.addEventListener("pointerdown", (e) => {
-    if (e.button !== 0 || e.target !== bar || max() <= 0) return;
-    const page = Math.max(line, view.clientHeight - line);
-    const top = bar.getBoundingClientRect().top;
-    repeat(bar, e, (_x, y) => {
-      const t = thumb.offsetTop;
-      const py = y - top;
-      if (py < t) view.scrollTop -= page;
-      else if (py > t + THUMB_H) view.scrollTop += page;
-    }, (_x, y) => {
-      const t = thumb.offsetTop, py = y - top;
-      return py < t || py > t + THUMB_H;
+    if (e.button !== 0 || e.target !== bar || ax.max() <= 0) return;
+    const page = Math.max(line, ax.page() - line);
+    repeat(bar, e, (x, y) => {
+      const t = ax.thumb(), p = ax.along(x, y);
+      if (p < t) ax.scrollTo(ax.pos() - page);
+      else if (p > t + THUMB_LEN) ax.scrollTo(ax.pos() + page);
+    }, (x, y) => {
+      const t = ax.thumb(), p = ax.along(x, y);
+      return p < t || p > t + THUMB_LEN;
     });
   });
 
@@ -601,14 +702,14 @@ export function attachScrollbar(host: HTMLElement, view: HTMLElement,
     thumb.setPointerCapture(e.pointerId);
     dragging = true;
     thumb.classList.add("osm-pressed");
-    const grab = e.clientY - thumb.offsetTop;
+    const grab = ax.along(e.clientX, e.clientY) - ax.thumb();
     const move = (ev: PointerEvent) => {
-      const h = barH();
-      const t0 = ARROW_H - 1;
-      const t1 = thumbTop(h, 1);
-      const t = Math.min(t1, Math.max(t0, Math.round(ev.clientY - grab)));
-      thumb.style.top = `${t}px`;
-      view.scrollTop = t1 > t0 ? (t - t0) / (t1 - t0) * max() : 0;
+      const t0 = ARROW_LEN - 1;
+      const t1 = thumbStart(ax.length(), 1);
+      const t = Math.min(t1, Math.max(t0,
+        Math.round(ax.along(ev.clientX, ev.clientY) - grab)));
+      ax.placeThumb(t);
+      ax.scrollTo(t1 > t0 ? (t - t0) / (t1 - t0) * ax.max() : 0);
     };
     const end = () => {
       dragging = false;
@@ -624,10 +725,12 @@ export function attachScrollbar(host: HTMLElement, view: HTMLElement,
   });
 
   // Wheel and trackpad scrolling over the bar scroll the view, as a
-  // native scroll bar would.
+  // native scroll bar would; a plain wheel over a horizontal bar
+  // scrolls sideways.
   bar.addEventListener("wheel", (e) => {
-    view.scrollTop += e.deltaY * (e.deltaMode === 1 ? line
-      : e.deltaMode === 2 ? view.clientHeight : 1);
+    const d = vertical ? e.deltaY : e.deltaX || e.deltaY;
+    ax.scrollTo(ax.pos() + d * (e.deltaMode === 1 ? line
+      : e.deltaMode === 2 ? ax.page() : 1));
     e.preventDefault();
   }, { passive: false });
   view.addEventListener("scroll", update, { passive: true });
@@ -647,7 +750,20 @@ export interface ListOptions {
   onSelect?(index: number): void;
   /** Double-click on a row. */
   onOpen?(index: number): void;
+  /** Its scroll bars; vertical only by default. */
+  scrollbars?: ListScrollbars;
+  /** Column headers above the list (.osm-colheads), kept scrolled
+   * sideways with its rows. */
+  header?: HTMLElement;
 }
+
+/** Which scroll bars a list box has. */
+export type ListScrollbars =
+  | "vertical"
+  /** A horizontal one along the bottom too. The rows scroll sideways
+   * once they are wider than the list, so give them a min-width (a list
+   * view's column total, say). */
+  | "both";
 
 /** Where a list's scroll position lands when its rows are replaced. */
 export type ListScroll =
@@ -677,6 +793,11 @@ export interface OsmiumList {
 let listSeq = 0;
 /** Movement that turns a touch press into a scroll, not a selection. */
 const TOUCH_SLOP = 6;
+/** A touch this soon after the list last scrolled, with the scroll
+ * before that as recent, lands on a list still coasting from a flick:
+ * it stops the scroll, as in native lists, rather than choosing a row
+ * the reader couldn't aim at. */
+const SCROLL_SETTLE_MS = 100;
 
 /** A single-selection list box in `host` (styled .osm-list): rows are
  * options; with a mouse the selection follows the pointer while it's
@@ -697,11 +818,29 @@ export function mountList(host: HTMLElement, opts: ListOptions): OsmiumList {
   view.addEventListener("focus", () => host.focus({ preventScroll: true }));
   host.appendChild(view);
   const sb = attachScrollbar(host, view, opts.rowHeight);
+  const hsb = opts.scrollbars === "both"
+    ? attachScrollbar(host, view, opts.rowHeight, "horizontal") : null;
+  const header = opts.header;
+  if (header) {
+    view.addEventListener("scroll", () => {
+      header.scrollLeft = view.scrollLeft;
+    }, { passive: true });
+  }
   const empty = part("div", "osm-list-empty");
   let rows: HTMLElement[] = [];
   let sel = -1;
   let typed = "";
   let typedAt = 0;
+  // When the view last scrolled as part of a run of scrolls: a coasting
+  // flick scrolls every frame, while a jump of our own (reveal, setRows,
+  // a scroll bar step) is a single scroll that mustn't eat the next tap.
+  let coastingAt = -Infinity;
+  let scrolledAt = -Infinity;
+  view.addEventListener("scroll", () => {
+    const now = performance.now();
+    if (now - scrolledAt < SCROLL_SETTLE_MS) coastingAt = now;
+    scrolledAt = now;
+  }, { passive: true });
 
   function reveal(i: number): void {
     const r = rows[i];
@@ -736,7 +875,10 @@ export function mountList(host: HTMLElement, opts: ListOptions): OsmiumList {
     if (e.button !== 0) return;
     if (e.pointerType !== "mouse") {
       // Touch and pen: a tap selects; anything that moves is a scroll
-      // (the browser's pan cancels the pointer).
+      // (the browser's pan cancels the pointer), and a tap on a list
+      // still coasting only stops it. Mouse presses always select, as a
+      // click does on a Mac list that is still scrolling.
+      if (performance.now() - coastingAt < SCROLL_SETTLE_MS) return;
       const x0 = e.clientX, y0 = e.clientY;
       view.setPointerCapture(e.pointerId);
       const up = (ev: PointerEvent) => {
@@ -827,6 +969,7 @@ export function mountList(host: HTMLElement, opts: ListOptions): OsmiumList {
       view.scrollTop = scroll === "keep" ? top : 0;
       select(keep, false, scroll === "top");
       sb.update();
+      hsb?.update();
     },
     select: (i, notify) => select(i, notify),
     setEmpty(text) {
