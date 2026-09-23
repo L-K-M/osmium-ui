@@ -2,6 +2,19 @@
 
 ## Unreleased
 
+- Add horizontal scroll bars: `attachScrollbar` takes an axis, and
+  `mountList` a `scrollbars: "both"` option and a `header` whose column
+  headers scroll sideways with the rows. The demo's Finder scrolls
+  sideways when narrow instead of truncating its columns.
+- Add menu separators (`MENU_SEPARATOR`) to pop-up menus, and the menu
+  bar (`mountMenuBar`), which moves into the kit from the demo.
+- Center bevel button icons, so bevel buttons can be wider than 40px,
+  such as Desktop Pictures' 54 x 40 pane buttons.
+- Lists no longer select a row when a tap only stops a scroll on a
+  touch screen.
+- Prepare the Swift window host and the demo app for Swift 6: they are
+  explicitly main-actor isolated, and CI builds them in Swift 6
+  language mode.
 - Import the Mac OS 8 appearance kit from Finsical as Osmium UI: document
   windows with titlebar boxes, pinstripes, grow box and windowshade, plus
   the full control set, pixel-faithful in HTML and CSS.
