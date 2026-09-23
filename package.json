@@ -1,0 +1,33 @@
+{
+  "name": "osmium-ui",
+  "version": "0.1.0",
+  "description": "A pixel-exact recreation of the Mac OS 8 look for web pages and WKWebView apps: windows, controls, bitmap fonts and a native macOS window host.",
+  "license": "Unlicense",
+  "type": "module",
+  "repository": {
+    "type": "git",
+    "url": "git+https://github.com/L-K-M/osmium-ui.git"
+  },
+  "keywords": ["mac-os-8", "retro", "ui", "widgets", "pixel-art", "wkwebview"],
+  "exports": {
+    ".": "./src/index.ts",
+    "./osmium.css": "./osmium.css"
+  },
+  "files": [
+    "src",
+    "!src/**/*.test.ts",
+    "osmium.css",
+    "macos",
+    "Package.swift"
+  ],
+  "sideEffects": false,
+  "scripts": {
+    "typecheck": "tsc --noEmit",
+    "test": "vitest run"
+  },
+  "devDependencies": {
+    "esbuild": "0.24.2",
+    "typescript": "5.6.3",
+    "vitest": "2.1.9"
+  }
+}

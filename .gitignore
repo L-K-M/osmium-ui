@@ -1,0 +1,6 @@
+node_modules/
+demo/dist/
+demo/macos/*.app
+demo/macos/*.app.staging/
+.build/
+.DS_Store

@@ -1,0 +1,632 @@
+/* Osmium UI: the Mac OS 8 window frame and the controls inside it,
+   pixel for pixel. One CSS pixel is one Mac pixel: on a 2x display
+   each becomes a crisp 2x2 block. Coordinates below are the window's
+   own (0,0 = top-left of the black outline, W x H = the outline box);
+   the 1px drop shadow hangs outside, to the right and below.
+
+   Needs installOsmium() (src/install.ts) at runtime: it registers the
+   bitmap fonts and defines the --osm-sprite-* images. Markup and
+   behavior live in src/window.ts and src/controls.ts. */
+
+:root {
+  --osm-frame: #cccccc;      /* window frame face */
+  --osm-dialog: #dddddd;     /* dialog/info content face */
+  --osm-font-system: 12px/16px "Osmium Charcoal", Charcoal, sans-serif;
+  --osm-font-small: 10px/13px "Osmium Geneva", Geneva, sans-serif;
+  --osm-font-caption: 9px/12px "Osmium Geneva 9", Geneva, sans-serif;
+  /* Frame bevel: white top/left, 99 bottom/right, face at the two
+     corners where they meet. */
+  --osm-bevel:
+    linear-gradient(#fff, #fff) 1px 1px / calc(100% - 3px) 1px no-repeat,
+    linear-gradient(#fff, #fff) 1px 1px / 1px calc(100% - 3px) no-repeat,
+    linear-gradient(#999, #999) right 1px top 2px / 1px calc(100% - 3px)
+      no-repeat,
+    linear-gradient(#999, #999) left 2px bottom 1px / calc(100% - 3px) 1px
+      no-repeat;
+  /* Groove the content sits in: 99 above and left of its black edge,
+     white below and right (the white bottom row runs one pixel further
+     left than the content, the 99 top row stops short of the white). */
+  --osm-groove:
+    linear-gradient(#999, #999) 4px 20px / calc(100% - 9px) 1px no-repeat,
+    linear-gradient(#999, #999) 4px 20px / 1px calc(100% - 25px) no-repeat,
+    linear-gradient(#fff, #fff) right 4px top 21px / 1px calc(100% - 25px)
+      no-repeat,
+    linear-gradient(#fff, #fff) left 4px bottom 4px / calc(100% - 8px) 1px
+      no-repeat;
+}
+
+/* ---- document window ---------------------------------------------- */
+.osm-window {
+  position: absolute;
+  box-sizing: border-box;
+  background: var(--osm-groove), var(--osm-bevel), var(--osm-frame);
+  box-shadow: inset 0 0 0 1px #000; /* the outline */
+  color: #000;
+  font: var(--osm-font-small);
+  font-synthesis: none;
+  /* The strikes are pixel outlines on the pixel grid: draw them
+     aliased so no smoothing pass can soften or embolden an edge. */
+  -webkit-font-smoothing: none;
+  cursor: default;
+  user-select: none;
+  -webkit-user-select: none;
+}
+/* Drop shadow: one pixel right and below, starting two pixels in. */
+.osm-window::before, .osm-window::after {
+  content: ""; position: absolute; background: #000;
+}
+.osm-window::before { top: 2px; right: -1px; bottom: -1px; width: 1px; }
+.osm-window::after { left: 2px; right: -1px; bottom: -1px; height: 1px; }
+
+/* Titlebar hit area (drags the window); boxes sit above it, the title
+   and stripes let presses through to it. */
+.osm-titlebar { position: absolute; left: 0; top: 0; right: 0; height: 20px; }
+.osm-title, .osm-stripes { pointer-events: none; }
+
+.osm-box {
+  position: absolute; top: 4px;
+  width: 13px; height: 13px;
+  margin: 0; padding: 0; border: 0;
+  background: var(--osm-sprite-close);
+  appearance: none; -webkit-appearance: none;
+  outline: none;
+}
+.osm-close { left: 4px; }
+.osm-close.osm-pressed { background-image: var(--osm-sprite-close-pressed); }
+.osm-zoom { right: 20px; background-image: var(--osm-sprite-zoom); }
+.osm-zoom.osm-pressed { background-image: var(--osm-sprite-zoom-pressed); }
+.osm-collapse { right: 4px; background-image: var(--osm-sprite-collapse); }
+.osm-collapse.osm-pressed {
+  background-image: var(--osm-sprite-collapse-pressed);
+}
+
+/* Title: Charcoal 12, baseline on row 14, left edge at
+   floor((W - width) / 2) — window.ts measures it into --osm-title-x/-w. */
+.osm-title {
+  position: absolute; top: 3px; left: var(--osm-title-x, 0);
+  font: var(--osm-font-system);
+  white-space: nowrap;
+}
+/* Pinstripes: six white/77 pairs on rows 4..15, from 5px past the
+   close box to 5px short of the first right-hand box, parted around
+   the title (3px before it, 2px after). Each gray line sits one pixel
+   right of its white line, so both ends step. */
+.osm-stripes { position: absolute; top: 4px; height: 12px; }
+.osm-stripes::before, .osm-stripes::after {
+  content: ""; position: absolute; top: 0; bottom: 0;
+}
+.osm-stripes::before {
+  left: 0; right: 1px; background: var(--osm-sprite-stripe-hi) 0 0 / 1px 2px;
+}
+.osm-stripes::after {
+  left: 1px; right: 0; background: var(--osm-sprite-stripe-lo) 0 0 / 1px 2px;
+}
+.osm-stripes-l { left: 21px; width: calc(var(--osm-title-x, 0px) - 24px); }
+.osm-stripes-r {
+  left: calc(var(--osm-title-x, 0px) + var(--osm-title-w, 0px) + 3px);
+  right: 37px;
+}
+.osm-no-zoom .osm-stripes-r { right: 21px; }
+
+/* Content: a black-edged well inside the groove, [5, W-6] x [21, H-6]. */
+.osm-content {
+  position: absolute; left: 5px; top: 21px; right: 5px; bottom: 5px;
+  border: 1px solid #000;
+  background: var(--osm-dialog);
+  overflow: hidden;
+}
+/* Grow box notched into the content's bottom-right corner. */
+.osm-grow {
+  position: absolute; right: 2px; bottom: 2px;
+  width: 19px; height: 19px;
+  background: var(--osm-sprite-grow);
+  touch-action: none;
+}
+
+/* Inactive: flat dd frame, 55 lines, no stripes or boxes, 66 title. */
+.osm-window.osm-inactive {
+  background: #ddd;
+  box-shadow: inset 0 0 0 1px #555;
+}
+.osm-inactive::before, .osm-inactive::after { background: #555; }
+.osm-inactive .osm-content { border-color: #555; }
+.osm-inactive .osm-box, .osm-inactive .osm-stripes { visibility: hidden; }
+.osm-inactive .osm-title { color: #666; }
+.osm-inactive .osm-grow { background-image: var(--osm-sprite-grow-inactive); }
+/* Controls in an inactive window dim: the progress bar loses its rim
+   and shading (55 edge, flat 9999ff fill, flat cc track). Separators
+   stay as they are. Finder information windows (Get Info; class
+   .osm-info) dim their text to 66 as well; control panels keep static
+   text black. */
+.osm-inactive.osm-info .osm-content { color: #666; }
+.osm-inactive .osm-progress { background: none; }
+.osm-inactive .osm-progress-track { border-color: #555; background: #ccc; }
+.osm-inactive .osm-progress-fill { background: #9999ff; box-shadow: 1px 0 0 #555; }
+
+/* Windowshade: only the titlebar, 22px tall, bevel closing under it. */
+.osm-window.osm-shaded { bottom: auto; height: 22px; }
+.osm-window.osm-shaded:not(.osm-inactive) {
+  background: var(--osm-bevel), var(--osm-frame);
+}
+.osm-shaded .osm-content, .osm-shaded .osm-grow { display: none; }
+
+/* ---- text ------------------------------------------------------------ */
+.osm-system { font: var(--osm-font-system); }
+.osm-small { font: var(--osm-font-small); }
+.osm-caption { font: var(--osm-font-caption); }
+.osm-label { font-weight: 700; }
+
+/* Label/value pairs, Get Info style: bold labels right-aligned on a
+   shared edge, values 4px after it, one row every 17px. */
+.osm-fields {
+  display: grid;
+  grid-template-columns: max-content minmax(0, 1fr);
+  grid-auto-rows: 17px;
+  column-gap: 4px;
+  line-height: 17px;
+}
+.osm-fields > .osm-label { justify-self: end; }
+
+/* ---- controls -------------------------------------------------------- */
+/* Separator: an engraved line, 88 over white, the white one pixel
+   right of the gray. */
+.osm-separator {
+  height: 2px;
+  background:
+    linear-gradient(#888, #888) 0 0 / calc(100% - 1px) 1px no-repeat,
+    linear-gradient(#fff, #fff) 1px 1px / calc(100% - 1px) 1px no-repeat;
+}
+
+/* Progress bar, 14px tall: engraved rim (aa top/left, white
+   bottom/right, notched corners), black edge, a sunken 55/88/bb/dd
+   track, and the lavender tube filling from the left with a black
+   divider where it stops. Set --osm-value (0..1) on the bar; markup is
+   .osm-progress > .osm-progress-track > .osm-progress-fill. */
+.osm-progress {
+  box-sizing: border-box;
+  height: 14px; padding: 1px;
+  background:
+    linear-gradient(#aaa, #aaa) 0 0 / calc(100% - 1px) 1px no-repeat,
+    linear-gradient(#aaa, #aaa) 0 0 / 1px calc(100% - 1px) no-repeat,
+    linear-gradient(#fff, #fff) right 0 bottom 0 / calc(100% - 1px) 1px
+      no-repeat,
+    linear-gradient(#fff, #fff) right 0 bottom 0 / 1px calc(100% - 1px)
+      no-repeat;
+}
+.osm-progress-track {
+  position: relative;
+  height: 10px;
+  border: 1px solid #000;
+  overflow: hidden; /* keeps the fill's shadows off the black edge */
+  background:
+    linear-gradient(#555, #555) 0 0 / 1px 100% no-repeat,
+    linear-gradient(#888, #888) 1px 0 / 1px 100% no-repeat,
+    linear-gradient(#888, #888) 0 0 / calc(100% - 1px) 1px no-repeat,
+    linear-gradient(#ddd, #ddd) right 0 bottom 0 / 1px calc(100% - 1px)
+      no-repeat,
+    linear-gradient(#ddd, #ddd) right 0 bottom 0 / calc(100% - 2px) 1px
+      no-repeat,
+    #bbb;
+}
+.osm-progress-fill {
+  position: absolute; left: 0; top: 0; height: 10px;
+  /* Whole pixels only, or the caps would smear across a pixel edge.
+     The first width is the fallback for engines without round(). */
+  width: calc(var(--osm-value, 0) * 100%);
+  width: round(down, calc(var(--osm-value, 0) * 100%), 1px);
+  background:
+    var(--osm-sprite-fill-left) 0 0 / 2px 10px no-repeat,
+    var(--osm-sprite-fill-right) right 0 top 0 / 3px 10px no-repeat,
+    var(--osm-sprite-fill) 0 0 / 1px 10px repeat-x;
+  /* Divider, then the empty track's own 55 and 88 left columns: the
+     sunken shading starts where the fill stops. */
+  box-shadow: 1px 0 0 #000, 2px 0 0 #555, 3px 0 0 #888;
+}
+
+/* ---- push buttons ---------------------------------------------------- */
+/* 20px tall, drawn from a 9-slice (4px ends, stretched middle). The
+   title is Charcoal 12 with its baseline on row 13; controls.ts
+   centers it the Control Manager way, floor((width - title) / 2), so
+   the glyphs never straddle a pixel. The content box is exactly one
+   line tall: <button> centers its content vertically, and any slack
+   would shift the title by a fraction. Pressed: dark face, white
+   title. */
+.osm-button {
+  position: relative;
+  box-sizing: border-box;
+  height: 20px; min-width: 59px;
+  margin: 0; padding: 2px 0;
+  border: solid transparent; border-width: 0 4px;
+  border-image: var(--osm-sprite-button) 0 4 fill / 0 4px;
+  background: none;
+  color: #000; font: var(--osm-font-system);
+  text-align: center; white-space: nowrap;
+  appearance: none; -webkit-appearance: none;
+  outline: none;
+  cursor: default;
+}
+.osm-button.osm-pressed {
+  border-image-source: var(--osm-sprite-button-pressed);
+  color: #fff;
+}
+.osm-button:disabled, .osm-inactive .osm-button {
+  border-image-source: var(--osm-sprite-button-disabled);
+  color: #888;
+}
+/* Default button: the same button inside a 3px ring, 26px overall. */
+.osm-button.osm-default {
+  height: 26px; min-width: 65px; padding-top: 5px; padding-bottom: 5px;
+  border-width: 0 7px;
+  border-image: var(--osm-sprite-button-default) 0 7 fill / 0 7px;
+}
+.osm-button.osm-default.osm-pressed {
+  border-image-source: var(--osm-sprite-button-default-pressed);
+}
+.osm-button.osm-default:disabled, .osm-inactive .osm-button.osm-default {
+  border-image-source: var(--osm-sprite-button-default-disabled);
+}
+
+/* ---- checkboxes ------------------------------------------------------ */
+/* <label class="osm-checkbox"><input type="checkbox"> Title</label>:
+   the 12px box's top row is 9 rows above the title's baseline row;
+   the title starts 16px after the box. */
+.osm-checkbox {
+  display: inline-flex; align-items: flex-start;
+  font: var(--osm-font-system);
+  cursor: default;
+}
+.osm-checkbox input {
+  flex: none;
+  width: 14px; height: 12px;
+  margin: 2px 2px 0 0;
+  background: var(--osm-sprite-checkbox);
+  appearance: none; -webkit-appearance: none;
+  outline: none;
+}
+.osm-checkbox input:checked { background-image: var(--osm-sprite-checkbox-on); }
+.osm-checkbox.osm-pressed input {
+  background-image: var(--osm-sprite-checkbox-pressed);
+}
+.osm-checkbox.osm-pressed input:checked {
+  background-image: var(--osm-sprite-checkbox-on-pressed);
+}
+.osm-checkbox input:disabled, .osm-inactive .osm-checkbox input {
+  background-image: var(--osm-sprite-checkbox-dimmed);
+}
+.osm-checkbox input:disabled:checked,
+.osm-inactive .osm-checkbox input:checked {
+  background-image: var(--osm-sprite-checkbox-on-dimmed);
+}
+/* .osm-disabled marks a control whose input is disabled (setEnabled in
+   controls.ts): :has() needs Safari 15.4, newer than macOS 12.0. */
+.osm-checkbox.osm-disabled { color: #888; }
+
+/* ---- sliders --------------------------------------------------------- */
+/* <div class="osm-slider"><input type="range" min="0" max="100"></div>:
+   a 100-step horizontal slider, 125 x 24. The thumb travels exactly
+   one pixel per step, so it always lands on whole pixels, and points
+   at five tick marks (0, 25, 50, 75, 100). */
+.osm-slider {
+  position: relative;
+  width: 125px; height: 24px;
+}
+.osm-slider::before {
+  content: ""; position: absolute; left: 0; top: 3px;
+  box-sizing: border-box; width: 125px; height: 7px;
+  border: solid transparent; border-width: 0 5px 0 3px;
+  border-image: var(--osm-sprite-slider-track) 0 5 0 3 fill / 0 5px 0 3px;
+}
+.osm-slider::after {
+  content: ""; position: absolute; left: 11px; top: 16px;
+  width: 103px; height: 8px;
+  background: var(--osm-sprite-slider-ticks) 0 0 / 25px 8px repeat-x;
+}
+.osm-slider input {
+  position: absolute; left: 5px; top: 0; z-index: 1;
+  width: 115px; height: 16px;
+  margin: 0; padding: 0; background: none;
+  appearance: none; -webkit-appearance: none;
+  outline: none;
+}
+.osm-slider input::-webkit-slider-runnable-track { height: 16px; background: none; }
+.osm-slider input::-moz-range-track { height: 16px; background: none; }
+.osm-slider input::-webkit-slider-thumb {
+  width: 15px; height: 16px; border: 0;
+  background: var(--osm-sprite-slider-thumb);
+  appearance: none; -webkit-appearance: none;
+}
+.osm-slider input::-moz-range-thumb {
+  width: 15px; height: 16px; border: 0; border-radius: 0;
+  background: var(--osm-sprite-slider-thumb);
+}
+.osm-slider input:active::-webkit-slider-thumb {
+  background-image: var(--osm-sprite-slider-thumb-pressed);
+}
+.osm-slider input:active::-moz-range-thumb {
+  background-image: var(--osm-sprite-slider-thumb-pressed);
+}
+.osm-inactive .osm-slider::before, .osm-slider.osm-disabled::before {
+  border-image-source: var(--osm-sprite-slider-track-dimmed);
+}
+.osm-inactive .osm-slider input::-webkit-slider-thumb,
+.osm-slider input:disabled::-webkit-slider-thumb {
+  background-image: var(--osm-sprite-slider-thumb-dimmed);
+}
+.osm-inactive .osm-slider input::-moz-range-thumb,
+.osm-slider input:disabled::-moz-range-thumb {
+  background-image: var(--osm-sprite-slider-thumb-dimmed);
+}
+
+/* ---- group boxes ----------------------------------------------------- */
+/* An engraved frame (88 over white, the white one pixel down-right)
+   with its Charcoal title on the top line: pen 12px in, the line
+   parting 3px either side of the title. */
+.osm-group {
+  position: relative;
+  border: 1px solid #888;
+  box-shadow: inset 1px 1px 0 #fff, 1px 1px 0 #fff;
+}
+.osm-group-title {
+  position: absolute; left: 8px; top: -12px;
+  padding: 0 3px;
+  background: var(--osm-dialog);
+  font: var(--osm-font-system);
+  white-space: nowrap;
+}
+
+/* ---- bevel buttons --------------------------------------------------- */
+/* 40 x 40 with a 32 x 32 icon (--osm-icon); selected is pushed in. The
+   Geneva 9 caption goes right below it. */
+.osm-bevel {
+  position: relative;
+  box-sizing: border-box;
+  width: 40px; height: 40px;
+  margin: 0; padding: 0;
+  border: 3px solid transparent;
+  border-image: var(--osm-sprite-bevel) 3 fill / 3px;
+  background: none;
+  appearance: none; -webkit-appearance: none;
+  outline: none;
+  cursor: default;
+}
+/* The icon rides above the border image, whose fill covers the
+   element's own background. */
+.osm-bevel::before {
+  content: ""; position: absolute; left: 1px; top: 1px;
+  width: 32px; height: 32px;
+  background: var(--osm-icon, none) 0 0 / 32px 32px no-repeat;
+}
+.osm-bevel.osm-selected, .osm-bevel.osm-pressed {
+  border-image-source: var(--osm-sprite-bevel-selected);
+}
+.osm-bevel-caption {
+  display: block;
+  font: var(--osm-font-caption);
+  text-align: center; white-space: nowrap;
+}
+
+/* ---- pop-up buttons and menus ---------------------------------------- */
+/* 19px tall: text part, then the 22px arrow section. The current item
+   starts 8px in, its baseline on row 12. */
+.osm-popup {
+  box-sizing: border-box;
+  height: 19px; min-width: 60px;
+  margin: 0; padding: 1px 2px 2px 4px;
+  border: solid transparent; border-width: 0 22px 0 4px;
+  border-image: var(--osm-sprite-popup) 0 22 0 4 fill / 0 22px 0 4px;
+  background: none;
+  color: #000; font: var(--osm-font-system);
+  text-align: left; white-space: nowrap; overflow: hidden;
+  text-overflow: ellipsis;
+  appearance: none; -webkit-appearance: none;
+  outline: none;
+  cursor: default;
+}
+.osm-popup.osm-pressed { border-image-source: var(--osm-sprite-popup-pressed); }
+.osm-popup:disabled, .osm-inactive .osm-popup {
+  border-image-source: var(--osm-sprite-popup-disabled);
+  color: #888;
+}
+/* A pop-up's title, a label in front of it (class .osm-popup-title),
+   dims with the control: 66 in an inactive window (Keyboard's
+   "Script:"), 88 while the pop-up is disabled (.osm-disabled). */
+.osm-inactive .osm-popup-title { color: #666; }
+.osm-popup-title.osm-disabled { color: #888; }
+/* A pop-up's menu: black outline, white/99 bevel on the dd face, a 22
+   drop shadow (one pixel, starting two in), 16px items with the title
+   19px in (from the outline) and the check mark 4px in. The highlight is the accent:
+   6666cc and 000088 edges around 333399, white text. */
+.osm-menu {
+  position: fixed; z-index: 1000;
+  box-sizing: border-box;
+  margin: 0; padding: 0;
+  border: 1px solid #000;
+  background:
+    linear-gradient(#fff, #fff) 0 0 / calc(100% - 1px) 1px no-repeat,
+    linear-gradient(#fff, #fff) 0 0 / 1px calc(100% - 1px) no-repeat,
+    linear-gradient(#999, #999) right 0 top 1px / 1px calc(100% - 1px)
+      no-repeat,
+    linear-gradient(#999, #999) left 1px bottom 0 / calc(100% - 1px) 1px
+      no-repeat,
+    #ddd;
+  color: #000; font: var(--osm-font-system);
+  list-style: none;
+  outline: none;
+  cursor: default;
+  user-select: none; -webkit-user-select: none;
+  font-synthesis: none; -webkit-font-smoothing: none;
+}
+.osm-menu::before, .osm-menu::after {
+  content: ""; position: absolute; background: #222;
+}
+.osm-menu::before { top: 1px; right: -2px; bottom: -2px; width: 1px; }
+.osm-menu::after { left: 1px; right: -2px; bottom: -2px; height: 1px; }
+.osm-menu-item {
+  position: relative;
+  height: 16px; padding: 0 12px 0 18px;
+  line-height: 16px;
+  white-space: nowrap;
+}
+.osm-menu-item[aria-selected="true"]::before {
+  content: "\2713"; position: absolute; left: 3px;
+}
+.osm-menu-item.osm-highlight {
+  background:
+    linear-gradient(#6666cc, #6666cc) 0 0 / 1px 100% no-repeat,
+    linear-gradient(#000088, #000088) right 0 top 0 / 1px 100% no-repeat,
+    #333399;
+  color: #fff;
+}
+.osm-menu-item[aria-disabled="true"] { color: #888; }
+
+/* ---- scroll bars ----------------------------------------------------- */
+/* A 16px vertical bar (controls.ts): arrows at both ends, the fixed
+   thumb between. Its black edges overlap the edge of whatever it
+   scrolls. Dimmed when there's nothing to scroll; blank (55 edge, ee
+   face) in an inactive window. */
+.osm-scrollbar {
+  position: absolute; top: -1px; right: -1px; bottom: -1px;
+  width: 16px;
+  background:
+    var(--osm-sprite-scroll-track-top) 0 16px / 16px 2px no-repeat,
+    var(--osm-sprite-scroll-track) 0 0 / 16px 1px repeat-y;
+  touch-action: none;
+}
+.osm-sb-up, .osm-sb-down {
+  position: absolute; left: 0; width: 16px; height: 16px; z-index: 2;
+}
+.osm-sb-up { top: 0; background: var(--osm-sprite-scroll-up); }
+.osm-sb-down { bottom: 0; background: var(--osm-sprite-scroll-down); }
+.osm-sb-up.osm-pressed { background-image: var(--osm-sprite-scroll-up-pressed); }
+.osm-sb-down.osm-pressed {
+  background-image: var(--osm-sprite-scroll-down-pressed);
+}
+/* The thumb's top line; the two track rows under it shade the track
+   again below the thumb. */
+.osm-sb-thumb {
+  position: absolute; left: 0; top: 15px; z-index: 1;
+  width: 16px; height: 19px;
+  background:
+    var(--osm-sprite-scroll-thumb) 0 0 / 16px 17px no-repeat,
+    var(--osm-sprite-scroll-track-top) 0 17px / 16px 2px no-repeat;
+}
+.osm-sb-thumb.osm-pressed {
+  background-image: var(--osm-sprite-scroll-thumb-pressed),
+                    var(--osm-sprite-scroll-track-top);
+}
+.osm-scrollbar.osm-sb-off {
+  background: #eee;
+  box-shadow: inset 1px 0 #000, inset -1px 0 #000;
+}
+.osm-sb-off .osm-sb-thumb { display: none; }
+.osm-sb-off .osm-sb-up { background-image: var(--osm-sprite-scroll-up-dimmed); }
+.osm-sb-off .osm-sb-down {
+  background-image: var(--osm-sprite-scroll-down-dimmed);
+}
+.osm-inactive .osm-scrollbar {
+  background: #eee;
+  box-shadow: inset 0 0 0 1px #555;
+}
+.osm-inactive .osm-scrollbar > * { visibility: hidden; }
+
+/* ---- lists ----------------------------------------------------------- */
+/* List box: white, black edge, Black & White highlight (the default
+   Mac OS 8 highlight color). Rows scroll inside .osm-list-view; with a
+   scroll bar the view leaves it 15px (the bar overlaps the edge). */
+.osm-list {
+  position: relative;
+  box-sizing: border-box;
+  border: 1px solid #000;
+  background: #fff;
+  outline: none;
+}
+.osm-list-view {
+  position: absolute; inset: 0;
+  overflow-x: hidden; overflow-y: auto;
+  scrollbar-width: none;
+}
+.osm-list-view::-webkit-scrollbar { display: none; }
+.osm-list.osm-has-scrollbar .osm-list-view { right: 15px; }
+.osm-row { position: relative; white-space: nowrap; overflow: hidden; }
+.osm-list-empty {
+  padding: 24px 12px; color: #888;
+  font: var(--osm-font-small);
+  white-space: nowrap; overflow: hidden; text-overflow: ellipsis;
+}
+.osm-row.osm-selected { background: #000; color: #fff; }
+/* A deactivated List Manager list unhighlights its selection (Monitors
+   & Sound, SimpleSound); Finder list views keep theirs. */
+.osm-inactive .osm-row.osm-selected { background: none; color: inherit; }
+
+/* A pixel well: black edge around white (previews, info areas). */
+.osm-well { box-sizing: border-box; border: 1px solid #000; background: #fff; }
+
+/* Finder window header: "N items" centered on a raised dd strip. */
+.osm-placard {
+  box-sizing: border-box;
+  height: 21px; padding-top: 4px;
+  background:
+    linear-gradient(#fff, #fff) 0 0 / 100% 1px no-repeat,
+    linear-gradient(#fff, #fff) 0 0 / 1px calc(100% - 1px) no-repeat,
+    linear-gradient(#aaa, #aaa) 0 100% / 100% 1px no-repeat,
+    linear-gradient(#aaa, #aaa) 100% 0 / 1px 100% no-repeat,
+    #ddd;
+  font: var(--osm-font-small); line-height: 13px;
+  text-align: center; white-space: nowrap; overflow: hidden;
+}
+
+/* Finder list-view column headers, 21px: raised cc cells; the sorted
+   column's cell is sunk (88 face), and its cells shade dd while the
+   others stay ee, with a white rule under every row. */
+.osm-colheads { display: flex; height: 21px; }
+.osm-colhead {
+  position: relative;
+  box-sizing: border-box;
+  height: 21px; margin: 0; padding: 4px 0 4px 4px; border: 0;
+  color: #000; text-align: left;
+  appearance: none; -webkit-appearance: none;
+  outline: none;
+  background:
+    linear-gradient(#555, #555) 0 100% / 1px 1px no-repeat,
+    linear-gradient(#666, #666) 0 0 / 100% 1px no-repeat,
+    linear-gradient(#666, #666) 0 0 / 1px 100% no-repeat,
+    linear-gradient(#fff, #fff) 1px 1px / 100% 1px no-repeat,
+    linear-gradient(#fff, #fff) 1px 1px / 1px calc(100% - 3px) no-repeat,
+    linear-gradient(#333, #333) 0 100% / 100% 1px no-repeat,
+    linear-gradient(#888, #888) 2px calc(100% - 1px) / 100% 1px no-repeat,
+    #ccc;
+  font: var(--osm-font-small); line-height: 13px;
+  white-space: nowrap; overflow: hidden;
+  cursor: default;
+}
+.osm-colhead.osm-sorted {
+  background:
+    linear-gradient(#222, #222) 100% 0 / 1px 1px no-repeat,
+    linear-gradient(#222, #222) 0 100% / 1px 1px no-repeat,
+    linear-gradient(#777, #777) calc(100% - 1px) 1px / 1px 1px no-repeat,
+    linear-gradient(#777, #777) 1px calc(100% - 1px) / 1px 1px no-repeat,
+    linear-gradient(#111, #111) 0 0 / 100% 1px no-repeat,
+    linear-gradient(#111, #111) 0 0 / 1px calc(100% - 1px) no-repeat,
+    linear-gradient(#555, #555) 1px 1px / calc(100% - 2px) 1px no-repeat,
+    linear-gradient(#555, #555) 1px 1px / 1px calc(100% - 3px) no-repeat,
+    linear-gradient(#444, #444) 0 100% / 100% 1px no-repeat,
+    linear-gradient(#444, #444) 100% 0 / 1px 100% no-repeat,
+    linear-gradient(#aaa, #aaa) 2px calc(100% - 1px) / calc(100% - 3px) 1px
+      no-repeat,
+    linear-gradient(#aaa, #aaa) calc(100% - 1px) 2px / 1px calc(100% - 3px)
+      no-repeat,
+    #888;
+}
+
+/* Keyboard focus, only while the keyboard is driving (install.ts sets
+   .osm-kbd on the root; scripts focus lists and pop-ups on mouse presses
+   too, which :focus-visible alone would ring). Mac OS 8.0 control
+   panels draw no focus at all; this keeps them usable without a mouse. */
+.osm-kbd .osm-button:focus-visible, .osm-kbd .osm-popup:focus-visible,
+.osm-kbd .osm-bevel:focus-visible, .osm-kbd .osm-checkbox input:focus-visible,
+.osm-kbd .osm-slider input:focus-visible, .osm-kbd .osm-list:focus-visible,
+.osm-kbd .osm-colhead:focus-visible {
+  outline: 2px solid #6666cc; outline-offset: 1px;
+}
+/* Headers run edge to edge under the placard: ring them inside. */
+.osm-kbd .osm-colhead:focus-visible { outline-offset: -3px; }
