@@ -23,6 +23,9 @@ jobs:
           persist-credentials: false
       - run: npm ci
       - run: npm run typecheck
+      # Apps compile the TypeScript source with their own compiler, so
+      # check it against the newest one too.
+      - run: npx --yes -p typescript@latest tsc --noEmit
       - run: npm test
       - run: npm run demo:build
   macos:

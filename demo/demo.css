@@ -152,7 +152,7 @@ html.desk { height: 100%; background: #9999cc; }
 }
 /* Edge to edge, a focus ring would only show top and bottom; the
    selection already marks the keyboard's place. */
-.fnd-list:focus-visible { outline: none; }
+.fnd-list:focus-visible, .osm-kbd .fnd-list:focus-visible { outline: none; }
 .fnd-row { display: flex; background: #fff; color: #000; font: var(--osm-font-small); }
 .fnd-cell {
   box-sizing: border-box; height: 18px; padding: 2px 4px 0;

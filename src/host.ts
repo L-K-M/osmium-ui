@@ -13,7 +13,10 @@
 // By default the ops go to the "osmium" script message handler; an app
 // with its own page-to-shell channel passes `post`. In a browser tab
 // the same page fills the tab and does what a tab can: close a
-// script-opened tab, resize one, fold the window in CSS.
+// script-opened tab, resize one, fold the window in CSS. Escape closes
+// the window (unless the page takes the key or the focus is in a text
+// field), the way Finsical's panels close; pass escape: "ignore" for a
+// document window that shouldn't.
 import { mountWindow } from "./window.js";
 import type { OsmiumWindow } from "./window.js";
 
@@ -26,21 +29,38 @@ export type WindowOp =
 
 export interface HostOptions {
   title: string;
-  /** Show the zoom box; `standard` is the browser tab's zoomed size. */
+  /** Show the zoom box. `standard` is the zoomed size in a browser tab;
+   * a native window zooms to its OsmiumWindowSpec size instead. */
   zoom?: { standard: Size };
-  /** Show the grow box; `min` bounds the in-tab resize. */
+  /** Show the grow box. `min` bounds the resize in a browser tab; a
+   * native window uses its OsmiumWindowSpec minSize. */
   grow?: { min: Size };
   /** Send a window op to the native shell. Defaults to the "osmium"
    * WKScriptMessageHandler (a no-op when there is none). */
   post?: (op: WindowOp) => void;
-  /** Whether a native shell hosts the page. Defaults to whether the
-   * "osmium" message handler exists. */
+  /** Whether a native shell hosts the page. Defaults to true when
+   * `post` is given, else to whether the "osmium" handler exists. */
   native?: boolean;
+  /** What Escape does. Defaults to "close". */
+  escape?: EscapeKey;
 }
 
+/** What Escape does in a hosted window. */
+export type EscapeKey =
+  /** Close the window, unless the page took the key or the focus is in
+   * a text field. */
+  | "close"
+  /** Nothing: the page handles Escape itself, if at all. */
+  | "ignore";
+
 export interface HostedWindow {
+  /** The drawn window. Shade through setShaded below, not through it,
+   * so the native window follows. */
   readonly window: OsmiumWindow;
   readonly shaded: boolean;
+  /** Fold the window to its titlebar or unfold it, as its collapse box
+   * does. */
+  setShaded(on: boolean): void;
   close(): void;
 }
 
@@ -60,7 +80,7 @@ const SHADED_MAX_H = 60;
  * shell, or to the browser tab the page runs in. */
 export function hostWindow(el: HTMLElement,
                            opts: HostOptions): HostedWindow {
-  const native = opts.native ?? !!handler();
+  const native = opts.native ?? (opts.post !== undefined || !!handler());
   const post = opts.post ?? ((op: WindowOp) => handler()?.postMessage(op));
   let shaded = false;
 
@@ -128,11 +148,17 @@ export function hostWindow(el: HTMLElement,
 
   // Escape closes, unless something inside (a menu, a dialog key
   // handler) took the key: checked after the event has been through
-  // every listener, whichever order they were added in.
-  window.addEventListener("keydown", (e) => {
-    if (e.key !== "Escape" || e.repeat) return;
-    setTimeout(() => { if (!e.defaultPrevented) close(); });
-  });
+  // every listener, whichever order they were added in. Text fields
+  // keep their own Escape (a search field clears).
+  if ((opts.escape ?? "close") === "close") {
+    window.addEventListener("keydown", (e) => {
+      if (e.key !== "Escape" || e.repeat) return;
+      const t = e.target instanceof Element ? e.target : null;
+      if (t?.closest("input:not([type=checkbox]):not([type=range]), " +
+                     "textarea, [contenteditable]")) return;
+      setTimeout(() => { if (!e.defaultPrevented) close(); });
+    });
+  }
 
   // A reload resets the page's fold state: put the native window back
   // in step (a no-op when it isn't shaded; ignored in a tab).
@@ -150,6 +176,7 @@ export function hostWindow(el: HTMLElement,
   return {
     window: win,
     get shaded() { return shaded; },
+    setShaded: (on) => { if (on !== shaded) setShade(on); },
     close,
   };
 }

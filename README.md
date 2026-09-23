@@ -21,7 +21,7 @@ the original.
 **Windows.** Close, zoom and collapse boxes with their pressed states,
 a centered title that the pinstripes part around, the grow box, the
 1px drop shadow, inactive windows, windowshade, and a Get Info style
-information window.
+information window (class `osm-info`, whose text dims when inactive).
 
 **Controls.**
 - Push buttons, including the default button's ring, pressed and dimmed.
@@ -34,8 +34,8 @@ information window.
 
 **Fonts.** Charcoal 12, Geneva 10 and Geneva 9 as bitmap strikes. They
 are compiled into TrueType fonts in the browser at startup, with
-QuickDraw-style synthesized bold, so text renders with the original
-glyphs on any platform.
+QuickDraw-style synthesized bold for Charcoal 12 and Geneva 10, so
+text renders with the original glyphs on any platform.
 
 **Behavior.**
 - Press tracking: releasing outside a control cancels.
@@ -88,7 +88,8 @@ npm run demo
 This builds the demo and serves it locally: a Mac OS 8 desktop with a
 dialog full of controls, a Finder list view, a control panel and an
 About window. You can drag the windows, click to bring them to the
-front, close them, windowshade them, zoom them and resize them.
+front, close them and windowshade them, and zoom and resize the Finder
+window.
 
 On a Mac with the Xcode command line tools, the same pages run as
 native windows:
@@ -106,9 +107,15 @@ git dependency, pinned to a release tag:
 npm install git+https://github.com/L-K-M/osmium-ui.git#v0.1.0
 ```
 
-Any bundler that compiles TypeScript handles it, such as esbuild or
-Vite. Copy `node_modules/osmium-ui/osmium.css` next to your pages, or
-import it through your bundler.
+Use a bundler that compiles TypeScript inside `node_modules`, such as
+esbuild or Vite (with ts-loader, don't exclude `node_modules/osmium-ui`),
+and a `moduleResolution` of `bundler` or `node16`. Copy
+`node_modules/osmium-ui/osmium.css` next to your pages, or import it
+through your bundler:
+
+```ts
+import "osmium-ui/osmium.css";
+```
 
 ## Use it
 
@@ -147,9 +154,10 @@ bindDialogKeys(ok, null, {
 });
 ```
 
-`mountWindow` and the control helpers call `installOsmium()` for you.
-It registers the bitmap fonts and the sprites the stylesheet draws
-with. Call it yourself if you use controls without a window.
+`mountWindow`, `pushButton` and `centerText` call `installOsmium()` for
+you. It registers the bitmap fonts and the sprites the stylesheet
+draws with. Call it yourself if you use other controls without a
+window.
 
 ### Controls at a glance
 
@@ -157,11 +165,11 @@ with. Call it yourself if you use controls without a window.
 | --- | --- | --- |
 | Push button | `<button class="osm-button">`, add `osm-default` for the ring | `pushButton(el, action)`, `setButtonTitle(el, text)` |
 | Checkbox | `<label class="osm-checkbox"><input type="checkbox"> Title</label>` | `trackHighlight(label)` |
-| Slider | `<div class="osm-slider"><input type="range" min="0" max="100"></div>` | native input |
+| Slider | `<div class="osm-slider"><input type="range" min="0" max="100"></div>` (125px wide, 100 steps) | native input |
 | Pop-up button | `<button class="osm-popup">`, with an optional `<label class="osm-popup-title">` | `mountPopup(el, { items, selected, onChange })` |
 | List box | `<div>` with a height | `mountList(el, { rowHeight, label, onSelect })`, then `setRows(rows)` |
-| Scroll bar | any scrolling element | `attachScrollbar(host, view, lineHeight)` |
-| Bevel button | `<button class="osm-bevel">`, icon in `--osm-icon` | `trackPress(el, action)` |
+| Scroll bar | a positioned `host` with a scrolling child `view` that leaves 15px on the right and hides its native scroll bar (as `mountList` sets up) | `attachScrollbar(host, view, lineHeight)` |
+| Bevel button | `<button class="osm-bevel">`, a 32x32 icon in `--osm-icon`, `osm-selected` for pushed in, a `.osm-bevel-caption` below | `trackPress(el, action)` |
 | Group box | `<div class="osm-group"><div class="osm-group-title">Title</div>…</div>` | none |
 | List-view header | `<div class="osm-colheads"><button class="osm-colhead">Name</button>…</div>`, add `osm-sorted` to one header | none |
 | Placard | `<div class="osm-placard">3 items</div>` | `centerText(el)` |
@@ -180,20 +188,21 @@ to see complete markup.
 ### Your own icons
 
 Sprites are pixel grids, one character per pixel. Hex digits are gray
-levels (`0` is black, `f` white), letters are palette colors, and `.`
-is transparent. Register yours and use them as custom properties:
+levels (`0` is black, `f` white), other letters are palette colors
+(`g` to `z`, or uppercase), and `.` is transparent. Register yours and
+use them as custom properties:
 
 ```ts
 import { registerSprites } from "osmium-ui";
 
 registerSprites({
-  "icon-folder": [
-    "..0000..........",
-    ".0yyyy0.........",
-    // … 16 rows of 16 characters
+  "icon-disk": [
+    "................................",
+    "....000000000000000000000000....",
+    // … 32 rows of 32 characters
   ],
 }, { y: "#ffcc00" });
-// Now available as var(--osm-sprite-icon-folder), for example as a
+// Now available as var(--osm-sprite-icon-disk), for example as a
 // bevel button's --osm-icon.
 ```
 
@@ -201,37 +210,73 @@ registerSprites({
 
 In a WKWebView app, every Osmium window can be its own borderless
 NSWindow. The page fills the web view and draws the whole window,
-including its 1px shadow. Put `class="osm-page"` on `<html>` and
-`class="osm-page-window"` on the window, then call `hostWindow`
-instead of `mountWindow`:
+including its 1px shadow:
+
+```html
+<html class="osm-page">
+  <link rel="stylesheet" href="osmium.css">
+  <body>
+    <div id="win" class="osm-page-window">
+      <div class="osm-content">…</div>
+    </div>
+    <script src="overview.js"></script>
+  </body>
+</html>
+```
+
+The page calls `hostWindow` instead of `mountWindow`:
 
 ```ts
 import { hostWindow } from "osmium-ui";
 
 hostWindow(document.getElementById("win")!, {
   title: "Tank Overview",
-  zoom: { standard: { w: 520, h: 380 } },
-  grow: { min: { w: 360, h: 200 } },
+  zoom: { standard: { w: 520, h: 380 } }, // zoomed size in a browser tab
+  grow: { min: { w: 360, h: 200 } },      // smallest size in a browser tab
 });
 ```
 
 On the Swift side, `OsmiumWindowHost` opens the pages and applies what
-their boxes ask for:
+their boxes ask for. Keep the host for as long as its windows are open;
+the windows only reference it weakly:
 
 ```swift
-let host = OsmiumWindowHost(frames: OsmiumFrameStore(prefix: "MyAppFrame."))
-let overview = host.add(OsmiumWindowSpec(
-    url: Bundle.main.url(forResource: "overview", withExtension: "html",
-                         subdirectory: "web")!,
-    title: "Tank Overview", frameKey: "Overview",
-    size: NSSize(width: 521, height: 381),
-    minSize: NSSize(width: 361, height: 201)))
-host.show(overview)
+import OsmiumUI // with Swift Package Manager
+
+final class AppDelegate: NSObject, NSApplicationDelegate {
+    let host = OsmiumWindowHost(frames: OsmiumFrameStore(prefix: "MyAppFrame."))
+
+    func applicationDidFinishLaunching(_ notification: Notification) {
+        let overview = host.add(OsmiumWindowSpec(
+            url: Bundle.main.url(forResource: "overview", withExtension: "html",
+                                 subdirectory: "web")!,
+            title: "Tank Overview", frameKey: "Overview",
+            size: NSSize(width: 521, height: 381),
+            minSize: NSSize(width: 361, height: 201)))
+        host.show(overview)
+    }
+}
 ```
 
-Add the host with Swift Package Manager (the `OsmiumUI` library in
-`Package.swift`), or compile `macos/OsmiumWindows.swift` into your app.
-It needs macOS 12 or later.
+In a native window the Swift spec decides the geometry: `size` is the
+first and the zoomed (standard) size, both counting the 1px shadow, and
+`minSize` makes the window growable and zoomable. Give zoom and grow
+boxes only to pages whose spec has a `minSize`.
+
+Pages loaded from file URLs can't run module scripts, so bundle their
+scripts as classic scripts (for example with esbuild's
+`--format=iife`), or serve the pages through a URL scheme handler set
+up in the host's `configuration` closure.
+
+Add the host with Swift Package Manager:
+
+```swift
+.package(url: "https://github.com/L-K-M/osmium-ui.git", from: "0.1.0")
+```
+
+and depend on the `OsmiumUI` product, or compile
+`macos/OsmiumWindows.swift` into your app directly. It needs macOS 12
+or later.
 
 The page talks to the host through the `osmium` script message
 handler, which the host registers on each window's web view. It sends
@@ -247,7 +292,12 @@ these ops:
 
 If your app already relays page messages, pass
 `messageHandlerName: nil` and call `host.handle(body, from: webView)`.
-Give `hostWindow` your own `post` function to match.
+Give `hostWindow` your own `post` function to match; the page then
+counts as native.
+
+Escape closes a hosted window unless the page handles the key itself
+or the focus is in a text field. Pass `escape: "ignore"` for a window
+that shouldn't close.
 
 In a plain browser tab, the same page fills the tab and does what a tab
 can.
@@ -260,8 +310,8 @@ ResizeObserver and CSS `border-image`.
 
 ## Not included yet
 
-Radio buttons, editable text fields, tabs, the menu bar and alert
-windows.
+Radio buttons, editable text fields, tabs, horizontal scroll bars, the
+menu bar and alert windows.
 
 ## Development
 

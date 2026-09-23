@@ -51,6 +51,11 @@ describe("sprites", () => {
       expect(css).toContain(`--osm-sprite-${name}: url("data:image/svg+xml,`);
   });
 
+  it("reject palette keys that can't be told from grays", () => {
+    expect(() => spriteSvg(["a"], { a: "#ff0000" })).toThrow(/palette key/);
+    expect(() => spriteSvg(["y"], { yy: "#ff0000" })).toThrow(/palette key/);
+  });
+
   it("draw app sprites with an app palette", () => {
     expect(spriteSvg(["y"], { y: "#ffcc00" })).toContain('fill="#ffcc00"');
     expect(spriteCss([["icon-fish", ["y."]]], { y: "#ffcc00" }))

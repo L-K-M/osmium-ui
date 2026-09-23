@@ -73,16 +73,21 @@ public struct OsmiumWindowSpec {
     /// Standard content size — the page's window plus its 1px drop
     /// shadow; the zoom box's standard state and the initial size.
     public let size: NSSize
-    /// Smallest expanded size; nil for a fixed-size window.
+    /// Smallest expanded size, which also gives the window its zoom
+    /// and grow boxes; nil for a fixed-size window.
     public let minSize: NSSize?
+    /// For a file URL, the folder the page may read from (its own
+    /// folder by default); nil for other URLs.
+    public let readAccessURL: URL?
 
     public init(url: URL, title: String, frameKey: String, size: NSSize,
-                minSize: NSSize? = nil) {
+                minSize: NSSize? = nil, readAccessURL: URL? = nil) {
         self.url = url
         self.title = title
         self.frameKey = frameKey
         self.size = size
         self.minSize = minSize
+        self.readAccessURL = readAccessURL
     }
 }
 
@@ -234,8 +239,11 @@ public final class OsmiumWindowHost: NSObject, NSWindowDelegate,
         let spec = hw.spec
         let config = makeConfiguration()
         if let name = messageHandlerName {
-            config.userContentController.add(WeakMessageHandler(self),
-                                             name: name)
+            // Adding a name twice raises: the app may share one content
+            // controller across windows, so replace any earlier one.
+            let ucc = config.userContentController
+            ucc.removeScriptMessageHandler(forName: name)
+            ucc.add(WeakMessageHandler(self), name: name)
         }
         let v = OsmiumWebView(frame: .init(origin: .zero, size: spec.size),
                               configuration: config)
@@ -278,8 +286,9 @@ public final class OsmiumWindowHost: NSObject, NSWindowDelegate,
         hw.window = w
         hw.webView = v
         if spec.url.isFileURL {
-            v.loadFileURL(spec.url,
-                          allowingReadAccessTo: spec.url.deletingLastPathComponent())
+            v.loadFileURL(spec.url, allowingReadAccessTo:
+                            spec.readAccessURL
+                            ?? spec.url.deletingLastPathComponent())
         } else {
             v.load(URLRequest(url: spec.url))
         }

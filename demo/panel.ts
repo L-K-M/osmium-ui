@@ -256,8 +256,9 @@ export function buildPanel(content: HTMLElement,
     strip.append(item);
     panesEl.append(p.el);
     centerText(cap, true);
-    // Pane buttons select on press, like radio buttons.
-    trackPress(tab, () => showPane(p.id));
+    // Pane buttons select on press, like radio buttons; the keyboard
+    // moves to the new pane (the old one's list just hid).
+    trackPress(tab, () => { showPane(p.id); focusPane(); });
     return tab;
   });
   panesEl.append(foot);
@@ -293,11 +294,10 @@ export function buildPanel(content: HTMLElement,
   });
   showPane("desktop");
 
-  return {
-    // The visible pane's first list takes the keyboard.
-    focus() {
-      current.el.querySelector<HTMLElement>(".osm-list")
-        ?.focus({ preventScroll: true });
-    },
-  };
+  // The visible pane's first list takes the keyboard.
+  function focusPane(): void {
+    current.el.querySelector<HTMLElement>(".osm-list")
+      ?.focus({ preventScroll: true });
+  }
+  return { focus: focusPane };
 }

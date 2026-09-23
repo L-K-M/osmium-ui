@@ -140,7 +140,7 @@ const FLASH_MS = 133;
 export function fitButton(b: HTMLElement): void {
   const adv = textWidth(b.textContent ?? "", b);
   const ring = b.classList.contains("osm-default") ? RING : 0;
-  const w = Number(b.dataset.width) ||
+  const w = Number(b.dataset["width"]) ||
     Math.max(MIN_BUTTON, adv + 2 * TITLE_PAD);
   const border = 4 + ring; // the 9-slice's fixed end
   b.style.width = `${w + 2 * ring}px`;
@@ -796,7 +796,7 @@ export function mountList(host: HTMLElement, opts: ListOptions): OsmiumList {
       typed = (now - typedAt < 1000 ? typed : "") + e.key.toLowerCase();
       typedAt = now;
       const k = rows.findIndex((r) =>
-        (r.dataset.name ?? r.textContent ?? "").toLowerCase()
+        (r.dataset["name"] ?? r.textContent ?? "").toLowerCase()
           .startsWith(typed));
       if (k >= 0) i = k;
     }

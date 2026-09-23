@@ -1,4 +1,5 @@
 import Cocoa
+import WebKit
 
 // Osmium Demo: the web demo's one-window pages as native Mac OS 8
 // windows. The build copies demo/dist/ into Resources/web/, and
@@ -6,11 +7,23 @@ import Cocoa
 // binary) opens each page from there in a borderless window that the
 // page draws completely. The page's boxes post window ops (close,
 // zoom, windowshade, grow, drag) to the host's "osmium" message
-// handler, which applies them to the window.
+// handler, which applies them to the window. The Finder page asks for
+// other demo windows on a "demo" handler of the app's own.
 
 /// One of the demo's windows.
 enum DemoPage: Int, CaseIterable {
     case controls, finder, controlPanel, about
+
+    /// The page's window id (demo/windows.ts), as the Finder page names
+    /// the window it wants opened.
+    var id: String {
+        switch self {
+        case .controls: return "controls"
+        case .finder: return "finder"
+        case .controlPanel: return "panel"
+        case .about: return "about"
+        }
+    }
 
     /// The page in Resources/web/.
     var file: String {
@@ -43,15 +56,23 @@ enum DemoPage: Int, CaseIterable {
         }
     }
 
-    /// The size the page's layout is drawn for: its window plus the
-    /// 1px drop shadow the page paints below and to the right of it.
+    /// The standard size (the zoom box's, and the first size of a
+    /// window that isn't in the launch layout): the window plus the 1px
+    /// drop shadow the page paints below and to the right of it. The
+    /// Finder's shows all 24 items.
     var size: NSSize {
         switch self {
         case .controls: return NSSize(width: 461, height: 331)
-        case .finder: return NSSize(width: 501, height: 321)
+        case .finder: return NSSize(width: 501, height: 542)
         case .controlPanel: return NSSize(width: 521, height: 381)
         case .about: return NSSize(width: 341, height: 221)
         }
+    }
+
+    /// The size the window first opens at: shorter than standard for
+    /// the Finder, so its zoom box has somewhere to go.
+    var launchSize: NSSize {
+        self == .finder ? NSSize(width: 501, height: 321) : size
     }
 
     /// The smallest size of a resizable window (zoom and grow boxes);
@@ -61,8 +82,17 @@ enum DemoPage: Int, CaseIterable {
     }
 }
 
-final class AppDelegate: NSObject, NSApplicationDelegate {
-    private let host: OsmiumWindowHost
+final class AppDelegate: NSObject, NSApplicationDelegate,
+                         WKScriptMessageHandler {
+    /// Each window's web view also gets the "demo" handler, for the
+    /// Finder's requests to open other windows.
+    private lazy var host = OsmiumWindowHost(
+        frames: OsmiumFrameStore(prefix: "OsmiumDemoFrame."),
+        configuration: { [unowned self] in
+            let config = WKWebViewConfiguration()
+            config.userContentController.add(self, name: "demo")
+            return config
+        })
     /// Filled at launch, once the pages are known to be in the bundle.
     private var windows: [DemoPage: OsmiumHostedWindow] = [:]
 
@@ -75,12 +105,6 @@ final class AppDelegate: NSObject, NSApplicationDelegate {
         (.finder, NSPoint(x: 430, y: 80)),
         (.controlPanel, NSPoint(x: 180, y: 300)),
     ]
-
-    override init() {
-        host = OsmiumWindowHost(
-            frames: OsmiumFrameStore(prefix: "OsmiumDemoFrame."))
-        super.init()
-    }
 
     func applicationWillFinishLaunching(_ notification: Notification) {
         NSApp.mainMenu = makeMainMenu()
@@ -139,6 +163,17 @@ final class AppDelegate: NSObject, NSApplicationDelegate {
         if let hw = windows[page] { host.show(hw) }
     }
 
+    /// {op: "open", id}: the Finder page double-clicked a demo item.
+    func userContentController(_ controller: WKUserContentController,
+                               didReceive message: WKScriptMessage) {
+        guard let body = message.body as? [String: Any],
+              body["op"] as? String == "open",
+              let id = body["id"] as? String,
+              let page = DemoPage.allCases.first(where: { $0.id == id })
+        else { return }
+        open(page)
+    }
+
     /// Give each launch window that has no saved frame yet its place in
     /// the cascade, centered as a group on the main screen. The frame
     /// store would otherwise center every window, stacking all three
@@ -146,10 +181,10 @@ final class AppDelegate: NSObject, NSApplicationDelegate {
     /// window are left alone.
     private func seedLaunchFrames() {
         guard let vis = NSScreen.main?.visibleFrame else { return }
-        let groupW = launchLayout.map { $0.offset.x + $0.page.size.width }
-            .max() ?? 0
-        let groupH = launchLayout.map { $0.offset.y + $0.page.size.height }
-            .max() ?? 0
+        let groupW = launchLayout
+            .map { $0.offset.x + $0.page.launchSize.width }.max() ?? 0
+        let groupH = launchLayout
+            .map { $0.offset.y + $0.page.launchSize.height }.max() ?? 0
         // Whole points keep the pixel art sharp. On a screen smaller
         // than the group, its top-left corner stays visible.
         let left = max(vis.minX, (vis.midX - groupW / 2).rounded(.down))
@@ -157,7 +192,7 @@ final class AppDelegate: NSObject, NSApplicationDelegate {
         for (page, offset) in launchLayout {
             guard host.frames.frame(for: page.frameKey) == nil
             else { continue }
-            let size = page.size
+            let size = page.launchSize
             host.frames.save(NSRect(x: left + offset.x,
                                     y: top - offset.y - size.height,
                                     width: size.width, height: size.height),

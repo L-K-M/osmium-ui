@@ -60,7 +60,11 @@
 
 /* Titlebar hit area (drags the window); boxes sit above it, the title
    and stripes let presses through to it. */
-.osm-titlebar { position: absolute; left: 0; top: 0; right: 0; height: 20px; }
+/* A press on the titlebar is a window drag, not a page pan. */
+.osm-titlebar {
+  position: absolute; left: 0; top: 0; right: 0; height: 20px;
+  touch-action: none;
+}
 .osm-title, .osm-stripes { pointer-events: none; }
 
 .osm-box {

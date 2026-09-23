@@ -14,7 +14,9 @@
 // palette of their own.
 import { CONTROL_SPRITES } from "./controlsprites.js";
 
-/** Extra palette keys for a sprite: letter -> CSS color. */
+/** Extra palette keys for a sprite: one character (a letter from g to
+ * z, or uppercase; 0-9 and a-f are grays, '.' transparent) -> CSS
+ * color. */
 export type Palette = Readonly<Record<string, string>>;
 
 const COLORS: Palette = {
@@ -36,6 +38,11 @@ function color(key: string, palette: Palette): string | null {
  * when it rasterizes the image at the device's pixel ratio. */
 export function spriteSvg(rows: readonly string[],
                           palette: Palette = {}): string {
+  for (const key of Object.keys(palette)) {
+    if (key.length !== 1 || /[0-9a-f.]/.test(key))
+      throw new Error(`palette key "${key}" must be one character other ` +
+                      "than 0-9, a-f and '.'");
+  }
   const h = rows.length;
   const w = rows[0]?.length ?? 0;
   const paths = new Map<string, string>();
@@ -55,6 +62,8 @@ export function spriteSvg(rows: readonly string[],
     ` shape-rendering="crispEdges">${body}</svg>`;
 }
 
+/** A sprite as a CSS `url(...)` value, for a background or border
+ * image. */
 export function spriteUrl(rows: readonly string[],
                           palette: Palette = {}): string {
   const svg = spriteSvg(rows, palette);

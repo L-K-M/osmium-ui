@@ -62,7 +62,7 @@ export function registerSprites(
   palette: Palette = {},
 ): void {
   const style = document.createElement("style");
-  style.dataset.osmiumSprites = "";
+  style.dataset["osmiumSprites"] = "";
   style.textContent =
     `:root {\n${spriteCss(Object.entries(sprites), palette)}\n}`;
   document.head.appendChild(style);
@@ -75,5 +75,8 @@ function face(s: StrikeData, bold: boolean): FontFace {
     ascent: s.ascent, descent: s.descent,
     glyphs: bold ? emboldened(glyphs) : glyphs,
   });
-  return new FontFace(s.family, bytes, { weight: bold ? "700" : "400" });
+  // The ArrayBuffer itself (buildPixelFont's bytes fill it exactly):
+  // TypeScript 5.9 and later won't take a Uint8Array<ArrayBufferLike>.
+  return new FontFace(s.family, bytes.buffer as ArrayBuffer,
+                      { weight: bold ? "700" : "400" });
 }

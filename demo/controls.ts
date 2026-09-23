@@ -35,12 +35,12 @@ export function buildControls(content: HTMLElement,
   buttons.append(beepBtn, dimBtn);
 
   const boxes = group("Checkboxes", "ctl-boxes");
-  const on = checkbox("On", true);
-  const off = checkbox("Off", false);
+  const sound = checkbox("Sound", true);
+  const music = checkbox("Music", false);
   const dim = checkbox("Disabled", true);
   setEnabled(dim.querySelector("input")!, false);
-  for (const c of [on, off, dim]) trackHighlight(c);
-  boxes.append(on, off, dim);
+  for (const c of [sound, music, dim]) trackHighlight(c);
+  boxes.append(sound, music, dim);
 
   // Sliders and the progress bar the Level slider fills.
   const sliders = group("Sliders", "ctl-sliders");

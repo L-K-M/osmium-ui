@@ -8,11 +8,19 @@
     "type": "git",
     "url": "git+https://github.com/L-K-M/osmium-ui.git"
   },
-  "keywords": ["mac-os-8", "retro", "ui", "widgets", "pixel-art", "wkwebview"],
+  "keywords": [
+    "mac-os-8",
+    "retro",
+    "ui",
+    "widgets",
+    "pixel-art",
+    "wkwebview"
+  ],
   "exports": {
     ".": "./src/index.ts",
     "./osmium.css": "./osmium.css"
   },
+  "types": "./src/index.ts",
   "files": [
     "src",
     "!src/**/*.test.ts",
@@ -20,7 +28,9 @@
     "macos",
     "Package.swift"
   ],
-  "sideEffects": false,
+  "sideEffects": [
+    "*.css"
+  ],
   "scripts": {
     "typecheck": "tsc --noEmit",
     "test": "vitest run",

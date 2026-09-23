@@ -129,7 +129,12 @@ export function buildFinder(content: HTMLElement,
     const h = el("button", `osm-colhead fnd-h-${c.id}`, c.title);
     h.type = "button";
     h.setAttribute("aria-label", `Sort by ${c.title}`);
-    h.addEventListener("click", () => sort(c.id));
+    h.addEventListener("click", (e) => {
+      sort(c.id);
+      // A mouse sort leaves the keyboard with the list, as in the Finder
+      // (a pressed button would take it in Chromium and Firefox).
+      if (e.detail > 0) listEl.focus({ preventScroll: true });
+    });
     heads.append(h);
     return h;
   });

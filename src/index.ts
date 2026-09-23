@@ -8,7 +8,9 @@ export type { Palette } from "./sprites.js";
 export { mountWindow } from "./window.js";
 export type { Activation, OsmiumWindow, WindowOptions } from "./window.js";
 export { hostWindow } from "./host.js";
-export type { HostOptions, HostedWindow, Size, WindowOp } from "./host.js";
+export type {
+  EscapeKey, HostOptions, HostedWindow, Size, WindowOp,
+} from "./host.js";
 export {
   attachScrollbar, bindDialogKeys, centerText, fitButton, mountList,
   mountPopup, pushButton, setButtonTitle, setEnabled, trackHighlight,

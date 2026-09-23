@@ -186,6 +186,8 @@ function zoom(w: DeskWindow): void {
 function shade(w: DeskWindow): void {
   w.shaded = !w.shaded;
   w.win.setShaded(w.shaded);
+  // Folding hid the focused control; unfolding gives the keyboard back.
+  if (!w.shaded && front() === w) w.content.focus?.();
 }
 
 // ---- the windows ------------------------------------------------------------

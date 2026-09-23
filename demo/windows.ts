@@ -43,6 +43,9 @@ export interface WindowSpec {
   readonly size: Size;
   /** Smallest size of a resizable window (counted the same way). */
   readonly min?: Size;
+  /** The size the zoom box zooms to (counted the same way), when it
+   * differs from `size`. */
+  readonly standard?: Size;
   readonly zoom?: boolean;
   /** Drawn as an information window (Get Info), whose text dims when
    * the window is inactive. */
@@ -53,8 +56,10 @@ export interface WindowSpec {
 export const WINDOWS: readonly WindowSpec[] = [
   { id: "controls", title: "Controls", size: { w: 461, h: 331 },
     build: buildControls },
+  // Zoomed, the Finder shows all 24 items (finder.ts standardSize).
   { id: "finder", title: "Osmium HD", size: { w: 501, h: 321 },
-    min: { w: 301, h: 181 }, zoom: true, build: buildFinder },
+    min: { w: 301, h: 181 }, standard: { w: 501, h: 542 }, zoom: true,
+    build: buildFinder },
   { id: "panel", title: "Control Panel", size: { w: 521, h: 381 },
     build: buildPanel },
   { id: "about", title: "About Osmium UI", size: { w: 341, h: 221 },
