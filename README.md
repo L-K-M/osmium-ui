@@ -1,5 +1,8 @@
 # Osmium UI
 
+> [!IMPORTANT]
+> LLM disclosure: This codebase was written with substantial help from large language models: AI coding agents working from the [`AGENTS.md`](AGENTS.md) brief in this repo.
+
 The Mac OS 8 look, pixel for pixel, for web pages and WKWebView apps.
 
 <p align="center">
