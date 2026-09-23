@@ -1,6 +1,7 @@
 import { describe, expect, it } from "vitest";
 import { SPRITES, allSprites, spriteCss, spriteSvg } from "./sprites.js";
 import { titleLeft } from "./window.js";
+import { CONTROL_SPRITES } from "./controlsprites.js";
 
 // Box pixels as Mac OS 8.0 draws them, gray level per hex digit: the
 // Finder's zoom and collapse boxes, and the zoom box held down.
@@ -19,6 +20,27 @@ const COLLAPSE = [
 const ZOOM_PRESSED_TOP = [
   "888888888888.", "822222222222f", "824455627782f", "824556627882f",
   "825566728892f", "825667728992f", "826677829992f", "822222229a92f",
+];
+
+const LEFT_ARROW = [
+  "0000000000000000", "0fffffffffffffd0", "0fddddddddddddb0",
+  "0fddddddddddddb0", "0fddddddd0ddddb0", "0fdddddd00ddddb0",
+  "0fddddd000ddddb0", "0fdddd0000ddddb0", "0fdddd0000ddddb0",
+  "0fddddd000ddddb0", "0fdddddd00ddddb0", "0fddddddd0ddddb0",
+  "0fddddddddddddb0", "0fddddddddddddb0", "0dbbbbbbbbbbbbb0",
+  "0000000000000000",
+];
+const RIGHT_ARROW = [
+  "0000000000000000", "0fffffffffffffd0", "0fddddddddddddb0",
+  "0fddddddddddddb0", "0fdddd0dddddddb0", "0fdddd00ddddddb0",
+  "0fdddd000dddddb0", "0fdddd0000ddddb0", "0fdddd0000ddddb0",
+  "0fdddd000dddddb0", "0fdddd00ddddddb0", "0fdddd0dddddddb0",
+  "0fddddddddddddb0", "0fddddddddddddb0", "0dbbbbbbbbbbbbb0",
+  "0000000000000000",
+];
+const TRACK_START = [
+  "000", "777", "788", "78a", "78a", "78a", "78a", "78a", "78a", "78a",
+  "78a", "78a", "78a", "7bb", "ccc", "000",
 ];
 
 describe("sprites", () => {
@@ -49,6 +71,16 @@ describe("sprites", () => {
     for (const name of ["close-pressed", "grow-inactive", "fill-right",
                         "button-default-pressed", "scroll-thumb"])
       expect(css).toContain(`--osm-sprite-${name}: url("data:image/svg+xml,`);
+  });
+
+  it("draw the horizontal scroll bar pixel for pixel", () => {
+    // Mac OS 8.0's Desktop Pictures, the scroll bar under its preview:
+    // both arrows, and the track's first three columns after the thumb.
+    expect(CONTROL_SPRITES["scroll-left"]).toEqual(LEFT_ARROW);
+    expect(CONTROL_SPRITES["scroll-right"]).toEqual(RIGHT_ARROW);
+    const track = CONTROL_SPRITES["scroll-htrack-left"]!.map((r, y) =>
+      r + CONTROL_SPRITES["scroll-htrack"]![y]);
+    expect(track).toEqual(TRACK_START);
   });
 
   it("reject palette keys that can't be told from grays", () => {

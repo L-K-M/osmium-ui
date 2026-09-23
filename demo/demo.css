@@ -136,24 +136,28 @@ html.desk { height: 100%; background: #9999cc; }
 .ctl-cancel { right: 89px; top: 268px; }
 
 /* ---- Finder list view (finder.ts) --------------------------------------- */
-/* Placard, column headers, the list (rows 18px plus a white rule; the
-   sorted column shaded dd, the others ee) and, along the bottom, a
-   dimmed horizontal scroll bar ending at the grow box. The last header
-   runs over the vertical scroll bar. */
+/* Placard, column headers and the list: rows 18px plus a white rule,
+   the sorted column shaded dd, the others ee, and both scroll bars,
+   which end at the grow box. The last header runs over the vertical
+   scroll bar. Name widens with the window; below the columns' total
+   width (120 + 64 + 150) the rows and headers scroll sideways. */
 .fnd { position: absolute; inset: 0; display: flex; flex-direction: column; }
 .fnd-placard, .fnd-heads { flex: none; }
 .fnd-h-name { flex: 1; min-width: 120px; padding-left: 48px; }
 .fnd-h-size { flex: none; width: 64px; }
-.fnd-h-kind { flex: 0 1 165px; min-width: 0; }
+.fnd-h-kind { flex: none; width: 165px; }
 .fnd-list {
   flex: 1; min-height: 0;
-  margin-bottom: 15px; border: 0;
+  border: 0;
   background: #eee;
 }
 /* Edge to edge, a focus ring would only show top and bottom; the
    selection already marks the keyboard's place. */
 .fnd-list:focus-visible, .osm-kbd .fnd-list:focus-visible { outline: none; }
-.fnd-row { display: flex; background: #fff; color: #000; font: var(--osm-font-small); }
+.fnd-row {
+  display: flex; min-width: 334px;
+  background: #fff; color: #000; font: var(--osm-font-small);
+}
 .fnd-cell {
   box-sizing: border-box; height: 18px; padding: 2px 4px 0;
   background: #eee;
@@ -161,7 +165,7 @@ html.desk { height: 100%; background: #9999cc; }
 }
 .fnd-name { position: relative; flex: 1; min-width: 120px; padding-left: 48px; }
 .fnd-size { flex: none; width: 64px; }
-.fnd-kind { flex: 0 1 150px; min-width: 0; }
+.fnd-kind { flex: none; width: 150px; }
 .fnd-list[data-sort="name"] .fnd-name, .fnd-list[data-sort="size"] .fnd-size,
 .fnd-list[data-sort="kind"] .fnd-kind { background: #ddd; }
 .fnd-icon { position: absolute; left: 26px; top: 1px; width: 16px; height: 16px; }
@@ -179,25 +183,6 @@ html.desk { height: 100%; background: #9999cc; }
   box-shadow: 1px 0 #000, -1px 0 #000;
 }
 .osm-selected .fnd-icon { filter: brightness(0.5); }
-/* Nothing to scroll sideways (the columns shrink instead): ee face,
-   black edges, the dimmed arrows (the kit's vertical ones, turned). */
-.fnd-hbar {
-  position: absolute; left: -1px; right: 14px; bottom: -1px;
-  height: 16px;
-  background: #eee;
-  box-shadow: inset 0 1px #000, inset 0 -1px #000;
-}
-.fnd-hbar::before, .fnd-hbar::after {
-  content: ""; position: absolute; top: 0;
-  width: 16px; height: 16px;
-  transform: rotate(-90deg);
-}
-.fnd-hbar::before { left: 0; background: var(--osm-sprite-scroll-up-dimmed); }
-.fnd-hbar::after { right: 0; background: var(--osm-sprite-scroll-down-dimmed); }
-.osm-inactive .fnd-hbar { box-shadow: inset 0 0 0 1px #555; }
-.osm-inactive .fnd-hbar::before, .osm-inactive .fnd-hbar::after {
-  visibility: hidden;
-}
 
 /* ---- Control Panel (panel.ts) ------------------------------------------ */
 /* A 508 x 352 content area: pane buttons down an 80px strip, parted

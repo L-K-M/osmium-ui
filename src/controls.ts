@@ -487,53 +487,100 @@ export function mountPopup(btn: HTMLButtonElement,
 
 // ---- scroll bars ------------------------------------------------------
 
-/** Arrow height, separator included (the thumb overlaps the separator
+/** Arrow length, separator included (the thumb overlaps the separator
  * at either end of its travel). */
-const ARROW_H = 16;
-/** Thumb bitmap height, both black lines included. */
-const THUMB_H = 17;
+const ARROW_LEN = 16;
+/** Thumb bitmap length, both black lines included. */
+const THUMB_LEN = 17;
 /** Delay before a held arrow or track press starts repeating, and the
  * repeat period. */
 const REPEAT_DELAY_MS = 250;
 const REPEAT_MS = 50;
+
+/** Which way a scroll bar runs: down the right edge of what it scrolls,
+ * or along the bottom. */
+export type ScrollAxis = "vertical" | "horizontal";
 
 export interface Scrollbar {
   /** Re-read the view's extent (call after content changes size). */
   update(): void;
 }
 
-/** Thumb top (its black top line) for a scroll fraction, in a bar of
- * height `h`: from the up arrow's separator to the down arrow's. */
-export function thumbTop(h: number, frac: number): number {
-  const travel = h - 2 * ARROW_H - THUMB_H + 2;
-  return ARROW_H - 1 + Math.round(Math.min(1, Math.max(0, frac)) * travel);
+/** Where the thumb starts (its black leading line) for a scroll
+ * fraction, in a bar `len` long: from the first arrow's separator to
+ * the second's. */
+export function thumbStart(len: number, frac: number): number {
+  const travel = len - 2 * ARROW_LEN - THUMB_LEN + 2;
+  return ARROW_LEN - 1 + Math.round(Math.min(1, Math.max(0, frac)) * travel);
 }
 
-/** Give `view` (a scrolling child of `host`) an Osmium scroll bar on
- * the right edge of `host`, overlapping its 1px edge. `line` is the
- * arrow step. The view keeps native wheel and keyboard scrolling. */
-export function attachScrollbar(host: HTMLElement, view: HTMLElement,
-                                line: number): Scrollbar {
-  const bar = part("div", "osm-scrollbar");
-  bar.setAttribute("aria-hidden", "true"); // the view scrolls natively
-  const up = part("div", "osm-sb-up");
-  const down = part("div", "osm-sb-down");
-  const thumb = part("div", "osm-sb-thumb");
-  bar.append(thumb, up, down);
-  host.appendChild(bar);
-  host.classList.add("osm-has-scrollbar");
+/** A scroll bar's view of its axis: the view's scroll range and
+ * position, and where the bar, the thumb and the pointer are along it. */
+interface AxisOps {
+  max(): number;
+  pos(): number;
+  scrollTo(p: number): void;
+  /** The view's visible extent, a page. */
+  page(): number;
+  length(): number;
+  /** A pointer position along the bar, from its start. */
+  along(x: number, y: number): number;
+  thumb(): number;
+  placeThumb(t: number): void;
+}
 
-  const max = () => view.scrollHeight - view.clientHeight;
-  const barH = () => bar.offsetHeight;
+function axisOps(axis: ScrollAxis, view: HTMLElement, bar: HTMLElement,
+                 thumb: HTMLElement): AxisOps {
+  if (axis === "vertical") {
+    return {
+      max: () => view.scrollHeight - view.clientHeight,
+      pos: () => view.scrollTop,
+      scrollTo: (p) => { view.scrollTop = p; },
+      page: () => view.clientHeight,
+      length: () => bar.offsetHeight,
+      along: (_x, y) => y - bar.getBoundingClientRect().top,
+      thumb: () => thumb.offsetTop,
+      placeThumb: (t) => { thumb.style.top = `${t}px`; },
+    };
+  }
+  return {
+    max: () => view.scrollWidth - view.clientWidth,
+    pos: () => view.scrollLeft,
+    scrollTo: (p) => { view.scrollLeft = p; },
+    page: () => view.clientWidth,
+    length: () => bar.offsetWidth,
+    along: (x) => x - bar.getBoundingClientRect().left,
+    thumb: () => thumb.offsetLeft,
+    placeThumb: (t) => { thumb.style.left = `${t}px`; },
+  };
+}
+
+/** Give `view` (a scrolling child of `host`) an Osmium scroll bar,
+ * overlapping `host`'s 1px edge: on its right edge, or with
+ * "horizontal" along its bottom. `line` is the arrow step. The view
+ * keeps native wheel and keyboard scrolling. */
+export function attachScrollbar(host: HTMLElement, view: HTMLElement,
+                                line: number,
+                                axis: ScrollAxis = "vertical"): Scrollbar {
+  const vertical = axis === "vertical";
+  const bar = part("div", vertical ? "osm-scrollbar" : "osm-hscrollbar");
+  bar.setAttribute("aria-hidden", "true"); // the view scrolls natively
+  const back = part("div", vertical ? "osm-sb-up" : "osm-sb-left");
+  const forward = part("div", vertical ? "osm-sb-down" : "osm-sb-right");
+  const thumb = part("div", "osm-sb-thumb");
+  bar.append(thumb, back, forward);
+  host.appendChild(bar);
+  host.classList.add(vertical ? "osm-has-scrollbar" : "osm-has-hscrollbar");
+
+  const ax = axisOps(axis, view, bar, thumb);
   let dragging = false;
 
   function update(): void {
-    const m = max();
-    const h = barH();
+    const m = ax.max();
+    const len = ax.length();
     bar.classList.toggle("osm-sb-off", m <= 0);
-    thumb.style.display = h < 2 * ARROW_H + THUMB_H ? "none" : "";
-    if (!dragging && m > 0)
-      thumb.style.top = `${thumbTop(h, view.scrollTop / m)}px`;
+    thumb.style.display = len < 2 * ARROW_LEN + THUMB_LEN ? "none" : "";
+    if (!dragging && m > 0) ax.placeThumb(thumbStart(len, ax.pos() / m));
   }
 
   /** Run `step` now and then repeatedly while the press lasts and
@@ -564,11 +611,11 @@ export function attachScrollbar(host: HTMLElement, view: HTMLElement,
     el.addEventListener("pointercancel", end);
   }
 
-  for (const [arrow, dir] of [[up, -1], [down, 1]] as const) {
+  for (const [arrow, dir] of [[back, -1], [forward, 1]] as const) {
     arrow.addEventListener("pointerdown", (e) => {
-      if (e.button !== 0 || max() <= 0) return;
+      if (e.button !== 0 || ax.max() <= 0) return;
       arrow.classList.add("osm-pressed");
-      repeat(arrow, e, () => { view.scrollTop += dir * line; },
+      repeat(arrow, e, () => ax.scrollTo(ax.pos() + dir * line),
              (x, y) => {
                const over = inside(arrow, x, y);
                arrow.classList.toggle("osm-pressed", over);
@@ -579,17 +626,15 @@ export function attachScrollbar(host: HTMLElement, view: HTMLElement,
 
   // Track: page toward the pointer until the thumb reaches it.
   bar.addEventListener("pointerdown", (e) => {
-    if (e.button !== 0 || e.target !== bar || max() <= 0) return;
-    const page = Math.max(line, view.clientHeight - line);
-    const top = bar.getBoundingClientRect().top;
-    repeat(bar, e, (_x, y) => {
-      const t = thumb.offsetTop;
-      const py = y - top;
-      if (py < t) view.scrollTop -= page;
-      else if (py > t + THUMB_H) view.scrollTop += page;
-    }, (_x, y) => {
-      const t = thumb.offsetTop, py = y - top;
-      return py < t || py > t + THUMB_H;
+    if (e.button !== 0 || e.target !== bar || ax.max() <= 0) return;
+    const page = Math.max(line, ax.page() - line);
+    repeat(bar, e, (x, y) => {
+      const t = ax.thumb(), p = ax.along(x, y);
+      if (p < t) ax.scrollTo(ax.pos() - page);
+      else if (p > t + THUMB_LEN) ax.scrollTo(ax.pos() + page);
+    }, (x, y) => {
+      const t = ax.thumb(), p = ax.along(x, y);
+      return p < t || p > t + THUMB_LEN;
     });
   });
 
@@ -601,14 +646,14 @@ export function attachScrollbar(host: HTMLElement, view: HTMLElement,
     thumb.setPointerCapture(e.pointerId);
     dragging = true;
     thumb.classList.add("osm-pressed");
-    const grab = e.clientY - thumb.offsetTop;
+    const grab = ax.along(e.clientX, e.clientY) - ax.thumb();
     const move = (ev: PointerEvent) => {
-      const h = barH();
-      const t0 = ARROW_H - 1;
-      const t1 = thumbTop(h, 1);
-      const t = Math.min(t1, Math.max(t0, Math.round(ev.clientY - grab)));
-      thumb.style.top = `${t}px`;
-      view.scrollTop = t1 > t0 ? (t - t0) / (t1 - t0) * max() : 0;
+      const t0 = ARROW_LEN - 1;
+      const t1 = thumbStart(ax.length(), 1);
+      const t = Math.min(t1, Math.max(t0,
+        Math.round(ax.along(ev.clientX, ev.clientY) - grab)));
+      ax.placeThumb(t);
+      ax.scrollTo(t1 > t0 ? (t - t0) / (t1 - t0) * ax.max() : 0);
     };
     const end = () => {
       dragging = false;
@@ -624,10 +669,12 @@ export function attachScrollbar(host: HTMLElement, view: HTMLElement,
   });
 
   // Wheel and trackpad scrolling over the bar scroll the view, as a
-  // native scroll bar would.
+  // native scroll bar would; a plain wheel over a horizontal bar
+  // scrolls sideways.
   bar.addEventListener("wheel", (e) => {
-    view.scrollTop += e.deltaY * (e.deltaMode === 1 ? line
-      : e.deltaMode === 2 ? view.clientHeight : 1);
+    const d = vertical ? e.deltaY : e.deltaX || e.deltaY;
+    ax.scrollTo(ax.pos() + d * (e.deltaMode === 1 ? line
+      : e.deltaMode === 2 ? ax.page() : 1));
     e.preventDefault();
   }, { passive: false });
   view.addEventListener("scroll", update, { passive: true });
@@ -647,7 +694,20 @@ export interface ListOptions {
   onSelect?(index: number): void;
   /** Double-click on a row. */
   onOpen?(index: number): void;
+  /** Its scroll bars; vertical only by default. */
+  scrollbars?: ListScrollbars;
+  /** Column headers above the list (.osm-colheads), kept scrolled
+   * sideways with its rows. */
+  header?: HTMLElement;
 }
+
+/** Which scroll bars a list box has. */
+export type ListScrollbars =
+  | "vertical"
+  /** A horizontal one along the bottom too. The rows scroll sideways
+   * once they are wider than the list, so give them a min-width (a list
+   * view's column total, say). */
+  | "both";
 
 /** Where a list's scroll position lands when its rows are replaced. */
 export type ListScroll =
@@ -701,6 +761,14 @@ export function mountList(host: HTMLElement, opts: ListOptions): OsmiumList {
   view.addEventListener("focus", () => host.focus({ preventScroll: true }));
   host.appendChild(view);
   const sb = attachScrollbar(host, view, opts.rowHeight);
+  const hsb = opts.scrollbars === "both"
+    ? attachScrollbar(host, view, opts.rowHeight, "horizontal") : null;
+  const header = opts.header;
+  if (header) {
+    view.addEventListener("scroll", () => {
+      header.scrollLeft = view.scrollLeft;
+    }, { passive: true });
+  }
   const empty = part("div", "osm-list-empty");
   let rows: HTMLElement[] = [];
   let sel = -1;
@@ -837,6 +905,7 @@ export function mountList(host: HTMLElement, opts: ListOptions): OsmiumList {
       view.scrollTop = scroll === "keep" ? top : 0;
       select(keep, false, scroll === "top");
       sb.update();
+      hsb?.update();
     },
     select: (i, notify) => select(i, notify),
     setEmpty(text) {

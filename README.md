@@ -31,7 +31,7 @@ information window (class `osm-info`, whose text dims when inactive).
 - Checkboxes and sliders with tick marks.
 - Pop-up buttons with their menus.
 - Group boxes and bevel buttons.
-- Scroll bars and list boxes.
+- Scroll bars, vertical and horizontal, and list boxes.
 - Finder list-view headers and placards.
 - Progress bars, separators, wells, and label/value rows.
 
@@ -170,8 +170,8 @@ window.
 | Checkbox | `<label class="osm-checkbox"><input type="checkbox"> Title</label>` | `trackHighlight(label)` |
 | Slider | `<div class="osm-slider"><input type="range" min="0" max="100"></div>` (125px wide, 100 steps) | native input |
 | Pop-up button | `<button class="osm-popup">`, with an optional `<label class="osm-popup-title">` | `mountPopup(el, { items, selected, onChange })` |
-| List box | `<div>` with a height | `mountList(el, { rowHeight, label, onSelect })`, then `setRows(rows)` |
-| Scroll bar | a positioned `host` with a scrolling child `view` that leaves 15px on the right and hides its native scroll bar (as `mountList` sets up) | `attachScrollbar(host, view, lineHeight)` |
+| List box | `<div>` with a height | `mountList(el, { rowHeight, label, onSelect })`, then `setRows(rows)`. `scrollbars: "both"` adds a horizontal bar (give the rows a `min-width`), and `header` keeps a list view's column headers scrolled with the rows |
+| Scroll bar | a positioned `host` with a scrolling child `view` that leaves 15px on the right (or, for a horizontal bar, at the bottom) and hides its native scroll bars (as `mountList` sets up) | `attachScrollbar(host, view, lineHeight)`, or `attachScrollbar(host, view, step, "horizontal")` |
 | Bevel button | `<button class="osm-bevel">`, a 32x32 icon in `--osm-icon`, `osm-selected` for pushed in, a `.osm-bevel-caption` below. 40x40 as in Monitors & Sound; set an even `width` for wider ones, such as Desktop Pictures' 54px | `trackPress(el, action)` |
 | Group box | `<div class="osm-group"><div class="osm-group-title">Title</div>…</div>` | none |
 | List-view header | `<div class="osm-colheads"><button class="osm-colhead">Name</button>…</div>`, add `osm-sorted` to one header | none |

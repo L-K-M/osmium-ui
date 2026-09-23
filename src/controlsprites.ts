@@ -501,6 +501,20 @@ const SCROLL_TRACK = [
   "078aaaaaaaaaabc0",
 ];
 
+// ---- horizontal scroll bar, 16 rows ----------------------------------
+// The vertical bar's parts with rows and columns swapped. Platinum's
+// light comes from the top left, so the swap keeps every bevel lit the
+// same way: the left arrow is the up arrow transposed, the right arrow
+// the down arrow, and so on. A Mac OS 8.0 Desktop Pictures screenshot
+// (the scroll bar under its preview) matches pixel for pixel.
+
+/** `rows` with rows and columns swapped. */
+function transpose(rows: readonly string[]): string[] {
+  const w = rows[0]?.length ?? 0;
+  return Array.from({ length: w }, (_, x) =>
+    rows.map((r) => r[x]).join(""));
+}
+
 // ---- pop-up button (Keyboard, "Script:"), 19 rows --------------------
 // 4 | 1 | 22 columns: the right slice is the arrow section, starting at
 // its separator. Pressed, only the arrow section changes — the menu
@@ -636,6 +650,16 @@ export const CONTROL_SPRITES: Record<string, readonly string[]> = {
   "scroll-thumb-pressed": SCROLL_THUMB_PRESSED,
   "scroll-track-top": SCROLL_TRACK.slice(0, 2),
   "scroll-track": SCROLL_TRACK.slice(2),
+  "scroll-left": transpose(SCROLL_UP),
+  "scroll-left-pressed": transpose(SCROLL_UP_PRESSED),
+  "scroll-left-dimmed": transpose(SCROLL_UP_DIMMED),
+  "scroll-right": transpose(SCROLL_DOWN),
+  "scroll-right-pressed": transpose(SCROLL_DOWN_PRESSED),
+  "scroll-right-dimmed": transpose(SCROLL_DOWN_DIMMED),
+  "scroll-hthumb": transpose(SCROLL_THUMB),
+  "scroll-hthumb-pressed": transpose(SCROLL_THUMB_PRESSED),
+  "scroll-htrack-left": transpose(SCROLL_TRACK.slice(0, 2)),
+  "scroll-htrack": transpose(SCROLL_TRACK.slice(2)),
   popup: POPUP,
   "popup-disabled": POPUP_DISABLED,
   "popup-pressed": POPUP.map((r, y) => r.slice(0, 5) + POPUP_PRESSED[y]!),

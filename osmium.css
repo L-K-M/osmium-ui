@@ -543,6 +543,59 @@
 }
 .osm-inactive .osm-scrollbar > * { visibility: hidden; }
 
+/* A 16px horizontal bar along the bottom (attachScrollbar with
+   "horizontal"): the vertical bar transposed, arrows at the left and
+   right ends, in the same states. */
+.osm-hscrollbar {
+  position: absolute; left: -1px; right: -1px; bottom: -1px;
+  height: 16px;
+  background:
+    var(--osm-sprite-scroll-htrack-left) 16px 0 / 2px 16px no-repeat,
+    var(--osm-sprite-scroll-htrack) 0 0 / 1px 16px repeat-x;
+  touch-action: none;
+}
+.osm-sb-left, .osm-sb-right {
+  position: absolute; top: 0; width: 16px; height: 16px; z-index: 2;
+}
+.osm-sb-left { left: 0; background: var(--osm-sprite-scroll-left); }
+.osm-sb-right { right: 0; background: var(--osm-sprite-scroll-right); }
+.osm-sb-left.osm-pressed {
+  background-image: var(--osm-sprite-scroll-left-pressed);
+}
+.osm-sb-right.osm-pressed {
+  background-image: var(--osm-sprite-scroll-right-pressed);
+}
+.osm-hscrollbar .osm-sb-thumb {
+  left: 15px; top: 0;
+  width: 19px; height: 16px;
+  background:
+    var(--osm-sprite-scroll-hthumb) 0 0 / 17px 16px no-repeat,
+    var(--osm-sprite-scroll-htrack-left) 17px 0 / 2px 16px no-repeat;
+}
+.osm-hscrollbar .osm-sb-thumb.osm-pressed {
+  background-image: var(--osm-sprite-scroll-hthumb-pressed),
+                    var(--osm-sprite-scroll-htrack-left);
+}
+.osm-hscrollbar.osm-sb-off {
+  background: #eee;
+  box-shadow: inset 0 1px #000, inset 0 -1px #000;
+}
+.osm-sb-off .osm-sb-left {
+  background-image: var(--osm-sprite-scroll-left-dimmed);
+}
+.osm-sb-off .osm-sb-right {
+  background-image: var(--osm-sprite-scroll-right-dimmed);
+}
+.osm-inactive .osm-hscrollbar {
+  background: #eee;
+  box-shadow: inset 0 0 0 1px #555;
+}
+.osm-inactive .osm-hscrollbar > * { visibility: hidden; }
+/* With both bars, each stops short of the square between them (where a
+   window's grow box goes), overlapping the other's edge. */
+.osm-has-hscrollbar > .osm-scrollbar { bottom: 14px; }
+.osm-has-scrollbar > .osm-hscrollbar { right: 14px; }
+
 /* ---- lists ----------------------------------------------------------- */
 /* List box: white, black edge, Black & White highlight (the default
    Mac OS 8 highlight color). Rows scroll inside .osm-list-view; with a
@@ -561,6 +614,7 @@
 }
 .osm-list-view::-webkit-scrollbar { display: none; }
 .osm-list.osm-has-scrollbar .osm-list-view { right: 15px; }
+.osm-list.osm-has-hscrollbar .osm-list-view { bottom: 15px; overflow-x: auto; }
 .osm-row { position: relative; white-space: nowrap; overflow: hidden; }
 .osm-list-empty {
   padding: 24px 12px; color: #888;
@@ -592,7 +646,8 @@
 /* Finder list-view column headers, 21px: raised cc cells; the sorted
    column's cell is sunk (88 face), and its cells shade dd while the
    others stay ee, with a white rule under every row. */
-.osm-colheads { display: flex; height: 21px; }
+/* A list's header option scrolls the headers sideways with its rows. */
+.osm-colheads { display: flex; height: 21px; overflow: hidden; }
 .osm-colhead {
   position: relative;
   box-sizing: border-box;

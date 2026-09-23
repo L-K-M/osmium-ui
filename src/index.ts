@@ -17,6 +17,6 @@ export {
   trackPress,
 } from "./controls.js";
 export type {
-  ListOptions, ListScroll, OsmiumList, Popup, PopupOptions, Scrollbar,
-  SetRowsOptions,
+  ListOptions, ListScroll, ListScrollbars, OsmiumList, Popup, PopupOptions,
+  ScrollAxis, Scrollbar, SetRowsOptions,
 } from "./controls.js";

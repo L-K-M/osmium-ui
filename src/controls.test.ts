@@ -1,5 +1,5 @@
 import { describe, expect, it } from "vitest";
-import { centeredOffset, menuTop, thumbTop } from "./controls.js";
+import { centeredOffset, menuTop, thumbStart } from "./controls.js";
 
 describe("centeredOffset", () => {
   // [width, title advance, title x] from Mac OS 8.0: Open dialog push
@@ -18,18 +18,18 @@ describe("centeredOffset", () => {
   });
 });
 
-describe("thumbTop", () => {
+describe("thumbStart", () => {
   // The thumb's black top line sits on the up arrow's separator (row
   // 15) at the top, and its bottom line on the down arrow's separator
   // (row h - 16) at the bottom: the Keyboard panel's 66px list bar.
   it("travels between the arrows' separators", () => {
-    expect(thumbTop(66, 0)).toBe(15);
-    expect(thumbTop(66, 1)).toBe(66 - 16 - 16);
-    expect(thumbTop(66, 7 / 19)).toBe(22);
+    expect(thumbStart(66, 0)).toBe(15);
+    expect(thumbStart(66, 1)).toBe(66 - 16 - 16);
+    expect(thumbStart(66, 7 / 19)).toBe(22);
   });
   it("clamps out-of-range fractions", () => {
-    expect(thumbTop(100, -1)).toBe(15);
-    expect(thumbTop(100, 2)).toBe(thumbTop(100, 1));
+    expect(thumbStart(100, -1)).toBe(15);
+    expect(thumbStart(100, 2)).toBe(thumbStart(100, 1));
   });
 });
 
