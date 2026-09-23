@@ -23,7 +23,9 @@
   "sideEffects": false,
   "scripts": {
     "typecheck": "tsc --noEmit",
-    "test": "vitest run"
+    "test": "vitest run",
+    "demo:build": "node demo/build.mjs",
+    "demo": "node demo/build.mjs --serve"
   },
   "devDependencies": {
     "esbuild": "0.24.2",

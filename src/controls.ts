@@ -174,11 +174,14 @@ export function setButtonTitle(b: HTMLElement, text: string): void {
 /** Return and Enter press `ok`, Escape (and Command-period) press
  * `cancel`, each flashing the button the way the Dialog Manager does.
  * Keys typed into text fields, menus and focused buttons (which have
- * their own Return handling) are left alone. */
+ * their own Return handling) are left alone. With several windows in
+ * one page, `active` says whether the buttons' window is the one the
+ * keys are for. */
 export function bindDialogKeys(ok: HTMLButtonElement | null,
                                cancel: HTMLButtonElement | null,
                                actions: { ok?: () => void;
-                                          cancel?: () => void }): void {
+                                          cancel?: () => void;
+                                          active?: () => boolean }): void {
   window.addEventListener("keydown", (e) => {
     if (e.defaultPrevented || e.repeat) return;
     const t = e.target as HTMLElement | null;
@@ -192,6 +195,7 @@ export function bindDialogKeys(ok: HTMLButtonElement | null,
     // Hidden buttons (display: none anywhere up the tree) have no boxes.
     if (!b || !act || b.disabled || !b.isConnected ||
         b.getClientRects().length === 0) return;
+    if (actions.active && !actions.active()) return;
     e.preventDefault();
     b.classList.add("osm-pressed");
     setTimeout(() => {

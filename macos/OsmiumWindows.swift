@@ -119,18 +119,22 @@ public final class OsmiumFrameStore {
     /// attached screen; a frame left on a detached display falls back
     /// to centered rather than stranding the window offscreen.
     public func restore(_ w: NSWindow, key: String) {
-        let defaults = UserDefaults.standard
-        // Fall back to AppKit's own autosave key, so apps that used
-        // setFrameAutosaveName keep the placements they already saved.
-        let saved = (defaults.string(forKey: prefix + key)
-                     ?? defaults.string(forKey: "NSWindow Frame \(key)"))
-            .flatMap(OsmiumFrameStore.parse)
-        if let f = saved,
+        if let f = frame(for: key),
            NSScreen.screens.contains(where: { $0.frame.intersects(f) }) {
             w.setFrame(f, display: false)
         } else {
             w.center()
         }
+    }
+
+    /// The frame saved for `key`, if any. Falls back to AppKit's own
+    /// autosave key, so apps that used setFrameAutosaveName keep the
+    /// placements they already saved.
+    public func frame(for key: String) -> NSRect? {
+        let defaults = UserDefaults.standard
+        return (defaults.string(forKey: prefix + key)
+                ?? defaults.string(forKey: "NSWindow Frame \(key)"))
+            .flatMap(OsmiumFrameStore.parse)
     }
 
     public func save(_ frame: NSRect, key: String) {

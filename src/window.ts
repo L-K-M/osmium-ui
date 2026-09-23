@@ -119,6 +119,20 @@ export function mountWindow(el: HTMLElement,
 
   const setActive = (on: boolean) =>
     el.classList.toggle("osm-inactive", !on);
+  // An inline height (a grow in a browser tab, say) would beat the
+  // shaded height: park it while the window is folded.
+  let parkedH = "";
+  const setShaded = (on: boolean) => {
+    if (on === el.classList.contains("osm-shaded")) return;
+    if (on) {
+      parkedH = el.style.height;
+      el.style.height = "";
+    } else {
+      el.style.height = parkedH;
+      parkedH = "";
+    }
+    el.classList.toggle("osm-shaded", on);
+  };
   if ((opts.activation ?? "page") === "page") {
     // Active while the page has focus: the native shell gives every
     // Osmium window its own page, so page focus is window focus.
@@ -132,7 +146,7 @@ export function mountWindow(el: HTMLElement,
     element: el,
     content,
     setTitle(text) { title.textContent = text; layout(); },
-    setShaded(on) { el.classList.toggle("osm-shaded", on); },
+    setShaded,
     setActive,
   };
 }

@@ -437,6 +437,7 @@
 /* A pop-up's title, a label in front of it (class .osm-popup-title),
    dims with the control: 66 in an inactive window (Keyboard's
    "Script:"), 88 while the pop-up is disabled (.osm-disabled). */
+.osm-popup-title { font: var(--osm-font-system); }
 .osm-inactive .osm-popup-title { color: #666; }
 .osm-popup-title.osm-disabled { color: #888; }
 /* A pop-up's menu: black outline, white/99 bevel on the dd face, a 22

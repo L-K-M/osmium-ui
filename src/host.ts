@@ -82,18 +82,8 @@ export function hostWindow(el: HTMLElement,
     }
   };
 
-  // An in-tab grow leaves an inline height, which would beat the
-  // shaded rule: park it while the window is folded.
-  let grownH = "";
   const setShade = (on: boolean) => {
     shaded = on;
-    if (on) {
-      grownH = el.style.height;
-      el.style.height = "";
-    } else if (grownH) {
-      el.style.height = grownH;
-      grownH = "";
-    }
     win.setShaded(on);
     post({ op: "winShade", on });
   };
@@ -137,9 +127,11 @@ export function hostWindow(el: HTMLElement,
   });
 
   // Escape closes, unless something inside (a menu, a dialog key
-  // handler) already took the key.
+  // handler) took the key: checked after the event has been through
+  // every listener, whichever order they were added in.
   window.addEventListener("keydown", (e) => {
-    if (e.key === "Escape" && !e.repeat && !e.defaultPrevented) close();
+    if (e.key !== "Escape" || e.repeat) return;
+    setTimeout(() => { if (!e.defaultPrevented) close(); });
   });
 
   // A reload resets the page's fold state: put the native window back
