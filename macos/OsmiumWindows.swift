@@ -17,6 +17,10 @@ import WebKit
 // By default the host listens for them on the "osmium" script message
 // handler, which is where hostWindow() in src/host.ts sends them. Apps
 // that relay page messages themselves pass nil and call handle(_:from:).
+//
+// Everything that touches a window or a web view is isolated to the
+// main actor, where AppKit and WebKit call it; the code builds in
+// Swift 6 language mode as well as Swift 5.
 
 /// A borderless window that behaves like a titled one. Borderless
 /// NSWindows can't become key by default, and with no close or zoom
@@ -24,7 +28,7 @@ import WebKit
 /// them to the same behavior as the page's boxes.
 public final class OsmiumWindow: NSWindow {
     /// The zoom box's frame toggle; nil for a fixed-size window.
-    public var zoomAction: (() -> Void)?
+    public var zoomAction: (@MainActor () -> Void)?
     public override var canBecomeKey: Bool { true }
     public override var canBecomeMain: Bool { true }
     public override func performClose(_ sender: Any?) {
@@ -63,7 +67,7 @@ public final class OsmiumWebView: WKWebView {
 }
 
 /// What a hosted window shows and how big it is.
-public struct OsmiumWindowSpec {
+public struct OsmiumWindowSpec: Sendable {
     /// The page: an app URL scheme, http(s), or a file URL.
     public let url: URL
     /// For the Window menu and Mission Control (the page draws its own).
@@ -93,6 +97,7 @@ public struct OsmiumWindowSpec {
 
 /// A window the host manages, created on first show and reused after a
 /// close.
+@MainActor
 public final class OsmiumHostedWindow {
     public let spec: OsmiumWindowSpec
     public internal(set) var window: OsmiumWindow?
@@ -111,7 +116,7 @@ public final class OsmiumHostedWindow {
 }
 
 /// Saves window frames in UserDefaults under `prefix + key`.
-public final class OsmiumFrameStore {
+public final class OsmiumFrameStore: Sendable {
     public let prefix: String
 
     public init(prefix: String = "OsmiumFrame.") { self.prefix = prefix }
@@ -123,6 +128,7 @@ public final class OsmiumFrameStore {
     /// The saved rect is applied verbatim when it intersects any
     /// attached screen; a frame left on a detached display falls back
     /// to centered rather than stranding the window offscreen.
+    @MainActor
     public func restore(_ w: NSWindow, key: String) {
         if let f = frame(for: key),
            NSScreen.screens.contains(where: { $0.frame.intersects(f) }) {
@@ -165,12 +171,13 @@ public final class OsmiumFrameStore {
 }
 
 /// Opens Osmium windows and applies their pages' window ops.
+@MainActor
 public final class OsmiumWindowHost: NSObject, NSWindowDelegate,
                                      WKScriptMessageHandler {
     public let frames: OsmiumFrameStore
     public private(set) var windows: [OsmiumHostedWindow] = []
-    private let makeConfiguration: () -> WKWebViewConfiguration
-    private let prepare: (WKWebView) -> Void
+    private let makeConfiguration: @MainActor () -> WKWebViewConfiguration
+    private let prepare: @MainActor (WKWebView) -> Void
     private let messageHandlerName: String?
     /// Windowshaded height: the page's 22px collapsed window plus the
     /// 1px drop shadow it draws below itself.
@@ -185,10 +192,10 @@ public final class OsmiumWindowHost: NSObject, NSWindowDelegate,
     ///     relays them to handle(_:from:) itself.
     ///   - prepare: called with each new web view (delegates, say).
     public init(frames: OsmiumFrameStore = OsmiumFrameStore(),
-                configuration: @escaping () -> WKWebViewConfiguration =
+                configuration: @escaping @MainActor () -> WKWebViewConfiguration =
                     { WKWebViewConfiguration() },
                 messageHandlerName: String? = "osmium",
-                prepare: @escaping (WKWebView) -> Void = { _ in }) {
+                prepare: @escaping @MainActor (WKWebView) -> Void = { _ in }) {
         self.frames = frames
         self.makeConfiguration = configuration
         self.messageHandlerName = messageHandlerName
@@ -366,16 +373,19 @@ public final class OsmiumWindowHost: NSObject, NSWindowDelegate,
                                height: hw.preShadeMinH ?? w.minSize.height)
             // Clear the saved height only when the expand actually lands
             // — a shade clicked mid-animation must keep the real height,
-            // not the partial frame.
+            // not the partial frame. AppKit calls the completion handler
+            // on the main thread, but its type doesn't say so.
             NSAnimationContext.runAnimationGroup({ _ in
                 w.animator().setFrame(
                     NSRect(x: f.minX, y: f.maxY - h,
                            width: f.width, height: h),
                     display: true)
             }, completionHandler: {
-                if gen == hw.shadeGen && abs(w.frame.height - h) < 0.5 {
-                    hw.preShadeH = nil
-                    hw.preShadeMinH = nil
+                MainActor.assumeIsolated {
+                    if gen == hw.shadeGen && abs(w.frame.height - h) < 0.5 {
+                        hw.preShadeH = nil
+                        hw.preShadeMinH = nil
+                    }
                 }
             })
         }
@@ -467,6 +477,7 @@ public final class OsmiumWindowHost: NSObject, NSWindowDelegate,
 
 /// WKUserContentController retains its handlers; this keeps it from
 /// retaining the host (which retains the web views) in a cycle.
+@MainActor
 private final class WeakMessageHandler: NSObject, WKScriptMessageHandler {
     weak var target: WKScriptMessageHandler?
 

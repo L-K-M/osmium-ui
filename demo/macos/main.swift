@@ -282,11 +282,15 @@ final class AppDelegate: NSObject, NSApplicationDelegate,
     }
 }
 
-let app = NSApplication.shared
-// NSApplication.delegate is weak: this global holds the delegate, and
-// through it the window host, for the app's lifetime.
-let appDelegate = AppDelegate()
-app.delegate = appDelegate
-app.setActivationPolicy(.regular)
-app.activate(ignoringOtherApps: true)
-app.run()
+// Top-level code runs on the main thread; Swift 6's isolation checks
+// don't assume it, so say so.
+MainActor.assumeIsolated {
+    let app = NSApplication.shared
+    let appDelegate = AppDelegate()
+    app.delegate = appDelegate
+    app.setActivationPolicy(.regular)
+    app.activate(ignoringOtherApps: true)
+    // NSApplication.delegate is weak: keep the delegate, and through it
+    // the window host, alive for the app's lifetime.
+    withExtendedLifetime(appDelegate) { app.run() }
+}
