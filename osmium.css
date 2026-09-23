@@ -143,6 +143,13 @@
 .osm-inactive .osm-progress-track { border-color: #555; background: #ccc; }
 .osm-inactive .osm-progress-fill { background: #9999ff; box-shadow: 1px 0 0 #555; }
 
+/* A page that is one native window (macos/OsmiumWindows.swift): the
+   window fills the web view, 1px short of its right and bottom edges
+   for the drop shadow it draws, over a transparent page. In a browser
+   tab it fills the tab. Put .osm-page on <html>. */
+.osm-page, .osm-page body { margin: 0; background: transparent; }
+.osm-page-window { position: fixed; left: 0; top: 0; right: 1px; bottom: 1px; }
+
 /* Windowshade: only the titlebar, 22px tall, bevel closing under it. */
 .osm-window.osm-shaded { bottom: auto; height: 22px; }
 .osm-window.osm-shaded:not(.osm-inactive) {
