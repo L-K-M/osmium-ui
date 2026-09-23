@@ -387,7 +387,9 @@
 
 /* ---- bevel buttons --------------------------------------------------- */
 /* 40 x 40 with a 32 x 32 icon (--osm-icon); selected is pushed in. The
-   Geneva 9 caption goes right below it. */
+   Geneva 9 caption goes right below it. Monitors & Sound's pane buttons
+   are this size; give the button an even width for wider ones, such as
+   Desktop Pictures' 54 x 40 (the icon stays centered). */
 .osm-bevel {
   position: relative;
   box-sizing: border-box;
@@ -403,7 +405,7 @@
 /* The icon rides above the border image, whose fill covers the
    element's own background. */
 .osm-bevel::before {
-  content: ""; position: absolute; left: 1px; top: 1px;
+  content: ""; position: absolute; left: calc(50% - 16px); top: 1px;
   width: 32px; height: 32px;
   background: var(--osm-icon, none) 0 0 / 32px 32px no-repeat;
 }

@@ -172,7 +172,7 @@ window.
 | Pop-up button | `<button class="osm-popup">`, with an optional `<label class="osm-popup-title">` | `mountPopup(el, { items, selected, onChange })` |
 | List box | `<div>` with a height | `mountList(el, { rowHeight, label, onSelect })`, then `setRows(rows)` |
 | Scroll bar | a positioned `host` with a scrolling child `view` that leaves 15px on the right and hides its native scroll bar (as `mountList` sets up) | `attachScrollbar(host, view, lineHeight)` |
-| Bevel button | `<button class="osm-bevel">`, a 32x32 icon in `--osm-icon`, `osm-selected` for pushed in, a `.osm-bevel-caption` below | `trackPress(el, action)` |
+| Bevel button | `<button class="osm-bevel">`, a 32x32 icon in `--osm-icon`, `osm-selected` for pushed in, a `.osm-bevel-caption` below. 40x40 as in Monitors & Sound; set an even `width` for wider ones, such as Desktop Pictures' 54px | `trackPress(el, action)` |
 | Group box | `<div class="osm-group"><div class="osm-group-title">Title</div>…</div>` | none |
 | List-view header | `<div class="osm-colheads"><button class="osm-colhead">Name</button>…</div>`, add `osm-sorted` to one header | none |
 | Placard | `<div class="osm-placard">3 items</div>` | `centerText(el)` |
