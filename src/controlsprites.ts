@@ -1,8 +1,9 @@
 // Mac OS 8.0 control bitmaps: push buttons, checkboxes, sliders,
-// scroll bars, pop-up buttons and bevel buttons, copied from a running
-// Mac OS 8.0 (Keyboard and General Controls control panels, Finder
-// windows, an alert) and from guidebookgallery.org screenshots (Open
-// dialog, Monitors & Sound). Same palette keys as sprites.ts.
+// scroll bars, pop-up buttons, bevel buttons and the menu bar's
+// corners, copied from a running Mac OS 8.0 (Keyboard and General
+// Controls control panels, Finder windows, an alert) and from
+// guidebookgallery.org screenshots (Open dialog, Monitors & Sound,
+// Desktop Pictures). Same palette keys as sprites.ts.
 //
 // Variable-width controls are stored as 9-slices: the columns (and for
 // bevel buttons, rows) either side of the single middle one are the
@@ -609,6 +610,31 @@ const BEVEL_SELECTED = [
   ".00000.",
 ];
 
+// ---- menu bar: the screen's rounded top corners, over its ends ------
+// From a Mac OS 8.0 capture.
+
+const MENUBAR_CORNER_LEFT = [
+  "000005ad",
+  "0005afff",
+  "005dfddd",
+  "05dfdddd",
+  "0afddddd",
+  "5fdddddd",
+  "afdddddd",
+  "dfdddddd",
+];
+
+const MENUBAR_CORNER_RIGHT = [
+  "da500000",
+  "dcb85000",
+  "dddb8500",
+  "ddddb850",
+  "dddddb80",
+  "dddddda5",
+  "ddddddb7",
+  "ddddddc8",
+];
+
 // Dimmed default button — not captured: the dimmed button inside a
 // ring drawn the way dimmed controls are (88 outline on the flat face).
 const dimRing = (px: string): string =>
@@ -665,4 +691,6 @@ export const CONTROL_SPRITES: Record<string, readonly string[]> = {
   "popup-pressed": POPUP.map((r, y) => r.slice(0, 5) + POPUP_PRESSED[y]!),
   bevel: BEVEL,
   "bevel-selected": BEVEL_SELECTED,
+  "menubar-corner-left": MENUBAR_CORNER_LEFT,
+  "menubar-corner-right": MENUBAR_CORNER_RIGHT,
 };

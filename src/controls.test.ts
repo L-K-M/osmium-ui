@@ -1,5 +1,7 @@
 import { describe, expect, it } from "vitest";
-import { centeredOffset, menuTop, thumbStart } from "./controls.js";
+import {
+  MENU_SEPARATOR, centeredOffset, entryTop, menuTop, thumbStart,
+} from "./controls.js";
 
 describe("centeredOffset", () => {
   // [width, title advance, title x] from Mac OS 8.0: Open dialog push
@@ -35,11 +37,24 @@ describe("thumbStart", () => {
 
 describe("menuTop", () => {
   it("puts the current item over the button", () => {
-    expect(menuTop(123, 0, 1, 600)).toBe(123);
-    expect(menuTop(200, 3, 7, 600)).toBe(200 - 3 * 16);
+    expect(menuTop(123, 0, 1 * 16 + 2, 600)).toBe(123);
+    expect(menuTop(200, 3 * 16, 7 * 16 + 2, 600)).toBe(200 - 3 * 16);
   });
   it("keeps the menu on screen", () => {
-    expect(menuTop(20, 5, 7, 600)).toBe(0);
-    expect(menuTop(590, 0, 7, 600)).toBe(600 - (7 * 16 + 2) - 2);
+    expect(menuTop(20, 5 * 16, 7 * 16 + 2, 600)).toBe(0);
+    expect(menuTop(590, 0, 7 * 16 + 2, 600)).toBe(600 - (7 * 16 + 2) - 2);
+  });
+});
+
+describe("entryTop", () => {
+  // Items are 16px, separators 6px, as in Mac OS 8.0's Apple menu.
+  const entries = ["About", MENU_SEPARATOR, "Chooser", "Key Caps"];
+  it("adds up the entries above", () => {
+    expect(entryTop(entries, 0)).toBe(0);
+    expect(entryTop(entries, 2)).toBe(22);
+    expect(entryTop(entries, 3)).toBe(38);
+  });
+  it("stops at the end", () => {
+    expect(entryTop(entries, 99)).toBe(54);
   });
 });

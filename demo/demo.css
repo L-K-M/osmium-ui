@@ -17,58 +17,10 @@ html.desk { height: 100%; background: #9999cc; }
 #desktop { position: absolute; inset: 0; overflow: hidden; }
 
 /* ---- menu bar ------------------------------------------------------- */
-/* 20px: a raised dd bar (white top and left, 99 bottom and right) over
-   a black line, the screen's rounded corners at either end. */
-.mb {
-  position: fixed; left: 0; top: 0; right: 0; z-index: 100;
-  height: 20px;
-  background:
-    linear-gradient(#000, #000) 0 19px / 100% 1px no-repeat,
-    linear-gradient(#999, #999) 1px 18px / calc(100% - 1px) 1px no-repeat,
-    linear-gradient(#999, #999) right 0 top 1px / 1px 18px no-repeat,
-    linear-gradient(#fff, #fff) 0 0 / 100% 1px no-repeat,
-    linear-gradient(#fff, #fff) 0 0 / 1px 18px no-repeat,
-    #ddd;
-  font: var(--osm-font-system);
-}
-.mb::before, .mb::after {
-  content: ""; position: absolute; top: 0; z-index: 1;
-  width: 8px; height: 8px;
-  pointer-events: none;
-}
-.mb::before { left: 0; background: var(--osm-sprite-corner-left); }
-.mb::after { right: 0; background: var(--osm-sprite-corner-right); }
-/* A title's box is its highlight: text 9px in, baseline on row 13.
-   The content box is exactly one line, or <button> would center the
-   text on a half pixel. */
-.mb-title {
-  position: absolute; top: 0;
-  box-sizing: border-box; height: 19px;
-  margin: 0; padding: 2px 0 1px 9px; border: 0;
-  background: none;
-  color: #000; font: inherit; text-align: left; white-space: nowrap;
-  appearance: none; -webkit-appearance: none;
-  outline: none;
-  cursor: default;
-}
-.mb-title.mb-open {
-  background:
-    linear-gradient(#6666cc, #6666cc) 0 0 / 100% 1px no-repeat,
-    linear-gradient(#000088, #000088) 0 100% / 100% 1px no-repeat,
-    #333399;
-  color: #fff;
-}
-.osm-kbd .mb-title:focus-visible { outline: 2px solid #6666cc; outline-offset: -2px; }
-.mb-icon { display: block; width: 16px; height: 16px; }
-.mb-clock { position: absolute; top: 2px; right: 12px; line-height: 16px; }
-/* Menus are the kit's pop-up menus hung from the bar; a separator is
-   an engraved line across the whole menu, bevel included. */
-.mb-separator {
-  height: 6px;
-  background:
-    linear-gradient(#888, #888) 0 2px / 100% 1px no-repeat,
-    linear-gradient(#fff, #fff) 0 3px / 100% 1px no-repeat;
-}
+/* The kit's menu bar (osm-menubar) along the top, above the windows,
+   with a clock at its right end. */
+#menubar { position: fixed; left: 0; top: 0; right: 0; z-index: 100; }
+.dsk-clock { position: absolute; top: 2px; right: 12px; line-height: 16px; }
 
 /* ---- desktop icons ---------------------------------------------------- */
 /* A column along the right edge. Labels are Geneva 9 on a white box

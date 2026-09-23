@@ -12,11 +12,13 @@ export type {
   EscapeKey, HostOptions, HostedWindow, Size, WindowOp,
 } from "./host.js";
 export {
-  attachScrollbar, bindDialogKeys, centerText, fitButton, mountList,
-  mountPopup, pushButton, setButtonTitle, setEnabled, trackHighlight,
-  trackPress,
+  MENU_SEPARATOR, attachScrollbar, bindDialogKeys, centerText, fitButton,
+  mountList, mountPopup, pushButton, setButtonTitle, setEnabled,
+  trackHighlight, trackPress,
 } from "./controls.js";
 export type {
-  ListOptions, ListScroll, ListScrollbars, OsmiumList, Popup, PopupOptions,
-  ScrollAxis, Scrollbar, SetRowsOptions,
+  ListOptions, ListScroll, ListScrollbars, MenuSeparator, OsmiumList, Popup,
+  PopupOptions, ScrollAxis, Scrollbar, SetRowsOptions,
 } from "./controls.js";
+export { mountMenuBar } from "./menubar.js";
+export type { Menu, MenuEntry, MenuItem } from "./menubar.js";

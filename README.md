@@ -29,7 +29,8 @@ information window (class `osm-info`, whose text dims when inactive).
 **Controls.**
 - Push buttons, including the default button's ring, pressed and dimmed.
 - Checkboxes and sliders with tick marks.
-- Pop-up buttons with their menus.
+- Pop-up buttons with their menus, and separators in them.
+- The menu bar, with pull-down menus.
 - Group boxes and bevel buttons.
 - Scroll bars, vertical and horizontal, and list boxes.
 - Finder list-view headers and placards.
@@ -43,8 +44,8 @@ text renders with the original glyphs on any platform.
 **Behavior.**
 - Press tracking: releasing outside a control cancels.
 - Return and Escape flash the default and cancel buttons.
-- Pop-up menus open on a click or a press-drag-release, with keyboard
-  navigation.
+- Pop-up and pull-down menus open on a click or a press-drag-release,
+  with keyboard navigation.
 - Lists support arrow keys, Home/End, Page Up/Down and typing a name.
 - Scroll bars have auto-repeating arrows and a draggable thumb.
 - Focus rings appear only while you use the keyboard.
@@ -169,7 +170,8 @@ window.
 | Push button | `<button class="osm-button">`, add `osm-default` for the ring | `pushButton(el, action)`, `setButtonTitle(el, text)` |
 | Checkbox | `<label class="osm-checkbox"><input type="checkbox"> Title</label>` | `trackHighlight(label)` |
 | Slider | `<div class="osm-slider"><input type="range" min="0" max="100"></div>` (125px wide, 100 steps) | native input |
-| Pop-up button | `<button class="osm-popup">`, with an optional `<label class="osm-popup-title">` | `mountPopup(el, { items, selected, onChange })` |
+| Pop-up button | `<button class="osm-popup">`, with an optional `<label class="osm-popup-title">` | `mountPopup(el, { items, selected, onChange })`; put `MENU_SEPARATOR` among the items for a dividing line |
+| Menu bar | a `<div>` along the top of the page | `mountMenuBar(el, [{ title, items: () => [{ title, action }, MENU_SEPARATOR, …] }])`; an item without an `action` is dimmed, and `icon` names a 16x16 sprite to show instead of a title |
 | List box | `<div>` with a height | `mountList(el, { rowHeight, label, onSelect })`, then `setRows(rows)`. `scrollbars: "both"` adds a horizontal bar (give the rows a `min-width`), and `header` keeps a list view's column headers scrolled with the rows |
 | Scroll bar | a positioned `host` with a scrolling child `view` that leaves 15px on the right (or, for a horizontal bar, at the bottom) and hides its native scroll bars (as `mountList` sets up) | `attachScrollbar(host, view, lineHeight)`, or `attachScrollbar(host, view, step, "horizontal")` |
 | Bevel button | `<button class="osm-bevel">`, a 32x32 icon in `--osm-icon`, `osm-selected` for pushed in, a `.osm-bevel-caption` below. 40x40 as in Monitors & Sound; set an even `width` for wider ones, such as Desktop Pictures' 54px | `trackPress(el, action)` |
@@ -313,8 +315,8 @@ ResizeObserver and CSS `border-image`.
 
 ## Not included yet
 
-Radio buttons, editable text fields, tabs, horizontal scroll bars, the
-menu bar and alert windows.
+Radio buttons, editable text fields, tabs, alert windows, and keyboard
+equivalents shown in menus.
 
 ## Development
 

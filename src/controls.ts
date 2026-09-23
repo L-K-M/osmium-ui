@@ -6,13 +6,15 @@
 // assistive tech keep working.
 import { installOsmium } from "./install.js";
 
-function part(tag: string, cls: string): HTMLElement {
+// part, inside, textWidth and swallowClick are also menubar.ts's.
+
+export function part(tag: string, cls: string): HTMLElement {
   const e = document.createElement(tag);
   e.className = cls;
   return e;
 }
 
-function inside(el: Element, x: number, y: number): boolean {
+export function inside(el: Element, x: number, y: number): boolean {
   const r = el.getBoundingClientRect();
   return x >= r.left && x < r.right && y >= r.top && y < r.bottom;
 }
@@ -83,7 +85,7 @@ function isDisabled(el: Element): boolean {
 /** Advance width of `text` in `el`'s font. Canvas metrics work for
  * hidden elements too, and the bitmap fonts' advances are whole
  * pixels. */
-function textWidth(text: string, el: Element): number {
+export function textWidth(text: string, el: Element): number {
   const ctx = (measure ??= document.createElement("canvas")).getContext("2d");
   if (!ctx) return 0;
   const cs = getComputedStyle(el);
@@ -207,15 +209,62 @@ export function bindDialogKeys(ok: HTMLButtonElement | null,
 
 // ---- pop-up menus -----------------------------------------------------
 
+/** A menu's dividing line, among a pop-up's items or a menu bar menu's
+ * entries. It can't be highlighted or chosen, but it has an index like
+ * the items around it. */
+export const MENU_SEPARATOR: unique symbol = Symbol("osm-menu-separator");
+export type MenuSeparator = typeof MENU_SEPARATOR;
+
 /** Menu item height. */
 const ITEM_H = 16;
+/** Separator height, its engraved line on rows 2 and 3 (Mac OS 8.0's
+ * Apple menu). */
+const SEPARATOR_H = 6;
 /** Width of a pop-up's arrow section, which its menu doesn't cover. */
 const ARROW_W = 21;
 /** Item text inset plus room after it, for sizing the menu. */
 const ITEM_PAD = 18 + 12 + 2; // inset, right margin, outline
 
+/** Where entry `index` starts in a menu: the height of the entries
+ * above it. */
+export function entryTop(entries: readonly unknown[], index: number): number {
+  let y = 0;
+  for (let i = 0; i < Math.min(index, entries.length); i++)
+    y += entries[i] === MENU_SEPARATOR ? SEPARATOR_H : ITEM_H;
+  return y;
+}
+
+/** A separator's element in an open menu. */
+export function menuSeparator(): HTMLElement {
+  const li = part("li", "osm-menu-separator");
+  li.setAttribute("role", "separator");
+  return li;
+}
+
+/** Swallow the click that ends the current press: a press that only
+ * dismissed a menu must do nothing else, or a label or checkbox under
+ * it would act. */
+export function swallowClick(): void {
+  const eat = (ev: Event) => {
+    // detail 0: a keyboard-activated click, not this press's.
+    if ((ev as MouseEvent).detail === 0) { done(); return; }
+    ev.stopPropagation();
+    ev.preventDefault();
+    done();
+  };
+  const done = () => {
+    document.removeEventListener("click", eat, true);
+    document.removeEventListener("pointerdown", done, true);
+  };
+  document.addEventListener("click", eat, true);
+  // A press that never becomes a click mustn't eat the next one.
+  setTimeout(() => document.addEventListener("pointerdown", done, true));
+}
+
 export interface PopupOptions {
-  items: readonly string[];
+  /** The menu's items, with MENU_SEPARATOR for a dividing line. */
+  items: readonly (string | MenuSeparator)[];
+  /** The current item's index; never a separator's. */
   selected: number;
   onChange(index: number): void;
   label?: string;
@@ -223,20 +272,19 @@ export interface PopupOptions {
 
 export interface Popup {
   readonly selected: number;
-  setItems(items: readonly string[], selected: number): void;
+  setItems(items: readonly (string | MenuSeparator)[], selected: number): void;
   setSelected(index: number): void;
 }
 
 let popupSeq = 0;
 
-/** A pop-up menu's top edge: the current item over the button, moved
- * down or up as needed to keep the menu (and its 2px shadow) on
- * screen. */
-export function menuTop(buttonTop: number, selected: number, count: number,
+/** A pop-up menu's top edge: the current item over the button (`above`
+ * is the height of the entries before it), moved down or up as needed
+ * to keep the menu, `height` tall, and its 2px shadow on screen. */
+export function menuTop(buttonTop: number, above: number, height: number,
                         viewportH: number): number {
-  const h = count * ITEM_H + 2;
-  const top = buttonTop - Math.max(0, selected) * ITEM_H;
-  return Math.min(Math.max(0, top), Math.max(0, viewportH - h - 2));
+  const top = buttonTop - above;
+  return Math.min(Math.max(0, top), Math.max(0, viewportH - height - 2));
 }
 
 /** A pop-up button: shows the current item; its menu opens over the
@@ -257,28 +305,38 @@ export function mountPopup(btn: HTMLButtonElement,
   btn.setAttribute("aria-haspopup", "listbox");
   btn.setAttribute("aria-expanded", "false");
 
+  const isItem = (i: number) => typeof items[i] === "string";
   const render = () => {
-    btn.textContent = items[selected] ?? "";
+    const text = items[selected];
+    btn.textContent = typeof text === "string" ? text : "";
     // An aria-label replaces a button's content in its name, so it
     // carries the current item too.
     if (opts.label)
-      btn.setAttribute("aria-label", `${opts.label} ${items[selected] ?? ""}`);
+      btn.setAttribute("aria-label", `${opts.label} ${btn.textContent}`);
   };
   render();
 
   function highlight(i: number): void {
     if (!menu) return;
-    hi = i;
-    menu.querySelectorAll(".osm-menu-item").forEach((li, k) =>
-      li.classList.toggle("osm-highlight", k === i));
-    if (i >= 0) menu.setAttribute("aria-activedescendant", `${id}-${i}`);
+    hi = isItem(i) ? i : -1;
+    Array.from(menu.children).forEach((li, k) =>
+      li.classList.toggle("osm-highlight", k === hi));
+    if (hi >= 0) menu.setAttribute("aria-activedescendant", `${id}-${hi}`);
     else menu.removeAttribute("aria-activedescendant");
   }
 
+  /** The entry under the pointer, separators included; -1 outside. */
   function itemAt(x: number, y: number): number {
     if (!menu || !inside(menu, x, y)) return -1;
-    const lis = Array.from(menu.querySelectorAll(".osm-menu-item"));
-    return lis.findIndex((li) => inside(li, x, y));
+    return Array.from(menu.children).findIndex((li) => inside(li, x, y));
+  }
+
+  /** The next item from `from` in direction `d`, skipping separators;
+   * `from` itself when there's none. */
+  function nextItem(from: number, d: 1 | -1): number {
+    for (let i = from + d; i >= 0 && i < items.length; i += d)
+      if (isItem(i)) return i;
+    return from;
   }
 
   function open(byKey: boolean): void {
@@ -294,6 +352,10 @@ export function mountPopup(btn: HTMLButtonElement,
     menu.tabIndex = -1;
     if (opts.label) menu.setAttribute("aria-label", opts.label);
     items.forEach((text, i) => {
+      if (text === MENU_SEPARATOR) {
+        menu!.appendChild(menuSeparator());
+        return;
+      }
       const li = part("li", "osm-menu-item");
       li.id = `${id}-${i}`;
       li.setAttribute("role", "option");
@@ -305,11 +367,12 @@ export function mountPopup(btn: HTMLButtonElement,
     // The menu covers the text part of the button (outline to the
     // arrow's separator) and grows to fit its widest item, kept on
     // screen together with its 2px shadow.
-    const widest = Math.max(0, ...items.map((t) => textWidth(t, btn)));
+    const widest = Math.max(0, ...items.map((t) =>
+      typeof t === "string" ? textWidth(t, btn) : 0));
     const w = Math.max(Math.round(r.width) - ARROW_W, widest + ITEM_PAD);
-    const h = items.length * ITEM_H + 2;
-    const top = menuTop(Math.round(r.top), selected, items.length,
-                        window.innerHeight);
+    const h = entryTop(items, items.length) + 2;
+    const above = entryTop(items, Math.max(0, selected));
+    const top = menuTop(Math.round(r.top), above, h, window.innerHeight);
     const left = Math.max(0, Math.min(Math.round(r.left),
                                       window.innerWidth - w - 2));
     menu.style.left = `${left}px`;
@@ -320,8 +383,7 @@ export function mountPopup(btn: HTMLButtonElement,
       // Taller than the screen: scroll so the current item still
       // sits over the button.
       menu.style.overflowY = "auto";
-      menu.scrollTop = Math.max(0, Math.max(0, selected) * ITEM_H -
-                                   (Math.round(r.top) - top));
+      menu.scrollTop = Math.max(0, above - (Math.round(r.top) - top));
     }
     btn.classList.add("osm-pressed");
     btn.setAttribute("aria-expanded", "true");
@@ -370,7 +432,7 @@ export function mountPopup(btn: HTMLButtonElement,
 
   function choose(i: number): void {
     const m = menu;
-    if (!m) return;
+    if (!m || !isItem(i)) return;
     // One blink of the chosen item, then the menu goes away.
     m.querySelectorAll(".osm-menu-item").forEach((li) =>
       li.classList.remove("osm-highlight"));
@@ -394,29 +456,17 @@ export function mountPopup(btn: HTMLButtonElement,
       e.stopPropagation();
       e.preventDefault();
       close();
-      const eat = (ev: Event) => {
-        // detail 0: a keyboard-activated click, not this press's.
-        if ((ev as MouseEvent).detail === 0) { done(); return; }
-        ev.stopPropagation();
-        ev.preventDefault();
-        done();
-      };
-      const done = () => {
-        document.removeEventListener("click", eat, true);
-        document.removeEventListener("pointerdown", done, true);
-      };
-      document.addEventListener("click", eat, true);
-      // A press that never becomes a click mustn't eat the next one.
-      setTimeout(() => document.addEventListener("pointerdown", done, true));
+      swallowClick();
     }
   }
 
   function onMenuKey(e: KeyboardEvent): void {
     const n = items.length;
-    if (e.key === "ArrowDown") highlight(Math.min(n - 1, hi + 1));
-    else if (e.key === "ArrowUp") highlight(Math.max(0, hi < 0 ? 0 : hi - 1));
-    else if (e.key === "Home") highlight(0);
-    else if (e.key === "End") highlight(n - 1);
+    if (e.key === "ArrowDown") highlight(nextItem(hi, 1));
+    else if (e.key === "ArrowUp")
+      highlight(hi < 0 ? nextItem(-1, 1) : nextItem(hi, -1));
+    else if (e.key === "Home") highlight(nextItem(-1, 1));
+    else if (e.key === "End") highlight(nextItem(n, -1));
     else if (e.key === "Enter" || e.key === " ") {
       if (hi >= 0 && !e.repeat) choose(hi);
     } else if (e.key === "Escape" || e.key === "Tab") close();
@@ -425,7 +475,11 @@ export function mountPopup(btn: HTMLButtonElement,
       const from = hi + 1;
       for (let d = 0; d < n; d++) {
         const i = (from + d) % n;
-        if (items[i]!.toLowerCase().startsWith(k)) { highlight(i); break; }
+        const t = items[i];
+        if (typeof t === "string" && t.toLowerCase().startsWith(k)) {
+          highlight(i);
+          break;
+        }
       }
     } else return;
     e.preventDefault();
@@ -447,8 +501,10 @@ export function mountPopup(btn: HTMLButtonElement,
       if (ev.type === "pointercancel") return;
       const i = itemAt(ev.clientX, ev.clientY);
       const moved = Math.abs(ev.clientX - x0) + Math.abs(ev.clientY - y0) > 3;
-      if (i >= 0 && moved) choose(i);
-      else if (moved && !inside(btn, ev.clientX, ev.clientY) &&
+      // A drag that ends on a separator chooses nothing.
+      if (i >= 0 && moved) {
+        if (isItem(i)) choose(i); else close();
+      } else if (moved && !inside(btn, ev.clientX, ev.clientY) &&
                !(menu && inside(menu, ev.clientX, ev.clientY))) close();
     };
     const move = (ev: PointerEvent) => {

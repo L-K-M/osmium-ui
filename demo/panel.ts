@@ -8,7 +8,8 @@
 //   Monitor   color depth and resolution lists, a gamma pop-up
 //   Picture   sliders in group boxes adjusting a test card; Defaults
 import {
-  centerText, mountList, mountPopup, pushButton, setButtonTitle, trackPress,
+  MENU_SEPARATOR, centerText, mountList, mountPopup, pushButton,
+  setButtonTitle, trackPress,
 } from "../src/index.js";
 import { button, el, group, slider } from "./dom.js";
 import { sprite } from "./icons.js";
@@ -44,7 +45,9 @@ const RESOLUTIONS = [
   "1152 x 870, 75Hz", "1280 x 960, 75Hz", "1280 x 1024, 75Hz",
   "1600 x 1200, 75Hz", "1856 x 1392, 75Hz", "1920 x 1440, 75Hz",
 ];
-const GAMMAS = ["Mac Standard", "Uncorrected", "Page-White", "Linear"];
+/** The standard curve, then the alternatives below a separator. */
+const GAMMAS = ["Mac Standard", MENU_SEPARATOR, "Uncorrected", "Page-White",
+                "Linear"] as const;
 
 interface Adjustment {
   label: string;
@@ -186,7 +189,7 @@ export function buildPanel(content: HTMLElement,
   help(resBox, () => [`${RESOLUTIONS[resolutions.selected] ?? "None"}.`,
     "Pixels across and down, and how often the picture is redrawn. " +
     "Scroll for the larger sizes."]);
-  help(gammaRow, () => [`Gamma: ${GAMMAS[gamma.selected]}.`,
+  help(gammaRow, () => [`Gamma: ${gammaPop.textContent ?? ""}.`,
     "The curve that maps color values to screen brightness."]);
 
   // ---- Picture pane --------------------------------------------------
