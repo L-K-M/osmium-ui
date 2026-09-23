@@ -793,9 +793,10 @@ export interface OsmiumList {
 let listSeq = 0;
 /** Movement that turns a touch press into a scroll, not a selection. */
 const TOUCH_SLOP = 6;
-/** A touch this soon after the list last scrolled lands on a list that
- * is still coasting from a flick: it stops the scroll, as in native
- * lists, rather than choosing a row the reader couldn't aim at. */
+/** A touch this soon after the list last scrolled, with the scroll
+ * before that as recent, lands on a list still coasting from a flick:
+ * it stops the scroll, as in native lists, rather than choosing a row
+ * the reader couldn't aim at. */
 const SCROLL_SETTLE_MS = 100;
 
 /** A single-selection list box in `host` (styled .osm-list): rows are
@@ -830,9 +831,16 @@ export function mountList(host: HTMLElement, opts: ListOptions): OsmiumList {
   let sel = -1;
   let typed = "";
   let typedAt = 0;
+  // When the view last scrolled as part of a run of scrolls: a coasting
+  // flick scrolls every frame, while a jump of our own (reveal, setRows,
+  // a scroll bar step) is a single scroll that mustn't eat the next tap.
+  let coastingAt = -Infinity;
   let scrolledAt = -Infinity;
-  view.addEventListener("scroll", () => { scrolledAt = performance.now(); },
-                        { passive: true });
+  view.addEventListener("scroll", () => {
+    const now = performance.now();
+    if (now - scrolledAt < SCROLL_SETTLE_MS) coastingAt = now;
+    scrolledAt = now;
+  }, { passive: true });
 
   function reveal(i: number): void {
     const r = rows[i];
@@ -870,7 +878,7 @@ export function mountList(host: HTMLElement, opts: ListOptions): OsmiumList {
       // (the browser's pan cancels the pointer), and a tap on a list
       // still coasting only stops it. Mouse presses always select, as a
       // click does on a Mac list that is still scrolling.
-      if (performance.now() - scrolledAt < SCROLL_SETTLE_MS) return;
+      if (performance.now() - coastingAt < SCROLL_SETTLE_MS) return;
       const x0 = e.clientX, y0 = e.clientY;
       view.setPointerCapture(e.pointerId);
       const up = (ev: PointerEvent) => {

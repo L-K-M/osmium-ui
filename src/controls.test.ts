@@ -44,6 +44,13 @@ describe("menuTop", () => {
     expect(menuTop(20, 5 * 16, 7 * 16 + 2, 600)).toBe(0);
     expect(menuTop(590, 0, 7 * 16 + 2, 600)).toBe(600 - (7 * 16 + 2) - 2);
   });
+  it("lines up an item below a separator", () => {
+    // 16 + 6 + 16 + 16, and the 2px outline.
+    const entries = ["About", MENU_SEPARATOR, "Chooser", "Key Caps"];
+    const h = entryTop(entries, entries.length) + 2;
+    expect(menuTop(200, entryTop(entries, 2), h, 600)).toBe(200 - 22);
+    expect(menuTop(590, entryTop(entries, 0), h, 600)).toBe(600 - 56 - 2);
+  });
 });
 
 describe("entryTop", () => {

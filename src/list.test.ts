@@ -51,7 +51,9 @@ describe("mountList", () => {
   it("treats a tap that stops a scroll as only stopping it", async () => {
     const { list, view, picked } = mount();
     await settle();
-    // A flick: the view is still scrolling when the finger lands.
+    // A flick: the view scrolls every frame and is still scrolling when
+    // the finger lands.
+    view.dispatchEvent(new Event("scroll"));
     view.dispatchEvent(new Event("scroll"));
     tap(view, 4 * ROW_H + 4);
     expect(picked).toEqual([]);
@@ -63,9 +65,18 @@ describe("mountList", () => {
     expect(picked).toEqual([4]);
   });
 
+  it("lets a tap through after a single scroll, such as a reveal", async () => {
+    const { view, picked } = mount();
+    await settle();
+    view.dispatchEvent(new Event("scroll"));
+    tap(view, 5 * ROW_H + 4);
+    expect(picked).toEqual([5]);
+  });
+
   it("still selects on a mouse press while the list scrolls", async () => {
     const { view, picked } = mount();
     await settle();
+    view.dispatchEvent(new Event("scroll"));
     view.dispatchEvent(new Event("scroll"));
     tap(view, 3 * ROW_H + 4, "mouse");
     expect(picked).toEqual([3]);

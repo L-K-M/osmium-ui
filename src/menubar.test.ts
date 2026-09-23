@@ -62,6 +62,17 @@ describe("mountMenuBar", () => {
     expect(menu()).toBeNull();
   });
 
+  it("closes its menu and lets keys be once the bar is gone", () => {
+    key(titles()[0]!, "Enter");
+    bar.remove();
+    const e = new KeyboardEvent("keydown", {
+      key: "ArrowDown", bubbles: true, cancelable: true,
+    });
+    document.dispatchEvent(e);
+    expect(e.defaultPrevented).toBe(false);
+    expect(menu()).toBeNull();
+  });
+
   it("switches menus with the side arrows and closes on Escape", () => {
     key(titles()[0]!, "ArrowDown");
     key(document, "ArrowRight");

@@ -225,9 +225,17 @@ export function mountMenuBar(bar: HTMLElement, menus: readonly Menu[]): void {
     window.addEventListener("pointercancel", up, true);
   });
 
+  // The bar's pointer and key tracking is the document's: a bar taken
+  // out of the page closes its open menu and stops answering.
+  function detached(): boolean {
+    if (bar.isConnected) return false;
+    close();
+    return true;
+  }
+
   // An open menu follows the pointer, pressed or not (sticky menus).
   document.addEventListener("pointermove", (e) => {
-    if (open >= 0) track(e.clientX, e.clientY);
+    if (open >= 0 && !detached()) track(e.clientX, e.clientY);
   });
 
   // A press anywhere but on a title or in the menu closes the menu and
@@ -253,7 +261,7 @@ export function mountMenuBar(bar: HTMLElement, menus: readonly Menu[]): void {
   // Keyboard, while a menu is open: arrows move through items and
   // menus, Return chooses, Escape closes.
   document.addEventListener("keydown", (e) => {
-    if (open < 0) return;
+    if (open < 0 || detached()) return;
     const n = entries.length;
     const step = (d: number) => {
       for (let k = 1; k <= n; k++) {
