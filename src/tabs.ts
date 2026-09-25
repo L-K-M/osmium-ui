@@ -41,6 +41,9 @@ export function mountTabs(host: HTMLElement, opts: TabsOptions): OsmiumTabs {
   const panels = Array.from(pane.children) as HTMLElement[];
   if (!tabs.length || tabs.length !== panels.length)
     throw new Error(`${tabs.length} tabs for ${panels.length} panels`);
+  // Before any wiring, so a bad index leaves the markup untouched.
+  if (!tabs[opts.selected])
+    throw new RangeError(`no tab ${opts.selected} of ${tabs.length}`);
 
   const id = `osm-tabs-${++tabsSeq}`;
   host.classList.add("osm-tabs");
@@ -69,7 +72,8 @@ export function mountTabs(host: HTMLElement, opts: TabsOptions): OsmiumTabs {
     tab.setAttribute("aria-controls", panel.id);
     panel.setAttribute("role", "tabpanel");
     panel.setAttribute("aria-labelledby", tab.id);
-    trackPress(tab, () => select(i));
+    // The keyboard carries on from the tab pressed.
+    trackPress(tab, () => { select(i); tab.focus(); });
   });
 
   list.addEventListener("keydown", (e) => {

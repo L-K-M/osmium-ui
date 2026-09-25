@@ -85,6 +85,7 @@ describe("mountTabs", () => {
     press(tabs()[2]!, 20, 10);
     expect(chosen).toEqual([2]);
     expect(panels().map((p) => p.hidden)).toEqual([true, true, false]);
+    expect(document.activeElement).toBe(tabs()[2]);
   });
 
   it("cancels a press released outside the tab", () => {
@@ -132,5 +133,9 @@ describe("mountTabs", () => {
     expect(() => mount(0)).toThrow("0 tabs for 0 panels");
     host = markup(2, 2);
     expect(() => mount(2)).toThrow(RangeError);
+    // Nothing was wired before the throw.
+    expect(host.querySelector(".osm-tablist")!.hasAttribute("role"))
+      .toBe(false);
+    expect(host.querySelector(".osm-tab")!.hasAttribute("role")).toBe(false);
   });
 });
