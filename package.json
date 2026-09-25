@@ -38,7 +38,7 @@
     "demo": "node demo/build.mjs --serve"
   },
   "devDependencies": {
-    "esbuild": "0.24.2",
+    "esbuild": "0.28.2",
     "happy-dom": "20.14.5",
     "typescript": "5.6.3",
     "vitest": "2.1.9"
