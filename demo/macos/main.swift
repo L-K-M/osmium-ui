@@ -12,7 +12,7 @@ import WebKit
 
 /// One of the demo's windows.
 enum DemoPage: Int, CaseIterable {
-    case controls, finder, controlPanel, about
+    case controls, finder, controlPanel, appearance, about
 
     /// The page's window id (demo/windows.ts), as the Finder page names
     /// the window it wants opened.
@@ -21,6 +21,7 @@ enum DemoPage: Int, CaseIterable {
         case .controls: return "controls"
         case .finder: return "finder"
         case .controlPanel: return "panel"
+        case .appearance: return "appearance"
         case .about: return "about"
         }
     }
@@ -31,6 +32,7 @@ enum DemoPage: Int, CaseIterable {
         case .controls: return "controls.html"
         case .finder: return "finder.html"
         case .controlPanel: return "panel.html"
+        case .appearance: return "appearance.html"
         case .about: return "about.html"
         }
     }
@@ -42,6 +44,7 @@ enum DemoPage: Int, CaseIterable {
         case .controls: return "Controls"
         case .finder: return "Osmium HD"
         case .controlPanel: return "Control Panel"
+        case .appearance: return "Appearance"
         case .about: return "About Osmium UI"
         }
     }
@@ -52,6 +55,7 @@ enum DemoPage: Int, CaseIterable {
         case .controls: return "Controls"
         case .finder: return "Finder"
         case .controlPanel: return "ControlPanel"
+        case .appearance: return "Appearance"
         case .about: return "About"
         }
     }
@@ -65,6 +69,7 @@ enum DemoPage: Int, CaseIterable {
         case .controls: return NSSize(width: 461, height: 331)
         case .finder: return NSSize(width: 501, height: 542)
         case .controlPanel: return NSSize(width: 521, height: 381)
+        case .appearance: return NSSize(width: 461, height: 221)
         case .about: return NSSize(width: 341, height: 221)
         }
     }
@@ -239,7 +244,7 @@ final class AppDelegate: NSObject, NSApplicationDelegate,
                          action: #selector(NSText.selectAll(_:)),
                          keyEquivalent: "a")
 
-        // ⌘1 to ⌘4, in DemoPage order.
+        // ⌘1 to ⌘5, in DemoPage order.
         let demoMenu = submenu("Demo", in: bar)
         for (i, page) in DemoPage.allCases.enumerated() {
             demoMenu.addItem(pageItem(page, key: String(i + 1)))

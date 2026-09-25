@@ -3,7 +3,8 @@
 // corners, copied from a running Mac OS 8.0 (Keyboard and General
 // Controls control panels, Finder windows, an alert) and from
 // guidebookgallery.org screenshots (Open dialog, Monitors & Sound,
-// Desktop Pictures). Same palette keys as sprites.ts.
+// Desktop Pictures). Tabs come from Mac OS 8.5 (see below). Same
+// palette keys as sprites.ts.
 //
 // Variable-width controls are stored as 9-slices: the columns (and for
 // bevel buttons, rows) either side of the single middle one are the
@@ -635,6 +636,68 @@ const MENUBAR_CORNER_RIGHT = [
   "ddddddc8",
 ];
 
+// ---- tabs: 11 | 1 | 12 columns ----------------------------------------
+// From 1:1 screenshots of Mac OS 8.5's Appearance control panel, the
+// first release to put tab controls in the system's own panels (8.0's
+// switch panes with bevel buttons). A tab is its title plus these ends;
+// the slanted sides step one pixel every three rows. The back tabs are
+// 21 rows on the dd dialog face. The front tab is 24: its last three
+// rows cover the pane's black, cc and white top rows, opening the tab
+// into the ee pane. Pressed and inactive-window tabs weren't captured,
+// so tabs have no pressed look and stay as they are in an inactive
+// window.
+
+const TAB = [
+  "..........2000..........",
+  "........20acba00........",
+  ".......2acddddd80.......",
+  "......2acdcccccb43......",
+  "......0cdccccccca0......",
+  ".....2adccccccccb43.....",
+  ".....0cdccccccccc80.....",
+  ".....0cdccccccccca0.....",
+  "....2adccccccccccb43....",
+  "....0cdccccccccccc80....",
+  "....0cdccccccccccca0....",
+  "...2adccccccccccccb43...",
+  "...0cdccccccccccccc80...",
+  "...0cdccccccccccccca0...",
+  "..2adccccccccccccccb43..",
+  "..0cdccccccccccccccc80..",
+  "..0cdccccccccccccccca0..",
+  ".2adccccccccccccccccb43.",
+  ".0cdccccccccccccccccc80.",
+  ".0cdccccccccccccccccca0.",
+  "0adccccccccccccccccccb40",
+];
+
+const TAB_FRONT = [
+  "..........2000..........",
+  "........20bccb00........",
+  ".......2bcffffd80.......",
+  "......2bffeeeeeb42......",
+  "......0cfeeeeeed80......",
+  ".....2bfeeeeeeeeb42.....",
+  ".....0cfeeeeeeeed80.....",
+  ".....0cfeeeeeeeed80.....",
+  "....2bfeeeeeeeeeeb42....",
+  "....0cfeeeeeeeeeed80....",
+  "....0cfeeeeeeeeeed80....",
+  "...2bfeeeeeeeeeeeeb42...",
+  "...0cfeeeeeeeeeeeed80...",
+  "...0cfeeeeeeeeeeeed80...",
+  "..2bfeeeeeeeeeeeeeeb42..",
+  "..0cfeeeeeeeeeeeeeed80..",
+  "..0cfeeeeeeeeeeeeeed80..",
+  ".2bfeeeeeeeeeeeeeeeeb42.",
+  ".0cfeeeeeeeeeeeeeeeed80.",
+  ".0cfeeeeeeeeeeeeeeeed80.",
+  "2bfeeeeeeeeeeeeeeeeeeb40",
+  "0cfeeeeeeeeeeeeeeeeeedb0",
+  "cceeeeeeeeeeeeeeeeeeeecc",
+  "feeeeeeeeeeeeeeeeeeeeeef",
+];
+
 // Dimmed default button — not captured: the dimmed button inside a
 // ring drawn the way dimmed controls are (88 outline on the flat face).
 const dimRing = (px: string): string =>
@@ -693,4 +756,6 @@ export const CONTROL_SPRITES: Record<string, readonly string[]> = {
   "bevel-selected": BEVEL_SELECTED,
   "menubar-corner-left": MENUBAR_CORNER_LEFT,
   "menubar-corner-right": MENUBAR_CORNER_RIGHT,
+  tab: TAB,
+  "tab-front": TAB_FRONT,
 };

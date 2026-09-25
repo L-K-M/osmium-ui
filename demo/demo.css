@@ -209,3 +209,19 @@ html.desk { height: 100%; background: #9999cc; }
 .abt-icon { flex: none; width: 32px; height: 32px; margin-right: 10px; }
 .abt-fields { margin-top: 7px; }
 .abt-text { margin: 6px 0 0; }
+
+/* ---- Appearance (appearance.ts) ------------------------------------------ */
+/* The tab control fills the window, its pane's black edges on the
+   content's, the tabs 10px below the content's top (Mac OS 8.5's
+   Appearance control panel). In each pane, pop-ups and checkboxes 121px
+   in, a pop-up's title 6px before it; captions 20px below the control's
+   top, under a pop-up's text or a checkbox's title. */
+.apr { position: absolute; left: -1px; right: -1px; top: 10px; bottom: -1px; }
+.apr-panel { position: absolute; inset: 0; }
+.apr-row { position: absolute; left: 0; right: 0; height: 38px; }
+.apr-row > * { position: absolute; }
+.apr-title { right: calc(100% - 115px); top: 1px; white-space: nowrap; }
+.apr-pop { left: 121px; top: 0; width: 180px; }
+.apr-row > .osm-checkbox { left: 121px; top: 1px; white-space: nowrap; }
+.apr-caption { left: 123px; top: 20px; white-space: nowrap; }
+.apr-check > .apr-caption { left: 137px; }

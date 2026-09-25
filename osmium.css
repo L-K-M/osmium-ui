@@ -6,7 +6,8 @@
 
    Needs installOsmium() (src/install.ts) at runtime: it registers the
    bitmap fonts and defines the --osm-sprite-* images. Markup and
-   behavior live in src/window.ts, src/controls.ts and src/menubar.ts. */
+   behavior live in src/window.ts, src/controls.ts, src/menubar.ts and
+   src/tabs.ts. */
 
 :root {
   --osm-frame: #cccccc;      /* window frame face */
@@ -418,6 +419,66 @@
   text-align: center; white-space: nowrap;
 }
 
+/* ---- tabs ------------------------------------------------------------ */
+/* A tab control (tabs.ts), measured from Mac OS 8.5's Appearance
+   control panel: .osm-tabs > .osm-tablist > button.osm-tab, then
+   .osm-tab-pane holding one panel per tab. The tabs start 5px in from
+   the pane's left edge and touch. Each is its Charcoal 12 title plus
+   23px of slanted ends, the title 12px in with its baseline on row 14.
+   The front tab (aria-selected) hangs 3px lower, over the pane's top
+   edge, and opens into the pane. Given a height, the control's pane
+   fills it. */
+.osm-tabs { display: flex; flex-direction: column; }
+.osm-tablist {
+  display: flex; flex: none; align-items: flex-start;
+  height: 21px; padding-left: 5px;
+}
+.osm-tab {
+  position: relative; flex: none;
+  box-sizing: border-box;
+  height: 21px; margin: 0; padding: 3px 0 2px;
+  border: solid transparent; border-width: 0 11px 0 12px;
+  border-image: var(--osm-sprite-tab) 0 12 0 11 fill / 0 12px 0 11px;
+  background: none;
+  color: #000; font: var(--osm-font-system);
+  text-align: left; white-space: nowrap;
+  appearance: none; -webkit-appearance: none;
+  outline: none;
+  cursor: default;
+}
+.osm-tab[aria-selected="true"] {
+  z-index: 1;
+  height: 24px; padding-bottom: 5px;
+  border-image-source: var(--osm-sprite-tab-front);
+}
+/* The pane: black edge, then cc over white on the top and left, 99
+   under bb on the bottom and right (dd where the outer lines meet), on
+   an ee face. */
+.osm-tab-pane {
+  position: relative; flex: auto; min-height: 0;
+  box-sizing: border-box;
+  border: 1px solid #000;
+  background:
+    linear-gradient(#ddd, #ddd) right 0 top 0 / 1px 1px no-repeat,
+    linear-gradient(#ddd, #ddd) left 0 bottom 0 / 1px 1px no-repeat,
+    linear-gradient(#ccc, #ccc) 0 0 / calc(100% - 1px) 1px no-repeat,
+    linear-gradient(#ccc, #ccc) 0 0 / 1px calc(100% - 1px) no-repeat,
+    linear-gradient(#999, #999) right 0 bottom 0 / calc(100% - 1px) 1px
+      no-repeat,
+    linear-gradient(#999, #999) right 0 bottom 0 / 1px calc(100% - 1px)
+      no-repeat,
+    linear-gradient(#fff, #fff) 1px 1px / calc(100% - 3px) 1px no-repeat,
+    linear-gradient(#fff, #fff) 1px 1px / 1px calc(100% - 3px) no-repeat,
+    linear-gradient(#bbb, #bbb) right 1px bottom 1px / calc(100% - 3px) 1px
+      no-repeat,
+    linear-gradient(#bbb, #bbb) right 1px bottom 1px / 1px calc(100% - 3px)
+      no-repeat,
+    #eee;
+}
+/* Panels behind the front one, even with a class giving them a
+   display. */
+.osm-tab-pane > [hidden] { display: none; }
+
 /* ---- pop-up buttons and menus ---------------------------------------- */
 /* 19px tall: text part, then the 22px arrow section. The current item
    starts 8px in, its baseline on row 12. */
@@ -758,4 +819,10 @@
 .osm-kbd .osm-colhead:focus-visible { outline-offset: -3px; }
 .osm-kbd .osm-menubar-title:focus-visible {
   outline: 2px solid #6666cc; outline-offset: -2px;
+}
+/* A tab's ring goes round its title, inside the slanted ends. */
+.osm-kbd .osm-tab:focus-visible::after {
+  content: ""; position: absolute; left: -2px; right: -2px; top: 3px;
+  height: 15px;
+  outline: 2px solid #6666cc;
 }

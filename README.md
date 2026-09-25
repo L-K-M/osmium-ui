@@ -32,6 +32,7 @@ information window (class `osm-info`, whose text dims when inactive).
 - Pop-up buttons with their menus, and separators in them.
 - The menu bar, with pull-down menus.
 - Group boxes and bevel buttons.
+- Tab controls, measured from Mac OS 8.5's Appearance control panel.
 - Scroll bars, vertical and horizontal, and list boxes.
 - Finder list-view headers and placards.
 - Progress bars, separators, wells, and label/value rows.
@@ -57,6 +58,7 @@ navigation and assistive technology keep working.
   <img src="docs/controls.png" width="492" alt="A dialog with push buttons, checkboxes, sliders, a progress bar, a pop-up button and text in Charcoal 12, Geneva 10 and Geneva 9">
   <img src="docs/finder.png" width="532" alt="A Finder list view with a placard, sortable column headers, icons, a selected row and scroll bars">
   <img src="docs/panel.png" width="552" alt="A control panel with bevel buttons, a list box, a preview well and a caption area">
+  <img src="docs/appearance.png" width="492" alt="An Appearance window with Appearance, Fonts and Options tabs over a pane of titled pop-up buttons with captions">
 </p>
 
 **Native windows (macOS).** A Swift host opens each page in a
@@ -90,10 +92,10 @@ npm run demo
 ```
 
 This builds the demo and serves it locally: a Mac OS 8 desktop with a
-dialog full of controls, a Finder list view, a control panel and an
-About window. You can drag the windows, click to bring them to the
-front, close them and windowshade them, and zoom and resize the Finder
-window.
+dialog full of controls, a Finder list view, a control panel, a tabbed
+Appearance window (open it from its desktop icon) and an About window.
+You can drag the windows, click to bring them to the front, close them
+and windowshade them, and zoom and resize the Finder window.
 
 On a Mac with the Xcode command line tools, the same pages run as
 native windows:
@@ -176,6 +178,7 @@ window.
 | Scroll bar | a positioned `host` with a scrolling child `view` that leaves 15px on the right (or, for a horizontal bar, at the bottom) and hides its native scroll bars (as `mountList` sets up) | `attachScrollbar(host, view, lineHeight)`, or `attachScrollbar(host, view, step, "horizontal")` |
 | Bevel button | `<button class="osm-bevel">`, a 32x32 icon in `--osm-icon`, `osm-selected` for pushed in, a `.osm-bevel-caption` below. 40x40 as in Monitors & Sound; set an even `width` for wider ones, such as Desktop Pictures' 54px | `trackPress(el, action)` |
 | Group box | `<div class="osm-group"><div class="osm-group-title">Title</div>…</div>` | none |
+| Tab control | `<div>` holding `<div class="osm-tablist">` of `<button class="osm-tab">` and then `<div class="osm-tab-pane">` with one panel per tab, in order. Give the `<div>` a height to have the pane fill it | `mountTabs(el, { selected, onChange })`; the arrow keys, Home and End move between tabs |
 | List-view header | `<div class="osm-colheads"><button class="osm-colhead">Name</button>…</div>`, add `osm-sorted` to one header | none |
 | Placard | `<div class="osm-placard">3 items</div>` | `centerText(el)` |
 | Progress bar | `.osm-progress > .osm-progress-track > .osm-progress-fill`, set `--osm-value` (0 to 1) | none |

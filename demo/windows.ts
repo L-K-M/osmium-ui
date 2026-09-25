@@ -4,12 +4,14 @@
 // demo app (controls.html and friends, page.ts).
 import type { Size } from "../src/index.js";
 import { buildAbout } from "./about.js";
+import { buildAppearance } from "./appearance.js";
 import { buildControls } from "./controls.js";
 import { buildFinder } from "./finder.js";
 import { buildPanel } from "./panel.js";
 import type { Pattern } from "./patterns.js";
 
-export type WindowId = "controls" | "finder" | "panel" | "about";
+export type WindowId =
+  "controls" | "finder" | "panel" | "appearance" | "about";
 
 /** What the window's host (the desktop or a one-window page) offers
  * its content. */
@@ -62,6 +64,8 @@ export const WINDOWS: readonly WindowSpec[] = [
     build: buildFinder },
   { id: "panel", title: "Control Panel", size: { w: 521, h: 381 },
     build: buildPanel },
+  { id: "appearance", title: "Appearance", size: { w: 461, h: 221 },
+    build: buildAppearance },
   { id: "about", title: "About Osmium UI", size: { w: 341, h: 221 },
     info: true, build: buildAbout },
 ];

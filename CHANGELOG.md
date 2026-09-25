@@ -2,6 +2,11 @@
 
 ## Unreleased
 
+- Add tab controls (`mountTabs`), measured from Mac OS 8.5's
+  Appearance control panel: slanted Platinum tabs over a pane that
+  shows one panel at a time, following the WAI-ARIA tabs pattern. The
+  demo has a tabbed Appearance window. Pressed tabs and tabs in an
+  inactive window weren't captured, so they keep the normal look.
 - Add horizontal scroll bars: `attachScrollbar` takes an axis, and
   `mountList` a `scrollbars: "both"` option and a `header` whose column
   headers scroll sideways with the rows. The demo's Finder scrolls

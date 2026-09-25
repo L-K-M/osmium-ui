@@ -1,10 +1,11 @@
 // One demo window per page, for the native demo app: each of
-// controls.html, finder.html, panel.html and about.html holds one
-// .osm-page-window naming its window in data-window. hostWindow sends
-// the window's gestures to the native shell (the "osmium" message
-// handler OsmiumWindowHost registers); in a browser tab the window
-// fills the tab. The native demo app also listens on a "demo" handler
-// for the Finder's requests to open other windows.
+// controls.html, finder.html, panel.html, appearance.html and
+// about.html holds one .osm-page-window naming its window in
+// data-window. hostWindow sends the window's gestures to the native
+// shell (the "osmium" message handler OsmiumWindowHost registers); in
+// a browser tab the window fills the tab. The native demo app also
+// listens on a "demo" handler for the Finder's requests to open other
+// windows.
 import { hostWindow } from "../src/index.js";
 import type { HostedWindow } from "../src/index.js";
 import { registerDemoSprites } from "./icons.js";

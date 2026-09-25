@@ -30,8 +30,12 @@ const ICON_CELL_W = 76;
 interface Frame { x: number; y: number; w: number; h: number }
 
 /** Where the windows start, arranged for a 1024 x 720 screen (moved in
- * on smaller ones), and their stacking order, back to front. */
-const START: readonly { id: WindowId; x: number; y: number }[] = [
+ * on smaller ones), and their stacking order, back to front. A closed
+ * one waits for its icon or menu item. */
+const START: readonly {
+  id: WindowId; x: number; y: number; closed?: boolean;
+}[] = [
+  { id: "appearance", x: 280, y: 200, closed: true },
   { id: "about", x: 24, y: 40 },
   { id: "panel", x: 16, y: 300 },
   { id: "finder", x: 344, y: 44 },
@@ -42,6 +46,7 @@ const ICONS: readonly { id: WindowId; label: string; icon: SpriteName }[] = [
   { id: "finder", label: "Osmium HD", icon: "icon-disk" },
   { id: "controls", label: "Controls", icon: "icon-app" },
   { id: "panel", label: "Control Panel", icon: "icon-panel" },
+  { id: "appearance", label: "Appearance", icon: "icon-panel" },
   { id: "about", label: "About Osmium UI", icon: "icon-readme" },
 ];
 
@@ -243,7 +248,8 @@ for (const spec of WINDOWS) {
   });
 }
 
-/** Put every window back where it started (Special > Clean Up). */
+/** Put every window back where it started (Special > Clean Up),
+ * opening the ones that start open. */
 function cleanUp(): void {
   for (const s of START) {
     const w = windows.get(s.id)!;
@@ -255,7 +261,7 @@ function cleanUp(): void {
       x: Math.max(0, Math.min(s.x, window.innerWidth - size.w - MARGIN)),
       y: Math.max(MENU_H, Math.min(s.y, window.innerHeight - size.h - MARGIN)),
     });
-    open(s.id);
+    if (!s.closed) open(s.id);
   }
 }
 
@@ -318,6 +324,7 @@ mountMenuBar(menubar, [
     { title: "About Osmium UI…", action: () => open("about") },
     MENU_SEPARATOR,
     openable("panel"),
+    openable("appearance"),
     openable("controls"),
     openable("finder"),
   ] },
