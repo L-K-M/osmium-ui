@@ -64,6 +64,52 @@ public final class OsmiumWebView: WKWebView {
         let p = convert(e.locationInWindow, from: nil)
         return (isFlipped ? p.y : bounds.height - p.y) < titleBarH
     }
+
+    /// The drop shadow's width, and how far in from the window's corner
+    /// each shadow edge starts. Keep in step with .osm-window::before and
+    /// ::after in osmium.css, or the backdrop shows past the shadow again.
+    private let shadowW: CGFloat = 1
+    private let shadowInset: CGFloat = 2
+
+    /// Clip to the page window's silhouette: its box, plus the shadow
+    /// along its right and bottom edges. WebKit can still paint its
+    /// white backdrop where the page is transparent, even with
+    /// drawsBackground off, which showed as two white pixels beside the
+    /// shadow's ends (top right, bottom left). Outside the silhouette
+    /// the page draws nothing, so the clip hides only that backdrop.
+    public override func layout() {
+        super.layout()
+        wantsLayer = true
+        guard let layer else { return }
+        let w = bounds.width, h = bounds.height
+        // Top-down points; layer space is flipped only when the view is.
+        let flipped = layer.isGeometryFlipped
+        let top: [(CGFloat, CGFloat)] = [
+            (0, 0), (w - shadowW, 0), (w - shadowW, shadowInset),
+            (w, shadowInset), (w, h), (shadowInset, h),
+            (shadowInset, h - shadowW), (0, h - shadowW)]
+        let pts = top.map { CGPoint(x: $0.0, y: flipped ? $0.1 : h - $0.1) }
+        let path = CGMutablePath()
+        path.addLines(between: pts)
+        path.closeSubpath()
+        // Reuse the mask layer: layout runs on every resize tick.
+        let mask = layer.mask as? CAShapeLayer ?? CAShapeLayer()
+        // A mask layer has no view delegate to suppress implicit actions:
+        // without this its frame and path would animate behind a resize.
+        CATransaction.begin()
+        CATransaction.setDisableActions(true)
+        mask.frame = CGRect(origin: .zero, size: bounds.size)
+        mask.contentsScale = layer.contentsScale
+        mask.path = path
+        layer.mask = mask
+        CATransaction.commit()
+    }
+
+    // A move to a display of another density: re-rasterize the mask.
+    public override func viewDidChangeBackingProperties() {
+        super.viewDidChangeBackingProperties()
+        needsLayout = true
+    }
 }
 
 /// What a hosted window shows and how big it is.
