@@ -22,3 +22,5 @@ export type {
 } from "./controls.js";
 export { mountMenuBar } from "./menubar.js";
 export type { Menu, MenuEntry, MenuItem } from "./menubar.js";
+export { mountTabs } from "./tabs.js";
+export type { OsmiumTabs, TabsOptions } from "./tabs.js";

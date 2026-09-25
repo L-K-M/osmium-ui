@@ -4,7 +4,7 @@
 # Node with the repo's npm dependencies installed (npm install).
 APP := OsmiumDemo.app
 DIST := ../dist
-PAGES := controls.html finder.html panel.html about.html
+PAGES := controls.html finder.html panel.html appearance.html about.html
 SOURCES := main.swift ../../macos/OsmiumWindows.swift
 # Name the deployment target (the macOS 12 in Info.plist) in the target
 # triple rather than relying on MACOSX_DEPLOYMENT_TARGET: without it,
