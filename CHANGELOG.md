@@ -2,6 +2,9 @@
 
 ## Unreleased
 
+- The native window host clips each window to its outline and drop
+  shadow, so WebKit's white backdrop no longer shows as a stray pixel
+  beside the shadow's ends (top right and bottom left).
 - Add tab controls (`mountTabs`), measured from Mac OS 8.5's
   Appearance control panel: slanted Platinum tabs over a pane that
   shows one panel at a time, following the WAI-ARIA tabs pattern. The
