@@ -66,7 +66,8 @@ public final class OsmiumWebView: WKWebView {
     }
 
     /// The drop shadow's width, and how far in from the window's corner
-    /// each shadow edge starts (osmium.css, .osm-window::before/::after).
+    /// each shadow edge starts. Keep in step with .osm-window::before and
+    /// ::after in osmium.css, or the backdrop shows past the shadow again.
     private let shadowW: CGFloat = 1
     private let shadowInset: CGFloat = 2
 
@@ -93,10 +94,15 @@ public final class OsmiumWebView: WKWebView {
         path.closeSubpath()
         // Reuse the mask layer: layout runs on every resize tick.
         let mask = layer.mask as? CAShapeLayer ?? CAShapeLayer()
+        // A mask layer has no view delegate to suppress implicit actions:
+        // without this its frame and path would animate behind a resize.
+        CATransaction.begin()
+        CATransaction.setDisableActions(true)
         mask.frame = CGRect(origin: .zero, size: bounds.size)
-        mask.contentsScale = window?.backingScaleFactor ?? 2
+        mask.contentsScale = layer.contentsScale
         mask.path = path
         layer.mask = mask
+        CATransaction.commit()
     }
 
     // A move to a display of another density: re-rasterize the mask.
