@@ -1,6 +1,6 @@
 {
   "name": "osmium-ui",
-  "version": "0.3.0",
+  "version": "0.3.1",
   "description": "A pixel-exact recreation of the Mac OS 8 look for web pages and WKWebView apps: windows, controls, bitmap fonts and a native macOS window host.",
   "license": "Unlicense",
   "type": "module",
