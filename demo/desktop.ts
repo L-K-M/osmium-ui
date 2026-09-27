@@ -464,7 +464,10 @@ function finderMenus(): readonly Menu[] {
         { title: "Open", key: "O",
           ...(icon ? { action: () => open(icon.id, icon.doc) } : {}) },
         { title: "Close Window", key: "W",
-          ...(w && app === "finder" ? { action: () => close(w) } : {}) },
+          // Only a Finder window: with every Finder window closed and
+          // the desktop clicked, Foolscap's window can still be front.
+          ...(w && appOf(w) === "finder" && app === "finder"
+            ? { action: () => close(w) } : {}) },
       ];
     } },
     { title: "Edit", items: () => [

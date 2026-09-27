@@ -50,6 +50,10 @@ export function openDialog(opts: DialogOptions): DemoDialog {
     opts.onBeep?.();
   });
   const node = el("div", "dlg");
+  // What the inert page already does, told to assistive technology.
+  node.setAttribute("role", "dialog");
+  node.setAttribute("aria-modal", "true");
+  node.setAttribute("aria-label", opts.title);
   node.style.zIndex = String(Z + 1);
   node.style.width = `${opts.width}px`;
   node.style.height = `${opts.height}px`;
@@ -80,12 +84,16 @@ export function openDialog(opts: DialogOptions): DemoDialog {
         node.style.left = `${Math.round(ev.clientX - dx)}px`;
         node.style.top = `${Math.max(MENU_H, Math.round(ev.clientY - dy))}px`;
       };
+      // A canceled touch ends the drag too; otherwise the dialog would
+      // follow the next pointer that moves.
       const up = () => {
         window.removeEventListener("pointermove", move);
         window.removeEventListener("pointerup", up);
+        window.removeEventListener("pointercancel", up);
       };
       window.addEventListener("pointermove", move);
       window.addEventListener("pointerup", up);
+      window.addEventListener("pointercancel", up);
     },
   });
   win.setActive(true);
