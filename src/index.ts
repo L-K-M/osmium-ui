@@ -24,3 +24,5 @@ export { mountMenuBar } from "./menubar.js";
 export type { Menu, MenuEntry, MenuItem } from "./menubar.js";
 export { mountTabs } from "./tabs.js";
 export type { OsmiumTabs, TabsOptions } from "./tabs.js";
+export { mountTextArea } from "./edittext.js";
+export type { OsmiumTextArea } from "./edittext.js";

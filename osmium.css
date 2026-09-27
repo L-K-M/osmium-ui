@@ -808,7 +808,9 @@
 /* Keyboard focus, only while the keyboard is driving (install.ts sets
    .osm-kbd on the root; scripts focus lists and pop-ups on mouse presses
    too, which :focus-visible alone would ring). Mac OS 8.0 control
-   panels draw no focus at all; this keeps them usable without a mouse. */
+   panels draw no focus at all; this keeps them usable without a mouse.
+   Edit text is the exception: its ring shows however it got the focus
+   (see edit text below), because it marks where typing goes. */
 .osm-kbd .osm-button:focus-visible, .osm-kbd .osm-popup:focus-visible,
 .osm-kbd .osm-bevel:focus-visible, .osm-kbd .osm-checkbox input:focus-visible,
 .osm-kbd .osm-slider input:focus-visible, .osm-kbd .osm-list:focus-visible,
@@ -826,3 +828,185 @@
   height: 15px;
   outline: 2px solid #6666cc;
 }
+
+/* ---- edit text ------------------------------------------------------- */
+/* <input class="osm-edit">, any text type, drawn completely here (the
+   multi-line kind is src/edittext.ts). The element's box is the black
+   line, the way the HIG measures a field: 22px tall (HIG p. 82). A 1px
+   engraved bevel sits outside it, 88 along the top and left (the
+   top-left corner included) and white along the bottom and right (the
+   bottom-right corner included); measured in Mac OS 8.0 Find File and
+   Mac OS 9.0 Date Formats. The top-right and bottom-left bevel corners
+   differ between sources: open (the background shows) in Mac OS 9.0
+   Date Formats, HIG figure 3-30 and the Mac OS 9.0 Monitors list box
+   (the same bevel), 88 in Mac OS 8.0 Find File, white in HIG p. 48.
+   They are left open here. The Charcoal 12 line starts 3px inside the
+   black line on the left and at the top (2px of white), which puts the
+   baseline on row 14 (Inside Macintosh: Toolbox Essentials: the Dialog
+   Manager frames an edit text 3px outside TextEdit's rectangle). Bevel
+   and ring are box shadows so they work on a bare <input>, which has no
+   pseudo-elements, and leave its box the HIG's. */
+.osm-edit, .osm-edit-area {
+  --osm-edit-bevel:
+    -1px -1px #888, 0 -1px #888, -1px 0 #888,
+    1px 1px #fff, 0 1px #fff, 1px 0 #fff;
+  /* DrawThemeFocusRect: 2px of the accent hugging the black line, over
+     the bevel, the four outermost corner pixels left open (Mac OS 9.0
+     Date Formats, Sherlock 2 and Help Center; HIG pp. 48 and 66). The
+     union of these spread shadows is exactly that ring. */
+  --osm-edit-ring:
+    0 0 0 1px #6666cc, 0 -1px 0 1px #6666cc, 0 1px 0 1px #6666cc,
+    -1px 0 0 1px #6666cc, 1px 0 0 1px #6666cc;
+}
+.osm-edit {
+  box-sizing: border-box;
+  height: 22px;
+  margin: 0; padding: 2px;
+  border: 1px solid #000; border-radius: 0;
+  background: #fff;
+  box-shadow: var(--osm-edit-bevel);
+  color: #000;
+  font: var(--osm-font-system);
+  font-synthesis: none;
+  -webkit-font-smoothing: none;
+  letter-spacing: normal; word-spacing: normal;
+  text-indent: 0; text-transform: none; text-shadow: none;
+  caret-color: #000;
+  /* The I-beam over text (.osm-window sets the arrow). */
+  cursor: text;
+  /* .osm-window turns selection off, and Safari then won't select in or
+     place the caret in a field that inherits that. */
+  user-select: text; -webkit-user-select: text;
+  appearance: none; -webkit-appearance: none;
+  outline: none;
+}
+/* 20px, one row of white above and below the line, for a field in a row
+   of 20px buttons and pop-ups (HIG p. 82). Mac OS 8.0 Find File's field
+   is this kind: its text starts 3px in, baseline on row 13, the caret
+   16 rows from row 2 (Infinite Mac, Mac OS 8.0, black line at
+   397..532 x 151..170 of the 640 x 480 screen). */
+.osm-edit.osm-compact { height: 20px; padding-top: 1px; padding-bottom: 1px; }
+/* Mac OS 8 had no placeholder text; this is an addition, in a gray that
+   keeps WCAG AA contrast on white (88 would not). */
+.osm-edit::placeholder {
+  color: #666; -webkit-text-fill-color: #666; opacity: 1;
+}
+/* Mac OS 8 had no search field: type="search" looks like any field, with
+   no magnifier or cancel button, and numbers get no spin buttons. */
+.osm-edit::-webkit-search-decoration,
+.osm-edit::-webkit-search-cancel-button,
+.osm-edit::-webkit-search-results-button,
+.osm-edit::-webkit-search-results-decoration {
+  -webkit-appearance: none; display: none;
+}
+.osm-edit::-webkit-inner-spin-button,
+.osm-edit::-webkit-outer-spin-button { -webkit-appearance: none; margin: 0; }
+.osm-edit[type="number"] { -moz-appearance: textfield; appearance: textfield; }
+
+/* Selected text in the Highlight Color, Black & White by default in
+   Mac OS 8.0 and 8.1: white on black. WebKit lightens an opaque
+   selection color (black comes out 333333); a hair of transparency opts
+   out of that (010101 in every engine). */
+.osm-edit::selection, .osm-edit-area > textarea::selection {
+  background: #000;
+  background: color-mix(in srgb, #000 99.6%, transparent);
+  color: #fff;
+}
+
+/* The field with the keyboard has the ring however the focus got
+   there, a click or Tab: it shows where typing goes. The transparent
+   outline is for forced-colors modes, which drop box shadows but paint
+   outlines in a system color. */
+.osm-edit:focus, .osm-edit-area:focus-within {
+  box-shadow: var(--osm-edit-ring);
+  outline: 2px solid transparent;
+}
+
+/* An inactive window's fields, as Mac OS 8.0 Find File draws them
+   behind another application's window (the same Infinite Mac capture;
+   a window in front covered the field's right end): the black line and
+   the text turn 88, the bevel stays, and the ring, the caret and the
+   selection highlight go (TEDeactivate). */
+.osm-inactive .osm-edit, .osm-inactive .osm-edit-area {
+  border-color: #888;
+  box-shadow: var(--osm-edit-bevel);
+}
+.osm-inactive .osm-edit, .osm-inactive .osm-edit-area > textarea {
+  color: #888; -webkit-text-fill-color: #888;
+  caret-color: transparent;
+}
+.osm-inactive .osm-edit::selection,
+.osm-inactive .osm-edit-area > textarea::selection {
+  background: transparent; color: #888;
+}
+.osm-inactive .osm-edit::placeholder,
+.osm-inactive .osm-edit-area > textarea::placeholder {
+  color: #888; -webkit-text-fill-color: #888;
+}
+/* Disabled. APPROXIMATION, not captured: drawn like the measured
+   inactive field, as DrawThemeEditTextFrame has a single inactive state
+   for both. A bare input.osm-edit dims through :disabled; a text area's
+   frame and scroll bar key on .osm-disabled, which setEnabled puts on
+   its .osm-edit-area (:has() would need Safari 15.4, see the
+   checkboxes), so the disabled attribute alone dims only its text. */
+.osm-edit:disabled, .osm-edit-area.osm-disabled { border-color: #888; }
+.osm-edit:disabled, .osm-edit-area > textarea:disabled {
+  color: #888; -webkit-text-fill-color: #888; opacity: 1;
+  cursor: default;
+}
+.osm-edit:disabled::placeholder,
+.osm-edit-area > textarea:disabled::placeholder {
+  color: #888; -webkit-text-fill-color: #888;
+}
+
+/* Multi-line edit text: <div class="osm-edit-area"> around a
+   <textarea>, in the same frame, the text keeping 2px of white. On its
+   own it is the Dialog Manager's multi-line edit text: the text wraps
+   and is clipped, scrolling with the caret but with no scroll bar.
+   mountTextArea adds a scroll bar, its black edges over the frame's
+   black line as in a list box. Height for n lines: 16n + 6 (the line,
+   2px of white and the black line at the top and bottom). */
+.osm-edit-area {
+  position: relative;
+  box-sizing: border-box;
+  border: 1px solid #000;
+  background: #fff;
+  box-shadow: var(--osm-edit-bevel);
+}
+.osm-edit-area > textarea {
+  position: absolute; inset: 0;
+  box-sizing: border-box;
+  width: auto; height: auto;
+  margin: 0; padding: 2px;
+  border: 0; border-radius: 0;
+  background: transparent;
+  color: #000;
+  font: var(--osm-font-system);
+  font-synthesis: none;
+  -webkit-font-smoothing: none;
+  caret-color: #000;
+  cursor: text;
+  user-select: text; -webkit-user-select: text;
+  resize: none;
+  overflow-x: hidden; overflow-y: auto;
+  scrollbar-width: none;
+  appearance: none; -webkit-appearance: none;
+  outline: none;
+}
+.osm-edit-area > textarea::-webkit-scrollbar { display: none; }
+.osm-edit-area > textarea::placeholder {
+  color: #666; -webkit-text-fill-color: #666; opacity: 1;
+}
+.osm-edit-area.osm-has-scrollbar > textarea { right: 15px; }
+/* A dimmed text area's scroll bar, in an inactive window or disabled,
+   is blank like an inactive window's bar, but edged in the frame's 88
+   rather than 55: its edges lie on the frame's line, which then reads
+   as one gray line all round. APPROXIMATION: no dimmed scrolling edit
+   text was captured. A disabled one's bar takes no presses. */
+.osm-inactive .osm-edit-area > .osm-scrollbar,
+.osm-edit-area.osm-disabled > .osm-scrollbar {
+  background: #eee;
+  box-shadow: inset 0 0 0 1px #888;
+}
+.osm-edit-area.osm-disabled > .osm-scrollbar { pointer-events: none; }
+.osm-edit-area.osm-disabled > .osm-scrollbar > * { visibility: hidden; }

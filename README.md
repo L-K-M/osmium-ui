@@ -36,6 +36,7 @@ information window (class `osm-info`, whose text dims when inactive).
 - Scroll bars, vertical and horizontal, and list boxes.
 - Finder list-view headers and placards.
 - Progress bars, separators, wells, and label/value rows.
+- Edit text fields, one-line and multi-line.
 
 **Fonts.** Charcoal 12, Geneva 10 and Geneva 9 as bitmap strikes. They
 are compiled into TrueType fonts in the browser at startup, with
@@ -49,7 +50,9 @@ text renders with the original glyphs on any platform.
   with keyboard navigation.
 - Lists support arrow keys, Home/End, Page Up/Down and typing a name.
 - Scroll bars have auto-repeating arrows and a draggable thumb.
-- Focus rings appear only while you use the keyboard.
+- Focus rings appear only while you use the keyboard, except on edit
+  text: a field shows its ring however it got the focus, because the
+  ring marks where typing goes.
 
 Native `<button>` and `<input>` elements stay underneath, so keyboard
 navigation and assistive technology keep working.
@@ -93,7 +96,8 @@ npm run demo
 
 This builds the demo and serves it locally: a Mac OS 8 desktop with a
 dialog full of controls, a Finder list view, a control panel, a tabbed
-Appearance window (open it from its desktop icon) and an About window.
+Appearance window and a File Sharing window full of edit text (open
+them from their desktop icons), and an About window.
 You can drag the windows, click to bring them to the front, close them
 and windowshade them, and zoom and resize the Finder window.
 
@@ -184,14 +188,95 @@ window.
 | Progress bar | `.osm-progress > .osm-progress-track > .osm-progress-fill`, set `--osm-value` (0 to 1) | none |
 | Label/value rows | `<div class="osm-fields">` of `.osm-label` and value pairs | none |
 | Separator, well | `<div class="osm-separator">`, `<div class="osm-well">` | none |
+| Edit text | `<input class="osm-edit">` (22px), add `osm-compact` for 20px; `<div class="osm-edit-area"><textarea></textarea></div>` for several lines | native input; `mountTextArea(el)` adds a scroll bar to a multi-line field; `setEnabled(field, on)` |
 
-Disable a checkbox or slider with `setEnabled(input, false)` so the
-whole control dims. The fonts are available as `osm-system` (Charcoal
+Disable a checkbox, slider or edit text with `setEnabled(input, false)`
+so the whole control dims. The fonts are available as `osm-system` (Charcoal
 12), `osm-small` (Geneva 10) and `osm-caption` (Geneva 9), or as the
 `--osm-font-*` custom properties.
 
 The demo's source (`demo/`) uses every control. It's the best place
 to see complete markup.
+
+### Edit text
+
+A one-line field is a native input that `osmium.css` draws completely,
+for any text type, including `password`:
+
+```html
+<label for="name">Name:</label>
+<input id="name" class="osm-edit" value="Macintosh HD" style="width: 160px">
+<input class="osm-edit osm-compact" aria-label="Find" style="width: 120px">
+```
+
+The field's box is its black line, the way the Mac OS 8 guidelines
+measure a field: 22px tall, or 20px with `osm-compact` for a field in a
+row of 20px buttons and pop-ups. The 1px bevel and the 2px focus ring
+are drawn outside that box, so keep 2px between a field and the edge
+of anything that clips, such as a window's content. The guidelines
+space things like this: 5px from a label to its field, 6px between
+stacked fields, 4px between a field and its pop-up. Place a label 3px
+below the field's top (2px beside a compact field) so their baselines
+meet.
+
+Mac OS 8 had no placeholder text and no search field. Placeholders
+work, in a gray chosen for contrast, and `type="search"` looks like any
+other field, without the magnifier or the clear button.
+
+For several lines, put a `<textarea>` in an `osm-edit-area`. On its own
+it is the Dialog Manager's multi-line edit text: the text wraps and is
+clipped, and it scrolls with the caret but has no scroll bar.
+`mountTextArea` adds an Osmium scroll bar that follows typing; call its
+`update()` after setting the text from a script. Disable a text area
+with `setEnabled`: the `disabled` attribute alone dims only its text,
+not its frame or scroll bar. Give the area a height of 16px per line
+plus 6px, so 54px for three lines:
+
+```html
+<div id="notes" class="osm-edit-area" style="width: 200px; height: 54px">
+  <textarea aria-label="Notes"></textarea>
+</div>
+```
+
+```ts
+import { mountTextArea } from "osmium-ui";
+
+const notes = mountTextArea(document.getElementById("notes")!);
+notes.textarea.value = "Three lines,\nor more.";
+notes.update();
+```
+
+In a dialog bound with `bindDialogKeys`, Return and Escape typed in a
+one-line field press the default and cancel buttons, as the Mac OS 8
+Dialog Manager does, unless your own keydown handler on the field calls
+`preventDefault()` (to save on Return, say). Text areas and other text
+fields keep their keys.
+
+An inactive window's fields hide their ring, caret and selection. With
+`activation: "manual"`, also blur a focused field when its window
+deactivates, or typing still goes into it. The demo desktop does this.
+
+The frame, the text placement, the caret's height and the inactive look
+match Mac OS 8.0 Find File as captured in an emulator, and the ring
+matches Mac OS 9.0 Date Formats. Some details differ:
+
+- A disabled field wasn't captured. It is drawn like a field in an
+  inactive window, which was.
+- No dimmed scrolling text area was captured. In an inactive window or
+  disabled, its scroll bar is blank like an inactive window's, but
+  edged in the frame's gray (888888) rather than 555555, so the frame
+  stays one gray line where the bar overlaps it.
+- Mac OS 8.0 dims a window's static text in an inactive window, labels
+  beside fields included. Osmium's plain labels stay black; dim them
+  yourself if you want that.
+- The top-right and bottom-left bevel pixels are left open. Mac OS 8.0
+  Find File draws them gray, while other sources leave them open.
+- The browser draws the caret one pixel right of where TextEdit does,
+  and the selection covers only the selected characters. TextEdit
+  extends it to the field's right edge when it reaches the end of the
+  text.
+- Selected text is white on 010101 rather than black: WebKit lightens
+  an opaque black selection to 333333.
 
 ### Your own icons
 
@@ -318,8 +403,8 @@ ResizeObserver and CSS `border-image`.
 
 ## Not included yet
 
-Radio buttons, editable text fields, tabs, alert windows, and keyboard
-equivalents shown in menus.
+Radio buttons, tabs, alert windows, and keyboard equivalents shown in
+menus.
 
 ## Development
 

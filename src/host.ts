@@ -148,8 +148,10 @@ export function hostWindow(el: HTMLElement,
 
   // Escape closes, unless something inside (a menu, a dialog key
   // handler) took the key: checked after the event has been through
-  // every listener, whichever order they were added in. Text fields
-  // keep their own Escape (a search field clears).
+  // every listener, whichever order they were added in. Escape typed
+  // in a text field never closes the window: the field keeps it (a
+  // search field clears), or a dialog's bindDialogKeys takes it from a
+  // single-line edit text to press Cancel.
   if ((opts.escape ?? "close") === "close") {
     window.addEventListener("keydown", (e) => {
       if (e.key !== "Escape" || e.repeat) return;

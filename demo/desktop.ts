@@ -36,6 +36,7 @@ const START: readonly {
   id: WindowId; x: number; y: number; closed?: boolean;
 }[] = [
   { id: "appearance", x: 280, y: 200, closed: true },
+  { id: "sharing", x: 120, y: 120, closed: true },
   { id: "about", x: 24, y: 40 },
   { id: "panel", x: 16, y: 300 },
   { id: "finder", x: 344, y: 44 },
@@ -48,6 +49,7 @@ const ICONS: readonly { id: WindowId; label: string; icon: SpriteName }[] = [
   { id: "panel", label: "Control Panel", icon: "icon-panel" },
   { id: "appearance", label: "Appearance", icon: "icon-panel" },
   { id: "about", label: "About Osmium UI", icon: "icon-readme" },
+  { id: "sharing", label: "File Sharing", icon: "icon-panel" },
 ];
 
 interface DeskWindow {
@@ -327,6 +329,7 @@ mountMenuBar(menubar, [
     openable("appearance"),
     openable("controls"),
     openable("finder"),
+    openable("sharing"),
   ] },
   { title: "File", items: () => {
     const icon = selectedIcon;
