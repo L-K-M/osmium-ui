@@ -7,6 +7,7 @@ import type { StrikeData } from "./bitmapfont.js";
 import { CHARCOAL_12 } from "./fonts/charcoal12.js";
 import { GENEVA_9 } from "./fonts/geneva9.js";
 import { GENEVA_10 } from "./fonts/geneva10.js";
+import { GENEVA_12 } from "./fonts/geneva12.js";
 import { spriteCss } from "./sprites.js";
 import type { Palette } from "./sprites.js";
 import { buildPixelFont } from "./ttf.js";
@@ -14,7 +15,8 @@ import { buildPixelFont } from "./ttf.js";
 let installed: Promise<void> | null = null;
 
 /** Add the sprite custom properties and the font faces (Charcoal 12,
- * Geneva 10 and Geneva 9, each with QuickDraw-synthesized bold).
+ * Geneva 12, Geneva 10 and Geneva 9, each with QuickDraw-synthesized
+ * bold).
  * Idempotent.
  * Resolves once the fonts can be measured; rejects if the browser
  * refuses a face — text then falls back to the next family in
@@ -32,7 +34,9 @@ export function installOsmium(): Promise<void> {
     // Geneva 9 bold is for <strong> in Balloon Help messages. No bold
     // Geneva 9 was captured from Mac OS 8; it is synthesized the way
     // QuickDraw emboldens the other strikes.
-    const faces = [CHARCOAL_12, GENEVA_10, GENEVA_9]
+    // Geneva 12 is the document font (--osm-font-document, the text
+    // view's default).
+    const faces = [CHARCOAL_12, GENEVA_12, GENEVA_10, GENEVA_9]
       .flatMap((s) => [face(s, false), face(s, true)]);
     // FontFaceSet's setlike add() is typed only in lib.dom.iterable,
     // which this project doesn't load.

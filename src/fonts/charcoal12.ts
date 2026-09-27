@@ -3,6 +3,14 @@
 // four arrows (U+2190..2193) are original additions in the same style.
 // U+2713 is the menu check mark (Mac Roman 0x12, the character menus
 // and pop-ups draw beside the current item).
+// U+2318 is the command key symbol menus draw before a key equivalent
+// (Mac Roman 0x11), measured from SimpleText 1.4's File and Edit menus
+// in Mac OS 8.0 (Infinite Mac): 9 x 9, its bottom row on the baseline.
+// Its advance can't be read from a menu, which places the symbol and
+// the key letter in columns of their own (ink 31px, letter pen 21px
+// left of the menu's right edge). 10 with no side bearing is chosen:
+// drawn as one string from the symbol's column, the letter then lands
+// on its measured pen. 11 with a 1px bearing would fit the menus too.
 // Each entry: [code point, advance, lsb, top, width, rows]. `rows` is
 // hex, ceil(width / 4) digits per pixel row, leftmost pixel in the
 // most significant bit; `top` counts rows above the baseline row.
@@ -217,6 +225,7 @@ export const CHARCOAL_12: StrikeData = {
     [0x2260, 7, 1, 6, 5, "10f8f820f8f840"],
     [0x2264, 6, 1, 7, 5, "3060c0c0603000f8f8"],
     [0x2265, 6, 1, 7, 5, "60301818306000f8f8"],
+    [0x2318, 10, 0, 8, 9, "6309489487f01407f0948948630"],
     [0x2713, 10, 0, 7, 9, "008018030060cc0f80700200"],
   ],
 };

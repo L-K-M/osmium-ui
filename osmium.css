@@ -28,6 +28,8 @@
   --osm-font-system: 12px/16px "Osmium Charcoal", Charcoal, sans-serif;
   --osm-font-small: 10px/13px "Osmium Geneva", Geneva, sans-serif;
   --osm-font-caption: 9px/12px "Osmium Geneva 9", Geneva, sans-serif;
+  /* Geneva 12 on TextEdit's 16px line: document text (the text view). */
+  --osm-font-document: 12px/16px "Osmium Geneva 12", Geneva, sans-serif;
   /* Frame bevel: white top/left, 99 bottom/right, face at the two
      corners where they meet. */
   --osm-bevel:
@@ -183,6 +185,7 @@
 .osm-system { font: var(--osm-font-system); }
 .osm-small { font: var(--osm-font-small); }
 .osm-caption { font: var(--osm-font-caption); }
+.osm-document { font: var(--osm-font-document); }
 .osm-label { font-weight: 700; }
 
 /* Label/value pairs, Get Info style: bold labels right-aligned on a
