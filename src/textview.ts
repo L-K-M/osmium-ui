@@ -395,7 +395,9 @@ export function mountTextView(host: HTMLElement,
   textarea.addEventListener("beforeinput", (e) => {
     if (e.inputType === "historyUndo" || e.inputType === "historyRedo") {
       e.preventDefault();
-      if ((e.inputType === "historyUndo") !== undone) undo();
+      // WebKit sends these to a read-only text area too.
+      if (mode === "editable" && (e.inputType === "historyUndo") !== undone)
+        undo();
       return;
     }
     // A composition's steps belong to the group it started.
@@ -482,6 +484,8 @@ export function mountTextView(host: HTMLElement,
   function replaceSelection(text: string): void {
     textarea.focus({ preventScroll: true });
     snapshot();
+    // No beforeinput comes for a scripted edit to take this.
+    before = current();
     typing = false;
     scripted = true;
     try {
@@ -714,6 +718,7 @@ export function mountTextView(host: HTMLElement,
       textarea.setSelectionRange(0, 0);
       textarea.scrollTop = 0;
       saved = null;
+      before = null;
       undone = false;
       typing = false;
       typedTo = null;

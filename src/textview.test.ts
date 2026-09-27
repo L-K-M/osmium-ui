@@ -33,9 +33,9 @@ function type(ta: HTMLTextAreaElement, text: string,
 }
 
 function backspace(ta: HTMLTextAreaElement): void {
-  ta.dispatchEvent(new InputEvent("beforeinput", {
+  if (!ta.dispatchEvent(new InputEvent("beforeinput", {
     inputType: "deleteContentBackward", cancelable: true,
-  }));
+  }))) return;
   const s = ta.selectionStart;
   ta.value = ta.value.slice(0, s - 1) + ta.value.slice(s);
   ta.setSelectionRange(s - 1, s - 1);
@@ -184,6 +184,34 @@ describe("mountTextView", () => {
     platform.mockReturnValue("Win32");
     view.setMode("read-only");
     expect(keydown(ta, "y", { ctrlKey: true }).defaultPrevented).toBe(false);
+  });
+
+  it("keeps a read-only view's text from the browser's Undo", () => {
+    // WebKit sends historyUndo to a read-only text area (Edit > Undo).
+    const { ta, view } = mount({ text: "" });
+    type(ta, "abc");
+    view.setMode("read-only");
+    for (const inputType of ["historyUndo", "historyRedo"]) {
+      const e = new InputEvent("beforeinput", { inputType, cancelable: true });
+      ta.dispatchEvent(e);
+      expect(e.defaultPrevented).toBe(true);
+      expect(ta.value).toBe("abc");
+    }
+  });
+
+  it("takes an overflow back to the text just before it", () => {
+    // A text set past maxLength, after edits to an earlier one: a clear
+    // that leaves it past the limit goes back to this text, not to the
+    // state before the last edit of the earlier one.
+    const onLimit = vi.fn();
+    const { ta, view } = mount({ text: "ab", maxLength: 5, onLimit });
+    ta.setSelectionRange(2, 2);
+    type(ta, "c");
+    view.setText("0123456789");
+    ta.setSelectionRange(0, 2);
+    view.clear();
+    expect(ta.value).toBe("0123456789");
+    expect(onLimit).toHaveBeenCalledTimes(1);
   });
 
   it("forgets undo on setText and reports edits to onChange", () => {
