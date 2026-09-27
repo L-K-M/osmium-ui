@@ -593,6 +593,10 @@ export type ScrollAxis = "vertical" | "horizontal";
 export interface Scrollbar {
   /** Re-read the view's extent (call after content changes size). */
   update(): void;
+  /** Take the bar out of the host and stop following the view: its
+   * resize observer and scroll listener go, which otherwise keep the
+   * view and host alive while either is. */
+  destroy(): void;
 }
 
 /** Where the thumb starts (its black leading line) for a scroll
@@ -646,12 +650,14 @@ function axisOps(axis: ScrollAxis, view: HTMLElement, bar: HTMLElement,
 
 /** Give `view` (a scrolling child of `host`) an Osmium scroll bar,
  * overlapping `host`'s 1px edge: on its right edge, or with
- * "horizontal" along its bottom. `line` is the arrow step. The view
- * keeps native wheel and keyboard scrolling. */
+ * "horizontal" along its bottom. `step` is the arrow step, or a
+ * function read at each step (a line height that changes with the
+ * font, say). The view keeps native wheel and keyboard scrolling. */
 export function attachScrollbar(host: HTMLElement, view: HTMLElement,
-                                line: number,
+                                step: number | (() => number),
                                 axis: ScrollAxis = "vertical"): Scrollbar {
   const vertical = axis === "vertical";
+  const lineOf = typeof step === "number" ? () => step : step;
   const bar = part("div", vertical ? "osm-scrollbar" : "osm-hscrollbar");
   bar.setAttribute("aria-hidden", "true"); // the view scrolls natively
   const back = part("div", vertical ? "osm-sb-up" : "osm-sb-left");
@@ -663,6 +669,8 @@ export function attachScrollbar(host: HTMLElement, view: HTMLElement,
 
   const ax = axisOps(axis, view, bar, thumb);
   let dragging = false;
+  /** Ends the arrow or track press repeating now, if one is. */
+  let endPress: (() => void) | null = null;
 
   function update(): void {
     const m = ax.max();
@@ -692,7 +700,9 @@ export function attachScrollbar(host: HTMLElement, view: HTMLElement,
       el.removeEventListener("pointerup", end);
       el.removeEventListener("pointercancel", end);
       el.classList.remove("osm-pressed");
+      if (endPress === end) endPress = null;
     };
+    endPress = end;
     step(x, y);
     timer = setTimeout(tick, REPEAT_DELAY_MS);
     el.addEventListener("pointermove", move);
@@ -704,7 +714,7 @@ export function attachScrollbar(host: HTMLElement, view: HTMLElement,
     arrow.addEventListener("pointerdown", (e) => {
       if (e.button !== 0 || ax.max() <= 0) return;
       arrow.classList.add("osm-pressed");
-      repeat(arrow, e, () => ax.scrollTo(ax.pos() + dir * line),
+      repeat(arrow, e, () => ax.scrollTo(ax.pos() + dir * lineOf()),
              (x, y) => {
                const over = inside(arrow, x, y);
                arrow.classList.toggle("osm-pressed", over);
@@ -716,6 +726,7 @@ export function attachScrollbar(host: HTMLElement, view: HTMLElement,
   // Track: page toward the pointer until the thumb reaches it.
   bar.addEventListener("pointerdown", (e) => {
     if (e.button !== 0 || e.target !== bar || ax.max() <= 0) return;
+    const line = lineOf();
     const page = Math.max(line, ax.page() - line);
     repeat(bar, e, (x, y) => {
       const t = ax.thumb(), p = ax.along(x, y);
@@ -762,7 +773,7 @@ export function attachScrollbar(host: HTMLElement, view: HTMLElement,
   // scrolls sideways.
   bar.addEventListener("wheel", (e) => {
     const d = vertical ? e.deltaY : e.deltaX || e.deltaY;
-    ax.scrollTo(ax.pos() + d * (e.deltaMode === 1 ? line
+    ax.scrollTo(ax.pos() + d * (e.deltaMode === 1 ? lineOf()
       : e.deltaMode === 2 ? ax.page() : 1));
     e.preventDefault();
   }, { passive: false });
@@ -771,7 +782,18 @@ export function attachScrollbar(host: HTMLElement, view: HTMLElement,
   ro.observe(view);
   ro.observe(host);
   update();
-  return { update };
+  return {
+    update,
+    destroy() {
+      // The bar leaves the page, so no pointerup would end a press.
+      endPress?.();
+      ro.disconnect();
+      view.removeEventListener("scroll", update);
+      bar.remove();
+      host.classList.remove(vertical ? "osm-has-scrollbar"
+                                     : "osm-has-hscrollbar");
+    },
+  };
 }
 
 // ---- list boxes -------------------------------------------------------

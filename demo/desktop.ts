@@ -5,23 +5,35 @@
 // forward (a press in its content only activates it, as in Mac OS 8,
 // while a titlebar press activates and drags in one gesture); close
 // boxes hide windows, which the menu bar and the desktop icons reopen;
-// collapse boxes windowshade; the Finder window zooms and grows. The
-// Help menu turns Balloon Help on and off for every window, the window
-// frames and the desktop icons included. Special > Empty Trash… brings
-// up a caution alert over the front window.
+// collapse boxes windowshade; the Finder and Foolscap windows zoom and
+// grow. The Help menu turns Balloon Help on and off for every window,
+// the window frames and the desktop icons included. Special > Empty
+// Trash… brings up a caution alert over the front window.
+//
+// Two applications share the screen: the Finder, which owns the
+// desktop and most windows, and Foolscap (editor.ts), whose window
+// declares it (WindowContent.app). The menu bar shows the menus of the
+// application in front. Foolscap comes forward with its window, and
+// stays in front after its document closes, with no window of its own,
+// until the reader clicks the desktop or a Finder window, or quits it.
 import {
   MENU_SEPARATOR, attachBalloon, balloonMenuItem, installOsmium,
   mountMenuBar, mountWindow, showAlert,
 } from "../src/index.js";
-import type { OsmiumBalloon, OsmiumWindow, Size } from "../src/index.js";
+import type {
+  Menu, MenuEntry, OsmiumBalloon, OsmiumWindow, Size,
+} from "../src/index.js";
 import { beep } from "./controls.js";
+import type { DocumentId } from "./documents.js";
 import { el, swallowClick } from "./dom.js";
 import { registerDemoSprites, sprite } from "./icons.js";
 import type { SpriteName } from "./icons.js";
 import { registerPatterns } from "./patterns.js";
 import type { Pattern } from "./patterns.js";
 import { WINDOWS } from "./windows.js";
-import type { WindowContent, WindowId, WindowSpec } from "./windows.js";
+import type {
+  WindowApp, WindowContent, WindowId, WindowSpec,
+} from "./windows.js";
 
 /** The menu bar's height; windows stay below it. */
 const MENU_H = 20;
@@ -45,13 +57,16 @@ const START: readonly {
   { id: "appearance", x: 280, y: 200, closed: true },
   { id: "sharing", x: 120, y: 120, closed: true },
   { id: "alerts", x: 300, y: 120, closed: true },
+  { id: "editor", x: 200, y: 64, closed: true },
   { id: "about", x: 24, y: 40 },
   { id: "panel", x: 16, y: 300 },
   { id: "finder", x: 344, y: 44 },
   { id: "controls", x: 472, y: 372 },
 ];
 
-const ICONS: readonly { id: WindowId; label: string; icon: SpriteName }[] = [
+const ICONS: readonly {
+  id: WindowId; label: string; icon: SpriteName; doc?: DocumentId;
+}[] = [
   { id: "finder", label: "Osmium HD", icon: "icon-disk" },
   { id: "controls", label: "Controls", icon: "icon-app" },
   { id: "panel", label: "Control Panel", icon: "icon-panel" },
@@ -59,7 +74,13 @@ const ICONS: readonly { id: WindowId; label: string; icon: SpriteName }[] = [
   { id: "about", label: "About Osmium UI", icon: "icon-readme" },
   { id: "sharing", label: "File Sharing", icon: "icon-panel" },
   { id: "alerts", label: "Alerts", icon: "icon-app" },
+  { id: "editor", label: "Foolscap", icon: "icon-foolscap" },
+  { id: "editor", label: "Read Me", icon: "icon-foolscap-doc", doc: "readme" },
 ];
+
+/** Which application a window belongs to: the Finder, or the window
+ * of an application of its own (Foolscap's). */
+type AppId = "finder" | WindowId;
 
 interface DeskWindow {
   readonly spec: WindowSpec;
@@ -78,6 +99,9 @@ const desktop = document.getElementById("desktop")!;
 /** Visible windows, back to front. */
 let stack: DeskWindow[] = [];
 const front = (): DeskWindow | undefined => stack[stack.length - 1];
+/** The application in front, whose menus the menu bar shows. */
+let app: AppId = "finder";
+const appOf = (w: DeskWindow): AppId => w.content.app ? w.spec.id : "finder";
 
 const noShadow = (s: Size): Size => ({ w: s.w - 1, h: s.h - 1 });
 
@@ -114,11 +138,10 @@ function track(e: PointerEvent, move: (ev: PointerEvent) => void): void {
 function activate(w: DeskWindow): void {
   if (front() !== w) {
     stack = [...stack.filter((s) => s !== w), w];
-    stack.forEach((s, i) => {
-      s.el.style.zIndex = String(i + 1);
-      s.win.setActive(s === w);
-    });
+    stack.forEach((s, i) => { s.el.style.zIndex = String(i + 1); });
   }
+  stack.forEach((s) => s.win.setActive(s === w));
+  setApp(appOf(w));
   // The keyboard follows the active window: nothing outside it (a
   // window behind, a desktop icon) may keep it.
   const focused = document.activeElement;
@@ -127,8 +150,14 @@ function activate(w: DeskWindow): void {
   if (!w.el.contains(document.activeElement)) w.content.focus?.();
 }
 
-function open(id: WindowId): void {
+/** Open a window, or have its application open `doc` in it. */
+function open(id: WindowId, doc?: DocumentId): void {
   const w = windows.get(id)!;
+  if (w.content.app) w.content.app.launch(doc);
+  else show(w);
+}
+
+function show(w: DeskWindow): void {
   w.el.hidden = false;
   activate(w);
 }
@@ -139,11 +168,27 @@ function close(w: DeskWindow): void {
   if (w.el.contains(document.activeElement))
     (document.activeElement as HTMLElement).blur();
   stack = stack.filter((s) => s !== w);
-  const next = front();
-  if (next) {
-    next.win.setActive(true);
-    next.content.focus?.();
+  // An application's last window closing leaves the application in
+  // front, with no active window, until the Finder comes back.
+  if (w.content.app) {
+    for (const s of stack) s.win.setActive(false);
+    return;
   }
+  const next = front();
+  if (next) activate(next);
+}
+
+/** Bring the Finder forward: its frontmost window comes to the front
+ * and activates (the desktop and its icons are the Finder's too). */
+function finderFront(): void {
+  if (app === "finder") return;
+  const next = [...stack].reverse().find((s) => appOf(s) === "finder");
+  if (next) {
+    activate(next);
+    return;
+  }
+  for (const s of stack) s.win.setActive(false);
+  setApp("finder");
 }
 
 // ---- window gestures ------------------------------------------------------
@@ -223,7 +268,11 @@ for (const spec of WINDOWS) {
   const win = mountWindow(node, {
     title: spec.title,
     activation: "manual",
-    onClose: () => close(self()),
+    onClose: () => {
+      const w = self();
+      if (w.content.requestClose) w.content.requestClose();
+      else close(w);
+    },
     onCollapse: () => shade(self()),
     onDrag: (e) => drag(self(), e),
     ...(spec.zoom ? { onZoom: () => zoom(self()) } : {}),
@@ -237,8 +286,10 @@ for (const spec of WINDOWS) {
   windows.set(spec.id, w);
   w.content = spec.build(content, {
     close: () => close(w),
-    isActive: () => front() === w,
+    isActive: () => front() === w && app === appOf(w),
     open,
+    show: () => show(w),
+    quit: finderFront,
     setDesktop,
     balloons: "balloon-help",
     window: () => win,
@@ -249,7 +300,7 @@ for (const spec of WINDOWS) {
   // press does nothing else (Mac OS 8 spends that click on activation);
   // on the titlebar it goes on to drag the window.
   node.addEventListener("pointerdown", (e) => {
-    if (front() === w) return;
+    if (front() === w && app === appOf(w)) return;
     activate(w);
     if ((e.target as Element).closest(".osm-titlebar")) return;
     e.stopPropagation();
@@ -258,7 +309,7 @@ for (const spec of WINDOWS) {
   }, true);
   // Tabbing into a window behind brings it forward too.
   node.addEventListener("focusin", () => {
-    if (front() !== w) activate(w);
+    if (front() !== w || app !== appOf(w)) activate(w);
   });
 }
 
@@ -327,8 +378,11 @@ function setDesktop(p: Pattern): void {
 
 const iconsEl = document.getElementById("icons")!;
 const labels: HTMLElement[] = [];
-let selectedIcon: { el: HTMLElement; id: WindowId } | null = null;
-function selectIcon(icon: { el: HTMLElement; id: WindowId } | null): void {
+interface IconTarget {
+  readonly el: HTMLElement; readonly id: WindowId; readonly doc?: DocumentId;
+}
+let selectedIcon: IconTarget | null = null;
+function selectIcon(icon: IconTarget | null): void {
   selectedIcon?.el.classList.remove("dsk-selected");
   selectedIcon = icon;
   icon?.el.classList.add("dsk-selected");
@@ -341,25 +395,35 @@ for (const d of ICONS) {
   const label = el("span", "dsk-label", d.label);
   labels.push(label);
   icon.append(img, label);
+  const target = { el: icon, id: d.id, ...(d.doc ? { doc: d.doc } : {}) };
   icon.addEventListener("pointerdown", (e) => {
-    if (e.button === 0) selectIcon({ el: icon, id: d.id });
+    if (e.button !== 0) return;
+    finderFront();
+    selectIcon(target);
   });
-  icon.addEventListener("dblclick", () => open(d.id));
+  icon.addEventListener("dblclick", () => open(d.id, d.doc));
   // Code 6, the variant the Finder uses for most of its balloons.
-  attachBalloon(icon, { variant: "bottom-left", content:
-    `${d.label} icon\n\nDouble-click to open the ${
-      windows.get(d.id)!.spec.title} window.` });
+  const what = d.doc ? `${d.label} document\n\nDouble-click to read it ` +
+      "in Foolscap."
+    : d.id === "editor" ? `${d.label} icon\n\nDouble-click to open ` +
+      "Foolscap, a small text editor."
+    : `${d.label} icon\n\nDouble-click to open the ${
+      windows.get(d.id)!.spec.title} window.`;
+  attachBalloon(icon, { variant: "bottom-left", content: what });
   icon.addEventListener("keydown", (e) => {
     if (e.key !== "Enter" || e.repeat) return;
     e.preventDefault();
-    selectIcon({ el: icon, id: d.id });
-    open(d.id);
+    selectIcon(target);
+    open(d.id, d.doc);
   });
   iconsEl.append(icon);
 }
-// A press on the desktop itself clears the icon selection.
+// A press on the desktop itself clears the icon selection and brings
+// the Finder forward.
 desktop.addEventListener("pointerdown", (e) => {
-  if (e.target === desktop) selectIcon(null);
+  if (e.target !== desktop && e.target !== iconsEl) return;
+  selectIcon(null);
+  finderFront();
 });
 
 /** Center each label box under its icon on a whole pixel. */
@@ -372,51 +436,80 @@ void installOsmium().catch(() => {}).finally(placeLabels);
 
 // ---- the menu bar -------------------------------------------------------
 
-const openable = (id: WindowId) => ({
-  title: windows.get(id)!.spec.title, action: () => open(id),
-});
-const menubar = document.getElementById("menubar")!;
-mountMenuBar(menubar, [
-  { title: "Osmium", icon: "logo", items: () => [
-    { title: "About Osmium UI…", action: () => open("about") },
+/** The Apple menu's windows, as Mac OS 8 lists Apple Menu Items: the
+ * same in every application. */
+const APPLE_ITEMS: readonly [WindowId, string][] = [
+  ["panel", "Control Panel"], ["appearance", "Appearance"],
+  ["alerts", "Alerts"], ["controls", "Controls"], ["editor", "Foolscap"],
+  ["finder", "Osmium HD"], ["sharing", "File Sharing"],
+];
+
+function appleMenu(about: string, action: () => void): Menu {
+  return { title: "Osmium", icon: "logo", items: (): MenuEntry[] => [
+    { title: about, action },
     MENU_SEPARATOR,
-    openable("panel"),
-    openable("appearance"),
-    openable("alerts"),
-    openable("controls"),
-    openable("finder"),
-    openable("sharing"),
-  ] },
-  { title: "File", items: () => {
-    const icon = selectedIcon;
-    const w = front();
-    return [
-      { title: "Open", ...(icon ? { action: () => open(icon.id) } : {}) },
-      { title: "Close Window", ...(w ? { action: () => close(w) } : {}) },
-    ];
-  } },
-  { title: "Edit", items: () => [
-    { title: "Undo" }, MENU_SEPARATOR, { title: "Cut" }, { title: "Copy" },
-    { title: "Paste" }, { title: "Clear" }, MENU_SEPARATOR,
-    { title: "Select All" },
-  ] },
-  { title: "Special", items: () => [
-    { title: "Clean Up", action: cleanUp },
-    { title: "Empty Trash…", action: emptyTrash },
-    MENU_SEPARATOR,
-    { title: "Restart", action: () => location.reload() },
-  ] },
-  // Laid out like Mac OS 8.0's Finder Help menu.
-  { title: "Help", items: () => [
-    { title: "About Osmium UI…", action: () => open("about") },
-    MENU_SEPARATOR,
-    balloonMenuItem(),
-    MENU_SEPARATOR,
-    { title: "Osmium UI Help", action: () => {
-      window.open(README_URL, "_blank", "noopener");
+    ...APPLE_ITEMS.map(([id, title]) => ({ title, action: () => open(id) })),
+  ] };
+}
+
+/** The Finder's menus. Its Edit menu stays dimmed (there is nothing of
+ * the Finder's to edit), so text fields keep their own editing keys. */
+function finderMenus(): readonly Menu[] {
+  return [
+    appleMenu("About Osmium UI…", () => open("about")),
+    { title: "File", items: () => {
+      const icon = selectedIcon;
+      const w = front();
+      return [
+        { title: "Open", key: "O",
+          ...(icon ? { action: () => open(icon.id, icon.doc) } : {}) },
+        { title: "Close Window", key: "W",
+          // Only a Finder window: with every Finder window closed and
+          // the desktop clicked, Foolscap's window can still be front.
+          ...(w && appOf(w) === "finder" && app === "finder"
+            ? { action: () => close(w) } : {}) },
+      ];
     } },
-  ] },
-]);
+    { title: "Edit", items: () => [
+      { title: "Undo", key: "Z" }, MENU_SEPARATOR,
+      { title: "Cut", key: "X" }, { title: "Copy", key: "C" },
+      { title: "Paste", key: "V" }, { title: "Clear" }, MENU_SEPARATOR,
+      { title: "Select All", key: "A" },
+    ] },
+    { title: "Special", items: () => [
+      { title: "Clean Up", action: cleanUp },
+      { title: "Empty Trash…", action: emptyTrash },
+      MENU_SEPARATOR,
+      { title: "Restart", action: () => location.reload() },
+    ] },
+    // Laid out like Mac OS 8.0's Finder Help menu.
+    { title: "Help", items: () => [
+      { title: "About Osmium UI…", action: () => open("about") },
+      MENU_SEPARATOR,
+      balloonMenuItem(),
+      MENU_SEPARATOR,
+      { title: "Read Me", action: () => open("editor", "readme") },
+      { title: "Osmium UI Help", action: () => {
+        window.open(README_URL, "_blank", "noopener");
+      } },
+    ] },
+  ];
+}
+
+function appMenus(a: WindowApp): readonly Menu[] {
+  return [appleMenu(`About ${a.name}…`, () => a.about()), ...a.menus()];
+}
+
+const menubar = document.getElementById("menubar")!;
+const bar = mountMenuBar(menubar, finderMenus());
+
+/** Put the application `next` in front: its menus in the menu bar. */
+function setApp(next: AppId): void {
+  if (next === app) return;
+  app = next;
+  const owner = next === "finder" ? undefined : windows.get(next)?.content.app;
+  bar.setMenus(owner ? appMenus(owner) : finderMenus());
+}
 
 /** The Finder's Empty Trash confirmation, over the front window. The
  * demo has no Trash to empty, so OK changes nothing. */

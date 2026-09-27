@@ -2,9 +2,131 @@
 
 ## Unreleased
 
+- Add text views (`mountTextView`): a document window's text as
+  TeachText and SimpleText show it in Mac OS 8, on a native textarea.
+  White, wrapped to the width with no horizontal scrolling, a vertical
+  scroll bar over the content's edges and a blank 15px strip along the
+  bottom beside the grow box. The geometry is measured from SimpleText
+  1.4 on Mac OS 8.0 in an emulator; typed text, a wrapped long line, a
+  resized window and an inactive window's framed selection render with
+  0 differing pixels against the captures. The view adds TextEdit's
+  single-level undo (by edit groups, undoing again redoes; Command-Z and
+  the browser's Undo go to it), `"read-only"` documents that report
+  typing to `onRejectedEdit`, a `maxLength` reported to `onLimit`, cut,
+  copy, paste and clear that reject when the browser refuses the
+  clipboard, double-click selection without the trailing space, and
+  TextEdit's highlight where the browser draws none: an outline in an
+  inactive window, a fill while a menu has the keyboard. `destroy()`
+  disconnects its observers and listeners. Not TextEdit:
+  the browser's caret sits 1px right, the browser's own selection
+  doesn't run to the text rectangle's edges, Tab moves the focus, the
+  text is plain, and a read-only document's text can be selected and
+  copied. Not captured: the inactive bottom strip (55, like the frame)
+  and the outline with a colored highlight (black).
+- Add Geneva 12 (`--osm-font-document`, `.osm-document`), the document
+  font of TeachText and SimpleText, extracted from SimpleText 1.4's
+  text in Mac OS 8.0: ASCII and ten punctuation marks; a separately
+  captured line matches with 0 differing pixels. Its leading is folded
+  into the descent for TextEdit's 16px line. `installOsmium` registers
+  it with synthesized bold.
+- Menu bars take keyboard equivalents: a `MenuItem`'s `key` is drawn
+  after the command key symbol, as SimpleText 1.4's menus draw it, and
+  Command-key (Control-key where there is no Command key; `commandKey`
+  chooses) chooses the item, flashing its title. Only enabled items
+  claim keys, so browser shortcuts and text fields keep the rest; keys
+  a control handled, keys under an alert or an open menu and keys aimed
+  at an inert menu bar or one outside a modal `<dialog>` are left
+  alone. `keyDispatch: "browser"` leaves a key to the
+  browser (Cut, Copy and Paste in a text field). Items can show a check
+  mark (`checked`).
+- `mountMenuBar` returns a handle (`OsmiumMenuBar`) whose `setMenus`
+  replaces the menus, for an application's own menus while its window
+  is in front. Callers that ignored the old `void` result are unaffected.
+- Menu bar menus leave 9px after an item without a key, 3px less than
+  before (pop-up menus keep 12): SimpleText's File, Edit and Help menus,
+  now reproduced with 0 differing pixels, measure so.
+- Charcoal 12 has the command key symbol (U+2318), measured from
+  SimpleText's menus. Its advance can't be read from a menu; 10 is
+  chosen, which puts the key letter on its measured pen.
+- `attachScrollbar` takes a function for its arrow step, read at each
+  step (a line height that follows the font). Its `Scrollbar` has
+  `destroy()`, which removes the bar and disconnects its resize
+  observer.
+- The demo has Foolscap, a text editor in the manner of TeachText 7.0,
+  with its own menus in the menu bar while its window is in front, a
+  movable modal Open dialog of sample documents (and text files from
+  disk), Save and Save As that download a text file, a Save Changes
+  alert, fonts and sizes, and a read-only Read Me that tours the kit.
+  The Finder's menus have keyboard equivalents, and its window lists
+  Foolscap and the Read Me. The native demo has an editor page, which
+  closes without asking about unsaved changes (`hostWindow` has no
+  close hook).
+- Add accent and highlight colors (`setAppearance`, `getAppearance`,
+  `nearestAccent`): Mac OS 8.0's 18 accent colors and 8.5's 20
+  variations, and both releases' highlight colors, transcribed from
+  Apple's own color tables, plus Black & White and any color (the
+  panel's Other…). An accent recolors menu and menu bar highlights,
+  scroll and slider thumbs, progress bars (the center row white for 8.0
+  tables, the lightest color for 8.5 ones) and focus rings; the
+  highlight colors list selections and selected text. Apps style their
+  own elements with `--osm-accent-0` to `--osm-accent-7`,
+  `--osm-highlight`, `--osm-highlight-text` and `--osm-focus-ring`, and
+  `registerSprites(…, { accent: "follow" })` redraws a sprite in the
+  accent. Not Mac OS: accents derived from any color (Apple offered
+  only its tables), and focus rings that step to a darker accent color
+  where A3 has less than 3:1 contrast on the dialog face. Inferred, not
+  captured: the thumbs' color roles for accents other than Lavender
+  and the inactive progress fill (A2). The Black & White accent is not
+  offered; how Mac OS drew it was not measured. With the default
+  Lavender every accent-colored pixel is unchanged. The demo's
+  Appearance window now sets the variation and highlight color, with a
+  browser color input for Other… (Osmium has no Color Picker).
+- The default highlight is now Purple (black text on #ccccff) instead
+  of Black & White, for list selections and selected text. Mac OS 8.0
+  captures disagree on its default (one machine Black & White, another
+  Purple); Mac OS 8.5's standard theme uses Purple. Call
+  `setAppearance({ highlight: "black-white" })` for the old look.
+- Add list views (`mountListView`): a Finder list view over any data,
+  with column headers that pick the sort column, a sort order that
+  applies to the whole list (normal or reversed, as Finder 8.1's), the
+  sort order button above the vertical scroll bar, optional column
+  resizing by the header dividers (Finder 8.5), small icons with
+  accessible labels, app classes per row, controls inside cells, empty
+  and loading placeholders, and `contentHeight` for resize to fit. Rows
+  are keyed: `setRows` keeps each row's elements, its cells' nodes, the
+  selection and the reader's place, and holds updates back while a
+  press in the rows lasts. Keyboard: arrows, Home, End, Page keys,
+  Return, Space for the selected row's control, and type-select that
+  takes spaces. Screen readers get a grid with a status placeholder.
+  The sort order button is measured from Mac OS 9.0 (Finder and
+  Sherlock 2 agree pixel for pixel, and its 16th column is the list's
+  black edge, as in the Finder); no 8.x list view capture was found.
+  Not captured and approximated: the reversed button (the pyramid
+  upside down, its steps keeping their shading), pressed headers and
+  button (not drawn pressed), the divider's hit zone, cursor and
+  narrowest width. Not Mac OS 8: `grow` widths, the placeholders, icon
+  headers, Home, End and Page keys moving the selection, and a mouse
+  drag moving the one selected row where the Finder selects a group.
+  Measured with `osmium.css` at 4096 rows of six columns, every row in
+  the DOM took Chromium 10 ms and WebKit 24 ms per inserted row and 0.2
+  s and 0.7 s to reorder; above 1000 rows only the rows near the view
+  get elements, which brings 4096 rows to 2 to 5 ms per insert and
+  about 30 ms per reorder in Chromium, WebKit and Firefox, at the cost
+  of find-in-page (`rendering: "all"` keeps every row).
+- Unsorted list-view column headers (`.osm-colhead`) now end in the
+  bevel Mac OS draws at their right edge, a column of 88 and a column
+  of 33, which Osmium left out; titles stop 2px short of it. Measured
+  from Mac OS 9.0's Finder and identical in Mac OS 7.6's Extensions
+  Manager (Apple TN1091, figure 1); no Mac OS 8.x list view capture was
+  found. The demo's Finder window changes by exactly those two columns
+  at each unsorted header's right end. Sorted headers already matched.
+- The demo's Finder window runs on `mountListView`, with the sort order
+  button and column dividers to drag. Otherwise it draws as before,
+  pixel for pixel, except that the selected name takes the highlight
+  color rather than black.
 - Add edit text: `<input class="osm-edit">` draws the Platinum field
-  (22px, or 20px with `osm-compact`) with its bevel, the lavender focus
-  ring and the Black & White text highlight, and
+  (22px, or 20px with `osm-compact`) with its bevel, the accent focus
+  ring and the Highlight Color text highlight, and
   `<div class="osm-edit-area">` frames a multi-line `<textarea>`, to
   which `mountTextArea` adds a scroll bar. Measured from Mac OS 8.0
   Find File in an emulator (active and inactive) and Mac OS 9.0 Date

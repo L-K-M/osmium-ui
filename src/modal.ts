@@ -41,6 +41,11 @@ export function closeWhenModal(close: () => void): () => void {
   return () => { menuClosers.delete(close); };
 }
 
+/** Whether a pop-up or menu bar menu is open (registered above). */
+export function isMenuOpen(): boolean {
+  return menuClosers.size > 0;
+}
+
 export interface ModalSession {
   /** Whether this session's alert is the topmost one. */
   readonly isTop: boolean;

@@ -3,6 +3,7 @@ import { emboldened, strikeGlyphs } from "./bitmapfont.js";
 import { CHARCOAL_12 } from "./fonts/charcoal12.js";
 import { GENEVA_9 } from "./fonts/geneva9.js";
 import { GENEVA_10 } from "./fonts/geneva10.js";
+import { GENEVA_12 } from "./fonts/geneva12.js";
 import { buildPixelFont, glyphRects } from "./ttf.js";
 import type { PixelGlyph } from "./ttf.js";
 
@@ -71,6 +72,37 @@ const SOUND_CAPTION = [
   "..........................",
 ];
 
+// Geneva 12 as SimpleText 1.4 draws it in Mac OS 8.0 (a line of typed
+// text, pen at the text rectangle's left edge plus one), and the
+// command key symbol and Z of its Edit menu's Undo item, both from
+// emulator captures that the Geneva 12 strike wasn't extracted from.
+const SIMPLETEXT_LINE = [
+  ".#....#....................#...................................##........................#.....#.........",
+  ".#....#....................#..................................#..........................#...............",
+  ".#....#...###...#.##..##...####...#...#..#.###..####...###...###....###...#.##....###...###...##...#...#.",
+  ".#....#..#...#..##..##..#..#...#..#...#..##....#...#..#...#...#....#...#..##..#..#...#...#.....#...#...#.",
+  ".######...####..#...#...#..#...#..#...#..#.....#...#..#...#...#....#...#..#...#..#.......#.....#...#...#.",
+  ".#....#..#...#..#...#...#..#...#..#...#..#.....#...#..#####...#....#...#..#...#...###....#.....#....#.#..",
+  ".#....#..#...#..#...#...#..#...#..#...#..#.....#...#..#.......#....#...#..#...#......#...#.....#....#.#..",
+  ".#....#..#...#..#...#...#..#...#..#..##..#.....#...#..#...#...#....#...#..#...#..#...#...#.....#.....#...",
+  ".#....#...####..#...#...#..####....##.#..#......####...###....#.....###...#...#...###.....##...#.....#...",
+  "...................................................#.....................................................",
+  "...............................................#...#.....................................................",
+  "................................................###......................................................",
+];
+const UNDO_KEY = [
+  ".##...##...######",
+  "#..#.#..#......##",
+  "#..#.#..#.....##.",
+  ".#######......##.",
+  "...#.#.......##..",
+  ".#######....##...",
+  "#..#.#..#...##...",
+  "#..#.#..#..##....",
+  ".##...##...######",
+  ".................",
+];
+
 describe("bitmap strikes", () => {
   it("reproduce a Charcoal 12 window title pixel for pixel", () => {
     expect(draw(strikeGlyphs(CHARCOAL_12), "Mac OS 8 full", 8, 2))
@@ -86,8 +118,24 @@ describe("bitmap strikes", () => {
     expect(draw(strikeGlyphs(GENEVA_9), "Sound", 6, 1)).toEqual(SOUND_CAPTION);
   });
 
+  it("draw Geneva 12 document text pixel for pixel", () => {
+    expect(draw(strikeGlyphs(GENEVA_12), "Hamburgefonstiv", 8, 3))
+      .toEqual(SIMPLETEXT_LINE);
+  });
+
+  it("draw a menu's command key symbol before its key letter", () => {
+    // The symbol's 10px advance puts Z's pen 21px from the menu's edge
+    // when the pair starts 31px from it, as SimpleText's menus place it.
+    expect(draw(strikeGlyphs(CHARCOAL_12), "\u2318Z", 8, 1))
+      .toEqual(UNDO_KEY);
+  });
+
+  it("give Geneva 12 TextEdit's 16px line", () => {
+    expect(GENEVA_12.ascent + GENEVA_12.descent).toBe(16);
+  });
+
   it("keep code points unique and inside each strike's line box", () => {
-    for (const s of [CHARCOAL_12, GENEVA_10, GENEVA_9]) {
+    for (const s of [CHARCOAL_12, GENEVA_12, GENEVA_10, GENEVA_9]) {
       const cps = s.glyphs.map((g) => g[0]);
       expect(new Set(cps).size).toBe(cps.length);
       // A hex string that doesn't split into whole rows would decode a

@@ -45,7 +45,9 @@ html.desk { height: 100%; background: #9999cc; }
 }
 .dsk-selected .dsk-img { filter: brightness(0.5); }
 .dsk-selected .dsk-label { background: #000; color: #fff; }
-.osm-kbd .dsk-icon:focus-visible .dsk-label { outline: 2px solid #6666cc; }
+.osm-kbd .dsk-icon:focus-visible .dsk-label {
+  outline: 2px solid var(--osm-focus-ring);
+}
 
 /* ---- Keyboard-style slider units (dom.ts) ------------------------- */
 /* Caption above, ticks under the track, end captions below. */
@@ -88,53 +90,14 @@ html.desk { height: 100%; background: #9999cc; }
 .ctl-cancel { right: 89px; top: 268px; }
 
 /* ---- Finder list view (finder.ts) --------------------------------------- */
-/* Placard, column headers and the list: rows 18px plus a white rule,
-   the sorted column shaded dd, the others ee, and both scroll bars,
-   which end at the grow box. The last header runs over the vertical
-   scroll bar. Name widens with the window; below the columns' total
-   width (120 + 64 + 150) the rows and headers scroll sideways. */
+/* The placard, then the kit's list view (osmium.css "list views") edge
+   to edge: the window's content edge is its frame. */
 .fnd { position: absolute; inset: 0; display: flex; flex-direction: column; }
-.fnd-placard, .fnd-heads { flex: none; }
-.fnd-h-name { flex: 1; min-width: 120px; padding-left: 48px; }
-.fnd-h-size { flex: none; width: 64px; }
-.fnd-h-kind { flex: none; width: 165px; }
-.fnd-list {
-  flex: 1; min-height: 0;
-  border: 0;
-  background: #eee;
-}
+.fnd-placard { flex: none; }
+.fnd-list { flex: 1; min-height: 0; border: 0; }
 /* Edge to edge, a focus ring would only show top and bottom; the
    selection already marks the keyboard's place. */
-.fnd-list:focus-visible, .osm-kbd .fnd-list:focus-visible { outline: none; }
-.fnd-row {
-  display: flex; min-width: 334px;
-  background: #fff; color: #000; font: var(--osm-font-small);
-}
-.fnd-cell {
-  box-sizing: border-box; height: 18px; padding: 2px 4px 0;
-  background: #eee;
-  white-space: nowrap; overflow: hidden; text-overflow: ellipsis;
-}
-.fnd-name { position: relative; flex: 1; min-width: 120px; padding-left: 48px; }
-.fnd-size { flex: none; width: 64px; }
-.fnd-kind { flex: none; width: 150px; }
-.fnd-list[data-sort="name"] .fnd-name, .fnd-list[data-sort="size"] .fnd-size,
-.fnd-list[data-sort="kind"] .fnd-kind { background: #ddd; }
-.fnd-icon { position: absolute; left: 26px; top: 1px; width: 16px; height: 16px; }
-/* The name truncates itself, so a selected name's ellipsis stays white
-   on the highlight. */
-.fnd-label {
-  display: inline-block; max-width: 100%; vertical-align: top;
-  overflow: hidden; text-overflow: ellipsis;
-}
-/* Selected, the Finder way: the name inverts, the icon darkens, in an
-   inactive window too (the kit clears a plain list's selection). */
-.fnd-list .fnd-row.osm-selected { background: #fff; color: #000; }
-.osm-selected .fnd-label {
-  background: #000; color: #fff;
-  box-shadow: 1px 0 #000, -1px 0 #000;
-}
-.osm-selected .fnd-icon { filter: brightness(0.5); }
+.osm-kbd .fnd-list .osm-lv-grid:focus-visible { outline: none; }
 
 /* ---- Control Panel (panel.ts) ------------------------------------------ */
 /* A 508 x 352 content area: pane buttons down an 80px strip, parted
@@ -268,3 +231,46 @@ html.desk { height: 100%; background: #9999cc; }
 .alr-kinds { left: 12px; }
 .alr-variations { left: 220px; }
 .alr-status { left: 0; right: 0; bottom: 0; }
+/* The Highlight Color's Other… opens this color input, out of sight
+   beside its pop-up. */
+.apr-row > .apr-color {
+  left: 121px; top: 0; width: 1px; height: 1px;
+  padding: 0; border: 0; opacity: 0; pointer-events: none;
+}
+
+/* ---- Foolscap (editor.ts) ------------------------------------------------ */
+/* The text view fills the document window's content area, its scroll
+   bar and bottom strip on the content's edges. */
+.edt { position: absolute; inset: 0; }
+
+/* ---- demo dialogs (dialog.ts) --------------------------------------------- */
+/* A movable modal dialog over the desktop, and the layer under it that
+   takes presses outside. */
+.dlg-layer { position: fixed; inset: 0; touch-action: none; }
+.dlg.osm-window { position: fixed; }
+.dlg .osm-content { background: var(--osm-dialog); }
+
+/* Open: a 328 x 172 content area, the document list on the left and the
+   buttons in a column on the right, as in Standard File. */
+.dlg-open { position: absolute; inset: 0; }
+.dlg-open > * { position: absolute; }
+.dlg-open-list { left: 12px; top: 12px; width: 200px; height: 146px; }
+.dlg-open-row {
+  padding-left: 24px; font: var(--osm-font-system); line-height: 16px;
+  background: var(--dlg-icon) 4px 0 / 16px 16px no-repeat;
+}
+.dlg-open-ok { right: 12px; top: 132px; }
+.dlg-open-cancel { right: 15px; top: 102px; }
+.dlg-open-rule { left: 224px; right: 12px; top: 90px; }
+.dlg-open-disk { right: 15px; top: 12px; }
+.dlg-open-file { display: none; }
+
+/* Save As: a 308 x 132 content area, the name field under its label and
+   a note, the buttons along the bottom as in Controls. */
+.dlg-save { position: absolute; inset: 0; }
+.dlg-save > * { position: absolute; margin: 0; }
+.dlg-save-label { left: 12px; top: 12px; }
+.dlg-save-name { left: 14px; top: 33px; width: 280px; }
+.dlg-save-note { left: 12px; right: 12px; top: 63px; }
+.dlg-save-ok { right: 12px; top: 96px; }
+.dlg-save-cancel { right: 89px; top: 99px; }

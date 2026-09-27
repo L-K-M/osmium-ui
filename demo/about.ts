@@ -12,7 +12,7 @@ const FIELDS: readonly [label: string, value: string][] = [
   ["Kind", "user interface kit"],
   ["Version", OSMIUM_VERSION],
   ["License", "The Unlicense (public domain)"],
-  ["Fonts", "Charcoal 12, Geneva 10, Geneva 9"],
+  ["Fonts", "Charcoal 12, Geneva 12, 10 and 9"],
   ["Where", "github.com/L-K-M/osmium-ui"],
 ];
 

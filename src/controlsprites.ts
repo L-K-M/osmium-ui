@@ -6,6 +6,16 @@
 // Desktop Pictures). Tabs come from Mac OS 8.5 and help balloons from
 // an emulated Mac OS 8.0 (see below). Same palette keys as sprites.ts.
 //
+// Scroll and slider thumbs are drawn in the accent ramp, so
+// setAppearance (appearance.ts) can redraw them: the top-left corner
+// and grip gleams A0 (w), top and left edges A1 (q), face A2 (p),
+// bottom and right edges A3 (m), grip shadows A4 (l). Pressed, each
+// role moves one entry darker and the grip shadow is A6 (n). The
+// Lavender pixels were measured; the roles for other accents follow
+// Mozilla's reverse engineering of Mac OS 8.5 and later with the Gold
+// table (bugzilla.mozilla.org bug 46174, comment of 2000-07-30). No
+// Mac OS 8.0 thumb in another accent was measured.
+//
 // Variable-width controls are stored as 9-slices: the columns (and for
 // bevel buttons, rows) either side of the single middle one are the
 // fixed ends; osmium.css stretches the middle with border-image, so
@@ -267,9 +277,9 @@ const SLIDER_TRACK_DIMMED = [
 
 const SLIDER_THUMB = [
   ".0000000000000.",
-  "0eqqqqqqqqqqqp0",
+  "0wqqqqqqqqqqqp0",
   "0qpppppppppppm0",
-  "0qppepepeppppm0",
+  "0qppwpwpwppppm0",
   "0qppqlqlqlpppm0",
   "0qppqlqlqlpppm0",
   "0qppqlqlqlpppm0",
@@ -459,16 +469,16 @@ const SCROLL_DOWN_DIMMED = [
 
 const SCROLL_THUMB = [
   "0000000000000000",
-  "0eqqqqqqqqqqqqp0",
+  "0wqqqqqqqqqqqqp0",
   "0qppppppppppppm0",
   "0qppppppppppppm0",
-  "0qppeqqqqqqpppm0",
+  "0qppwqqqqqqpppm0",
   "0qppplllllllppm0",
-  "0qppeqqqqqqpppm0",
+  "0qppwqqqqqqpppm0",
   "0qppplllllllppm0",
-  "0qppeqqqqqqpppm0",
+  "0qppwqqqqqqpppm0",
   "0qppplllllllppm0",
-  "0qppeqqqqqqpppm0",
+  "0qppwqqqqqqpppm0",
   "0qppplllllllppm0",
   "0qppppppppppppm0",
   "0qppppppppppppm0",
@@ -934,6 +944,57 @@ const BUTTON_DEFAULT_DISABLED = BUTTON_DEFAULT.map((row, y) =>
       dimRing(row.slice(12))
     : dimRing(row));
 
+// ---- list view sort order button (Finder 8.1), 16 x 21 --------------
+// The "pyramid" button over a Finder list's vertical scroll bar, in the
+// list's normal order. No Mac OS 8.x capture was found; this is Mac OS
+// 9.0, 1:1 Platinum: Sherlock 2 (guidebookgallery search/macos90-1-2,
+// x=464..479 y=119..139, all 16 columns) and the Finder (filemanager/
+// macos90-1-4, x=539..553 y=43..63, where the 16th column is under the
+// window content's black edge) agree pixel for pixel. osmium.css shows
+// the first 15 columns, the Finder's layering.
+const SORTDIR = [
+  "6666666666666665",
+  "6fffffffffffffc3",
+  "6fcccccccccccc83",
+  "6fcccccccccccc83",
+  "6fcccccccccccc83",
+  "6fcccccccccccc83",
+  "6fccccc45ccccc83",
+  "6fcccccbbccccc83",
+  "6fcccc4220cccc83",
+  "6fccccbbbbcccc83",
+  "6fccc421110ccc83",
+  "6fcccbbbbbbccc83",
+  "6fcc42111110cc83",
+  "6fcccccccccccc83",
+  "6fcccccccccccc83",
+  "6fcccccccccccc83",
+  "6fcccccccccccc83",
+  "6fcccccccccccc83",
+  "6fcccccccccccc83",
+  "6c88888888888883",
+  "5333333333333333",
+];
+
+// Reversed order: APPROXIMATION, never captured. Mac Secrets (5th ed.,
+// 1999, p. 31) says a click "flips the pyramid indicator upside-down".
+// The glyph is four steps, each a dark line (4, 2, 1s, 0 from left to
+// right) over a bb shade line of the same width; the base has no shade.
+// Mirroring the rows would put every shade line above its step and so
+// reverse the lighting. This stacks the same steps widest first, each
+// still over its own shade, down to the tip (rows 6 to 12).
+const SORTDIR_REVERSED = [
+  ...SORTDIR.slice(0, 6),
+  "6fcc42111110cc83",
+  "6fccbbbbbbbbcc83",
+  "6fccc421110ccc83",
+  "6fcccbbbbbbccc83",
+  "6fcccc4220cccc83",
+  "6fccccbbbbcccc83",
+  "6fccccc45ccccc83",
+  ...SORTDIR.slice(13),
+];
+
 /** Name → grid, published as --osm-sprite-<name> by spriteCss(). */
 export const CONTROL_SPRITES: Record<string, readonly string[]> = {
   button: BUTTON,
@@ -993,4 +1054,6 @@ export const CONTROL_SPRITES: Record<string, readonly string[]> = {
   "balloon-bottom-right": BALLOON_BOTTOM_RIGHT,
   "balloon-bottom-left": BALLOON_BOTTOM_LEFT,
   "balloon-left-bottom": BALLOON_LEFT_BOTTOM,
+  sortdir: SORTDIR,
+  "sortdir-reversed": SORTDIR_REVERSED,
 };

@@ -1,11 +1,13 @@
 // Osmium runtime: registers the Mac OS 8 bitmap fonts and the sprite
 // images osmium.css draws with. mountWindow() calls it; pages that
 // use Osmium controls without a window call it themselves.
+import { followAccent, unfollowAccent } from "./appearance.js";
 import { emboldened, strikeGlyphs } from "./bitmapfont.js";
 import type { StrikeData } from "./bitmapfont.js";
 import { CHARCOAL_12 } from "./fonts/charcoal12.js";
 import { GENEVA_9 } from "./fonts/geneva9.js";
 import { GENEVA_10 } from "./fonts/geneva10.js";
+import { GENEVA_12 } from "./fonts/geneva12.js";
 import { spriteCss } from "./sprites.js";
 import type { Palette } from "./sprites.js";
 import { buildPixelFont } from "./ttf.js";
@@ -13,7 +15,8 @@ import { buildPixelFont } from "./ttf.js";
 let installed: Promise<void> | null = null;
 
 /** Add the sprite custom properties and the font faces (Charcoal 12,
- * Geneva 10 and Geneva 9, each with QuickDraw-synthesized bold).
+ * Geneva 12, Geneva 10 and Geneva 9, each with QuickDraw-synthesized
+ * bold).
  * Idempotent.
  * Resolves once the fonts can be measured; rejects if the browser
  * refuses a face — text then falls back to the next family in
@@ -31,7 +34,9 @@ export function installOsmium(): Promise<void> {
     // Geneva 9 bold is for <strong> in Balloon Help messages. No bold
     // Geneva 9 was captured from Mac OS 8; it is synthesized the way
     // QuickDraw emboldens the other strikes.
-    const faces = [CHARCOAL_12, GENEVA_10, GENEVA_9]
+    // Geneva 12 is the document font (--osm-font-document, the text
+    // view's default).
+    const faces = [CHARCOAL_12, GENEVA_12, GENEVA_10, GENEVA_9]
       .flatMap((s) => [face(s, false), face(s, true)]);
     // FontFaceSet's setlike add() is typed only in lib.dom.iterable,
     // which this project doesn't load.
@@ -55,18 +60,36 @@ function trackInputModality(): void {
   }, true);
 }
 
+/** Whether an app sprite keeps the built-in palette's Lavender accent
+ * keys ("fixed") or is redrawn in the accent setAppearance sets
+ * ("follow"). */
+export type SpriteAccent = "fixed" | "follow";
+
 /** Add an app's own sprites (icons, say) as --osm-sprite-<name>
  * custom properties, drawn with the built-in palette plus `palette`.
- * Works before or after installOsmium(); throws on an unknown palette
- * key or a ragged grid. */
+ * With `accent: "follow"`, the accent keys (w q p m l n h) take the
+ * current accent now and after every setAppearance; `palette` still
+ * wins over them. Registering a name again replaces it, "fixed" or
+ * "follow". Works before or after installOsmium(); throws on an unknown
+ * palette key or a ragged grid. */
 export function registerSprites(
   sprites: Readonly<Record<string, readonly string[]>>,
   palette: Palette = {},
+  options: { readonly accent?: SpriteAccent } = {},
 ): void {
+  const accent = options.accent ?? "fixed";
+  if (accent !== "fixed" && accent !== "follow")
+    throw new RangeError(`sprite accent ${JSON.stringify(accent)} must be ` +
+                         '"fixed" or "follow"');
+  if (accent === "follow") {
+    followAccent(Object.entries(sprites), palette);
+    return;
+  }
+  const css = spriteCss(Object.entries(sprites), palette);
+  unfollowAccent(Object.keys(sprites));
   const style = document.createElement("style");
   style.dataset["osmiumSprites"] = "";
-  style.textContent =
-    `:root {\n${spriteCss(Object.entries(sprites), palette)}\n}`;
+  style.textContent = `:root {\n${css}\n}`;
   document.head.appendChild(style);
 }
 
