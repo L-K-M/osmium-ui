@@ -173,8 +173,10 @@ describe("the default appearance", () => {
   it("draws every built-in sprite byte for byte as before", () => {
     // SHA-256 of every built-in sprite's SVG, captured on main before
     // the accent keys w and h replaced gray e and white f. Sprites added
-    // since (the list view's sort order button) are left out.
-    const added = new Set(["sortdir", "sortdir-reversed"]);
+    // since (the list view's sort order button, the chasing arrows) are
+    // left out.
+    const added = new Set(["sortdir", "sortdir-reversed", "arrows",
+                           "arrows-inactive"]);
     const all = allSprites().filter(([n]) => !added.has(n))
       .map(([n, r]) => n + "\n" + spriteSvg(r)).join("\n");
     expect(createHash("sha256").update(all).digest("hex")).toBe(

@@ -836,7 +836,32 @@
     #ddd;
   font: var(--osm-font-small); line-height: 13px;
   text-align: center; white-space: nowrap; overflow: hidden;
+  /* Holds chasing arrows at the Finder's spot, below. */
+  position: relative;
 }
+
+/* Chasing arrows (mountChasingArrows): one of eight 16x16 frames, the
+   set bits black, 88 in an inactive window, over whatever is behind;
+   blank while stopped (no data-frame). */
+.osm-arrows {
+  display: inline-block; width: 16px; height: 16px; vertical-align: top;
+}
+.osm-arrows[data-frame] {
+  background: var(--osm-sprite-arrows) no-repeat;
+}
+.osm-inactive .osm-arrows[data-frame] {
+  background-image: var(--osm-sprite-arrows-inactive);
+}
+.osm-arrows[data-frame="1"] { background-position: -16px 0; }
+.osm-arrows[data-frame="2"] { background-position: -32px 0; }
+.osm-arrows[data-frame="3"] { background-position: -48px 0; }
+.osm-arrows[data-frame="4"] { background-position: -64px 0; }
+.osm-arrows[data-frame="5"] { background-position: -80px 0; }
+.osm-arrows[data-frame="6"] { background-position: -96px 0; }
+.osm-arrows[data-frame="7"] { background-position: -112px 0; }
+/* In a Finder window header, Mac OS 8.0's Finder puts them 4px in from
+   the header's left pixel and 2px down from its top one. */
+.osm-placard > .osm-arrows { position: absolute; left: 4px; top: 2px; }
 
 /* Finder list-view column headers, 21px: raised cc cells; the sorted
    column's cell is sunk (88 face), and its cells shade dd while the

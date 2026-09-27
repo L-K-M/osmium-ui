@@ -54,6 +54,9 @@ export interface WindowContent {
   /** Give the keyboard to the window's main control, if it has one
    * (called when the window activates). */
   focus?(): void;
+  /** The window opened, at startup or after being closed (the Finder
+   * reads its folder). */
+  shown?(): void;
   /** The size the zoom box zooms to from `current` (both the drawn
    * window, without its shadow): the Finder fits its items. */
   standardSize?(current: Size): Size;

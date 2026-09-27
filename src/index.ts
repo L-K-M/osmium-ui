@@ -60,6 +60,8 @@ export type {
   BalloonContent, BalloonHelpState, BalloonOptions, BalloonTip,
   BalloonTrigger, BalloonVariant, OsmiumBalloon,
 } from "./balloon.js";
+export { mountChasingArrows } from "./chasingarrows.js";
+export type { OsmiumChasingArrows } from "./chasingarrows.js";
 export { isModal, onModalChange } from "./modal.js";
 export { showAlert } from "./alert.js";
 export type {
