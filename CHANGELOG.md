@@ -2,6 +2,25 @@
 
 ## Unreleased
 
+- Add alert boxes (`showAlert`): stop, caution and note alerts with a
+  message, an optional explanation and up to three buttons, which hold
+  the page until a button is pressed. Return and Enter press the
+  default button, Escape and Command-period the cancel button, and Tab
+  stays inside the alert; the page behind is inert, menu bar titles dim
+  and the parent window draws inactive. The frame, the stop and caution
+  icons and the layout are measured from Mac OS 8.0's Finder alerts
+  (Chromium's rendering of both matches the captures pixel for pixel),
+  and the placement from its Stickies, Process Manager and AppleCD
+  Audio Player alerts. Not captured from a running system: the movable
+  alert's title bar and the note icon come from the Mac OS 8 HIG's
+  figures, and StandardAlert's own layout was never seen, so the
+  explanation's spacing, the third button's place, button widths past
+  59px and the growth rules are derived. Unlike Mac OS 8.0, menu bar
+  icon titles keep their colors, the Help menu doesn't stay enabled,
+  movable alerts drag live rather than as an outline, and no sound
+  plays (`onBeep` is the hook). The demo has an Alerts window, also as
+  a one-window page, and Special > Empty Trash….
+- `bindDialogKeys` returns a function that removes its key handling.
 - The native window host clips each window to its outline and drop
   shadow, so WebKit's white backdrop no longer shows as a stray pixel
   beside the shadow's ends (top right and bottom left).

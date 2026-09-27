@@ -108,7 +108,7 @@ let audio: AudioContext | undefined;
 
 /** A short square-wave beep, like Mac OS's Simple Beep, at `volume`
  * (0..1). Silent at zero. */
-function beep(volume: number): void {
+export function beep(volume: number): void {
   if (volume <= 0) return;
   audio ??= new AudioContext();
   const t = audio.currentTime;

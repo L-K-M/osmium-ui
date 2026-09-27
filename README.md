@@ -36,6 +36,8 @@ information window (class `osm-info`, whose text dims when inactive).
 - Scroll bars, vertical and horizontal, and list boxes.
 - Finder list-view headers and placards.
 - Progress bars, separators, wells, and label/value rows.
+- Alert boxes: stop, caution and note alerts, modal or movable, measured
+  from Mac OS 8.0's Finder.
 
 **Fonts.** Charcoal 12, Geneva 10 and Geneva 9 as bitmap strikes. They
 are compiled into TrueType fonts in the browser at startup, with
@@ -95,7 +97,9 @@ This builds the demo and serves it locally: a Mac OS 8 desktop with a
 dialog full of controls, a Finder list view, a control panel, a tabbed
 Appearance window (open it from its desktop icon) and an About window.
 You can drag the windows, click to bring them to the front, close them
-and windowshade them, and zoom and resize the Finder window.
+and windowshade them, and zoom and resize the Finder window. The Alerts
+window (open it from its desktop icon) and Special > Empty Trash…
+bring up alerts.
 
 On a Mac with the Xcode command line tools, the same pages run as
 native windows:
@@ -184,6 +188,7 @@ window.
 | Progress bar | `.osm-progress > .osm-progress-track > .osm-progress-fill`, set `--osm-value` (0 to 1) | none |
 | Label/value rows | `<div class="osm-fields">` of `.osm-label` and value pairs | none |
 | Separator, well | `<div class="osm-separator">`, `<div class="osm-well">` | none |
+| Alert | built for you | `showAlert({ kind, message, explanation, buttons })`, see [Alerts](#alerts) |
 
 Disable a checkbox or slider with `setEnabled(input, false)` so the
 whole control dims. The fonts are available as `osm-system` (Charcoal
@@ -192,6 +197,39 @@ whole control dims. The fonts are available as `osm-system` (Charcoal
 
 The demo's source (`demo/`) uses every control. It's the best place
 to see complete markup.
+
+### Alerts
+
+`showAlert` puts up a Mac OS 8 alert box, laid out with the metrics of
+Mac OS 8.0's Finder alerts, and blocks the rest of the page until one
+of its buttons is pressed:
+
+```ts
+import { showAlert } from "osmium-ui";
+
+const alert = showAlert({
+  kind: "caution", // "stop", "note", or "plain" (with your own icon)
+  message: "Do you want to save the changes you made to “Report”?",
+  explanation: "If you don’t save them, they will be lost.",
+  buttons: { ok: "Save", cancel: "Cancel", other: "Don’t Save" },
+  parent: win, // drawn inactive while the alert is up
+});
+if (await alert.result === "ok") save();
+```
+
+Return and Enter press the default button (`defaultButton`, OK unless
+you say otherwise), and Escape and Command-period the cancel button
+(`cancelButton`, Cancel when there is one). Pass `modality: "movable"`
+for an alert with a title bar to drag it by, and `position: "parent"`
+to center it on `parent` rather than on the page. Presses outside the
+alert call `onBeep`, where Mac OS plays the alert sound; Osmium plays
+none itself. `close()` takes the alert down from code.
+
+The alert takes the keyboard focus itself, so no button shows a focus
+ring until you press Tab; Tab and Shift-Tab then stay among its
+buttons. While it is up the rest of the page is `inert`, menu bar
+titles dim, `bindDialogKeys` handlers stand down, and a window with
+`"page"` activation draws inactive.
 
 ### Your own icons
 
@@ -303,8 +341,8 @@ If your app already relays page messages, pass
 Give `hostWindow` your own `post` function to match; the page then
 counts as native.
 
-Escape closes a hosted window unless the page handles the key itself
-or the focus is in a text field. Pass `escape: "ignore"` for a window
+Escape closes a hosted window unless the page handles the key itself,
+the focus is in a text field, or an alert is up. Pass `escape: "ignore"` for a window
 that shouldn't close.
 
 In a plain browser tab, the same page fills the tab and does what a tab
@@ -318,7 +356,7 @@ ResizeObserver and CSS `border-image`.
 
 ## Not included yet
 
-Radio buttons, editable text fields, tabs, alert windows, and keyboard
+Radio buttons, editable text fields, tabs, and keyboard
 equivalents shown in menus.
 
 ## Development

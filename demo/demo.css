@@ -225,3 +225,17 @@ html.desk { height: 100%; background: #9999cc; }
 .apr-row > .osm-checkbox { left: 121px; top: 1px; white-space: nowrap; }
 .apr-caption { left: 123px; top: 20px; white-space: nowrap; }
 .apr-check > .apr-caption { left: 137px; }
+
+/* ---- Alerts (alerts.ts) ---------------------------------------------- */
+/* A 428 x 212 content area: two group boxes, each a column of 121px
+   push buttons 10px apart, and a status line along the bottom. */
+.alr { position: absolute; inset: 0; }
+.alr > * { position: absolute; }
+.alr .osm-group {
+  box-sizing: border-box; top: 20px; width: 196px; height: 138px;
+  display: flex; flex-direction: column; align-items: center;
+  gap: 10px; padding-top: 14px;
+}
+.alr-kinds { left: 12px; }
+.alr-variations { left: 220px; }
+.alr-status { left: 0; right: 0; bottom: 0; }

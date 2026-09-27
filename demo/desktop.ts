@@ -6,10 +6,13 @@
 // while a titlebar press activates and drags in one gesture); close
 // boxes hide windows, which the menu bar and the desktop icons reopen;
 // collapse boxes windowshade; the Finder window zooms and grows.
+// Special > Empty Trash… brings up a caution alert over the front
+// window.
 import {
-  MENU_SEPARATOR, installOsmium, mountMenuBar, mountWindow,
+  MENU_SEPARATOR, installOsmium, mountMenuBar, mountWindow, showAlert,
 } from "../src/index.js";
 import type { OsmiumWindow, Size } from "../src/index.js";
+import { beep } from "./controls.js";
 import { el, swallowClick } from "./dom.js";
 import { registerDemoSprites, sprite } from "./icons.js";
 import type { SpriteName } from "./icons.js";
@@ -36,6 +39,7 @@ const START: readonly {
   id: WindowId; x: number; y: number; closed?: boolean;
 }[] = [
   { id: "appearance", x: 280, y: 200, closed: true },
+  { id: "alerts", x: 300, y: 120, closed: true },
   { id: "about", x: 24, y: 40 },
   { id: "panel", x: 16, y: 300 },
   { id: "finder", x: 344, y: 44 },
@@ -48,6 +52,7 @@ const ICONS: readonly { id: WindowId; label: string; icon: SpriteName }[] = [
   { id: "panel", label: "Control Panel", icon: "icon-panel" },
   { id: "appearance", label: "Appearance", icon: "icon-panel" },
   { id: "about", label: "About Osmium UI", icon: "icon-readme" },
+  { id: "alerts", label: "Alerts", icon: "icon-app" },
 ];
 
 interface DeskWindow {
@@ -229,6 +234,7 @@ for (const spec of WINDOWS) {
     isActive: () => front() === w,
     open,
     setDesktop,
+    window: () => win,
   });
 
   // A press in a window behind brings it forward. In its content the
@@ -325,6 +331,7 @@ mountMenuBar(menubar, [
     MENU_SEPARATOR,
     openable("panel"),
     openable("appearance"),
+    openable("alerts"),
     openable("controls"),
     openable("finder"),
   ] },
@@ -343,11 +350,25 @@ mountMenuBar(menubar, [
   ] },
   { title: "Special", items: () => [
     { title: "Clean Up", action: cleanUp },
-    { title: "Empty Trash…" },
+    { title: "Empty Trash…", action: emptyTrash },
     MENU_SEPARATOR,
     { title: "Restart", action: () => location.reload() },
   ] },
 ]);
+
+/** The Finder's Empty Trash confirmation, over the front window. The
+ * demo has no Trash to empty, so OK changes nothing. */
+function emptyTrash(): void {
+  const parent = front()?.win;
+  showAlert({
+    kind: "caution",
+    message: "The Trash holds 24 items, which take up 3.1 MB of disk " +
+      "space. Do you want to remove them for good?",
+    buttons: { cancel: "Cancel" },
+    ...(parent ? { parent } : {}),
+    onBeep: () => beep(0.5),
+  });
+}
 
 // The clock at the menu bar's right end.
 const clock = el("div", "dsk-clock");
