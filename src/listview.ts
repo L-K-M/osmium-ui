@@ -413,11 +413,14 @@ export function mountListView<T>(host: HTMLElement,
   if (sort) sortDirection(sort, columns);
   void installOsmium().catch(() => {}); // the sort order button's sprites
 
-  const id = `osm-lv-${++viewSeq}`;
+  // This list's number, for rules added later too (iconClass), when
+  // other lists may have taken the next ones.
+  const seq = ++viewSeq;
+  const id = `osm-lv-${seq}`;
   host.classList.add("osm-listview");
   host.classList.toggle("osm-lv-has-icon", !!opts.icon);
   host.dataset["highlight"] = opts.highlight ?? "row";
-  host.dataset["osmLv"] = String(viewSeq);
+  host.dataset["osmLv"] = String(seq);
 
   // Widths, the row pitch and icon images go in rules of the list's own
   // style sheet, shared by class: an inline style or var() per cell
@@ -429,7 +432,7 @@ export function mountListView<T>(host: HTMLElement,
   const sheet = sheetEl.sheet!;
   const rule = (selector: string): CSSStyleRule => {
     const at = sheet.insertRule(
-      `.osm-listview[data-osm-lv="${viewSeq}"] ${selector} {}`,
+      `.osm-listview[data-osm-lv="${seq}"] ${selector} {}`,
       sheet.cssRules.length);
     return sheet.cssRules[at] as CSSStyleRule;
   };
@@ -978,7 +981,12 @@ export function mountListView<T>(host: HTMLElement,
   }
 
   function select(key: string | null, mode: SelectMode): void {
-    if (key === selectedKey) return;
+    if (key === selectedKey) {
+      // Chosen again (type-select, an arrow key at the end, select()):
+      // nothing to report, but it comes back into view.
+      if (key !== null) reveal(key);
+      return;
+    }
     const old = selectedRow()?.dom?.el;
     old?.classList.remove("osm-selected");
     old?.setAttribute("aria-selected", "false");

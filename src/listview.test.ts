@@ -149,6 +149,21 @@ describe("mountListView structure", () => {
     expect(icon.getAttribute("aria-label")).toBe("Printer");
   });
 
+  it("scopes an icon first shown later to its own list", () => {
+    const icon = (h: Host) => ({ image: `url(i${h.ports}.png)`, label: "x" });
+    const a = mount({ icon }, hosts(1));
+    mount({ icon }, hosts(1));
+    a.list.setRows(hosts(2));
+    const at = a.host.dataset["osmLv"];
+    const img = a.rowEl("10.0.0.1").querySelector(".osm-lv-icon")!;
+    const cls = Array.from(img.classList).find((c) => /^osm-lv-i\d/.test(c));
+    const sheet = document.querySelector<HTMLStyleElement>(
+      `style[data-osmium-list-view="osm-lv-${at}"]`)!.sheet!;
+    const rule = Array.from(sheet.cssRules).find((r) =>
+      (r as CSSStyleRule).selectorText.endsWith(`.${cls}`)) as CSSStyleRule;
+    expect(rule.selectorText).toContain(`[data-osm-lv="${at}"]`);
+  });
+
   it("rejects bad options", () => {
     const host = document.createElement("div");
     const base = { label: "x", key: (h: Host) => h.ip, cell: () => "" };
@@ -274,6 +289,21 @@ describe("scroll position", () => {
     view.scrollTop = 40 * ROW_H;
     list.setRows([...rows].reverse(), { scroll: "top" });
     expect(view.scrollTop).toBe(149 * ROW_H + ROW_H - 190);
+  });
+
+  it("scrolls the selected row back into view when chosen again", () => {
+    const { list, view, grid, log } = mount({}, hosts(300));
+    list.select("10.0.0.150", "silent");
+    view.scrollTop = 0;
+    list.select("10.0.0.150");
+    expect(view.scrollTop).toBe(150 * ROW_H + ROW_H - 190);
+    // Type-select reaches it the same way, and reports nothing new.
+    list.select("10.0.0.0", "silent");
+    view.scrollTop = 100 * ROW_H;
+    key(grid, "1");
+    expect(list.selected).toBe("10.0.0.0");
+    expect(view.scrollTop).toBe(0);
+    expect(log.selected).toEqual([]);
   });
 
   it("reports what resize-to-fit needs", () => {
