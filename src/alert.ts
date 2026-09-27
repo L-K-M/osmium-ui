@@ -2,8 +2,8 @@
 // and up to three push buttons, laid out the way StandardAlert
 // (Appearance Manager 1.0, Mac OS 8.0) lays them out, with the metrics
 // of the Mac OS 8.0 Finder's alerts. Looks come from osmium.css: the
-// alert frame (kWindowAlertProc) as Mac OS 8.0 draws it, or with the
-// movable alert's title bar from the Mac OS 8 HIG.
+// alert frame Mac OS 8.0's alerts draw (presumably kWindowAlertProc's),
+// or with the movable alert's title bar from the Mac OS 8 HIG.
 //
 // While an alert is up it holds the page (modal.ts): nothing else
 // takes the mouse or the keyboard until one of its buttons is pressed.
@@ -152,10 +152,12 @@ const EXPLANATION_LINE = 13;
 /** Buttons: 10px from the port's right and bottom edges, 13px apart,
  * no higher than the Finder's (68) and 13px below the text. */
 const BUTTON_H = 20;
-/** The Finder's buttons are 59 wide, "Cancel" included: 8px either
- * side of its 42px title. (Alerts built from resources fix their own
- * widths; other Mac OS 8.0 alerts have 52 to 66.) Derived: a longer
- * title widens its button to keep those 8px. */
+/** The Finder's buttons are 59 wide, measured, "Cancel" included.
+ * (Alerts built from resources fix their own widths: other Mac OS 8.0
+ * alerts have 60 to 74, Process Manager and Chooser 60, AppleCD Audio
+ * Player 66, Stickies 74.) Derived, not measured: past 59, a button
+ * grows to keep 8px either side of its title ("Cancel", 42px, fits in
+ * 59 with room to spare). */
 const BUTTON_W = 59;
 const BUTTON_TITLE_PAD = 8;
 const BUTTON_MARGIN = 10;
@@ -241,8 +243,10 @@ export function alertLayout(m: AlertMetrics): AlertLayout {
  * page below the menu bar, or the parent window's outline box), kept
  * in `viewport` and below its menu bar (`top`). The shadow counts: the
  * free space is area - (size + 1). Mac OS 8.0 places Stickies, Process
- * Manager and AppleCD Audio Player alerts exactly so (the Finder puts
- * its own at a fixed spot). An alert that doesn't fit pins to the top
+ * Manager and AppleCD Audio Player alerts exactly so. The Finder's two
+ * captured alerts (both 374 x 104) sit at (133, 87) instead, off this
+ * rule's (132, 91); whether the Finder uses a fixed spot is unverified,
+ * as only that one size was captured. An alert that doesn't fit pins to the top
  * left, under the menu bar. */
 export function alertPosition(
   size: { w: number; h: number },
@@ -394,16 +398,19 @@ export function showAlert(opts: AlertOptions): OsmiumAlert {
   for (const [which, b] of buttons) pushButton(b, () => end(which));
 
   // Presses outside the alert do nothing but beep (ModalDialog plays
-  // the alert sound for a mouse-down outside an alert), and nothing
-  // under it scrolls.
+  // the alert sound for a mouse-down outside an alert). Nothing under
+  // it scrolls: not over the layer, and not over the alert, which has
+  // nothing to scroll itself (modal.ts holds back the scrolling keys).
   layer.addEventListener("pointerdown", (e) => {
     e.preventDefault();
     e.stopPropagation();
     swallowClick();
     opts.onBeep?.();
   });
-  for (const type of ["wheel", "touchmove"] as const)
-    layer.addEventListener(type, (e) => e.preventDefault(), { passive: false });
+  for (const el of [layer, box]) {
+    for (const type of ["wheel", "touchmove"] as const)
+      el.addEventListener(type, (e) => e.preventDefault(), { passive: false });
+  }
 
   function layout(): void {
     const widths = present.map((which) => {

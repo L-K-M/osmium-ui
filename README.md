@@ -36,8 +36,10 @@ information window (class `osm-info`, whose text dims when inactive).
 - Scroll bars, vertical and horizontal, and list boxes.
 - Finder list-view headers and placards.
 - Progress bars, separators, wells, and label/value rows.
-- Alert boxes: stop, caution and note alerts, modal or movable, measured
-  from Mac OS 8.0's Finder.
+- Alert boxes: stop, caution and note alerts, modal or movable. The
+  modal frame, the stop and caution icons and the layout are measured
+  from Mac OS 8.0's Finder; the movable title bar and the note icon
+  come from the Mac OS 8 HIG's figures.
 
 **Fonts.** Charcoal 12, Geneva 10 and Geneva 9 as bitmap strikes. They
 are compiled into TrueType fonts in the browser at startup, with
@@ -230,6 +232,10 @@ ring until you press Tab; Tab and Shift-Tab then stay among its
 buttons. While it is up the rest of the page is `inert`, menu bar
 titles dim, `bindDialogKeys` handlers stand down, and a window with
 `"page"` activation draws inactive.
+
+Some of the alert is derived rather than measured (the explanation's
+spacing, the third button's place, how buttons and the alert grow);
+the CHANGELOG lists which parts.
 
 ### Your own icons
 

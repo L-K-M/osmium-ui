@@ -9,7 +9,8 @@
   stays inside the alert; the page behind is inert, menu bar titles dim
   and the parent window draws inactive. The frame, the stop and caution
   icons and the layout are measured from Mac OS 8.0's Finder alerts
-  (Chromium's rendering of both matches the captures pixel for pixel),
+  (Chromium's rendering of both, with grayscale text antialiasing,
+  matches the captures pixel for pixel),
   and the placement from its Stickies, Process Manager and AppleCD
   Audio Player alerts. Not captured from a running system: the movable
   alert's title bar and the note icon come from the Mac OS 8 HIG's

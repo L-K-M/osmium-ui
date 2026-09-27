@@ -72,6 +72,8 @@ const saved = new Map<HTMLElement, { inert: boolean; hidden: string | null }>();
 const held = new Map<OsmiumWindow, { count: number; wasActive: boolean }>();
 let observer: MutationObserver | null = null;
 
+const KEY_EVENTS = ["keydown", "keypress", "keyup"] as const;
+
 const supportsInert = () => "inert" in HTMLElement.prototype;
 
 /** Put an alert (`box`, over its full-page `layer`, both children of
@@ -129,7 +131,7 @@ function end(entry: Entry): void {
 
 function start(): void {
   document.documentElement.classList.add(MODAL_CLASS);
-  document.addEventListener("keydown", onKey, true);
+  for (const type of KEY_EVENTS) document.addEventListener(type, onKey, true);
   // Anything appended to <body> while an alert is up (an app's portal,
   // say) is blocked too.
   observer = new MutationObserver(() => { if (stack.length) sync(); });
@@ -138,7 +140,7 @@ function start(): void {
 
 function stop(): void {
   document.documentElement.classList.remove(MODAL_CLASS);
-  document.removeEventListener("keydown", onKey, true);
+  for (const type of KEY_EVENTS) document.removeEventListener(type, onKey, true);
   observer?.disconnect();
   observer = null;
   for (const [el, was] of saved) restore(el, was);
@@ -200,15 +202,35 @@ function release(w: OsmiumWindow): void {
   if (h.wasActive) w.setActive(true);
 }
 
-/** Keys go to the top alert first. Whatever it leaves and was aimed
- * outside it (focus on body, say) goes no further: nothing under an
- * alert may act on a key. Browser shortcuts (with Command, Control or
- * Option) keep their default. */
+// Keys that scroll the page when nothing focused takes them. The alert
+// has nothing that scrolls, so aimed at it they would scroll the page
+// under it. Space is left to a focused button, which it presses.
+const SCROLL_KEYS = new Set([
+  " ", "PageUp", "PageDown", "Home", "End",
+  "ArrowUp", "ArrowDown", "ArrowLeft", "ArrowRight",
+]);
+
+/** Keys go to the top alert first, then no further: nothing under an
+ * alert may act on a key, the page's own document and window listeners
+ * included. (A listener on window in the capture phase runs before
+ * this one and can't be kept out.) The alert's buttons still take Return
+ * and Space through their native activation, which is a default action,
+ * not a listener. Keys aimed outside the alert (focus on body, say)
+ * lose their default too, and so do the scrolling keys aimed at it.
+ * Browser shortcuts (with Command, Control or Option) keep their
+ * default. keyup and keypress are held back the same way. */
 function onKey(e: KeyboardEvent): void {
   const top = stack[stack.length - 1];
   if (!top) return;
-  top.keys?.(e);
-  if (e.target instanceof Node && top.box.contains(e.target)) return;
+  if (e.type === "keydown") top.keys?.(e);
   e.stopPropagation();
-  if (!e.metaKey && !e.ctrlKey && !e.altKey) e.preventDefault();
+  if (e.metaKey || e.ctrlKey || e.altKey) return;
+  const t = e.target;
+  if (!(t instanceof Node && top.box.contains(t))) {
+    e.preventDefault();
+    return;
+  }
+  if (!SCROLL_KEYS.has(e.key)) return;
+  if (e.key === " " && t instanceof Element && t.closest("button")) return;
+  e.preventDefault();
 }

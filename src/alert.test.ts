@@ -324,6 +324,48 @@ describe("showAlert", () => {
     expect(e.defaultPrevented).toBe(true);
   });
 
+  it("keeps keys aimed at it from the page's own listeners", async () => {
+    const seen: string[] = [];
+    const log = (e: Event) => seen.push(`${e.type}:${(e as KeyboardEvent).key}`);
+    for (const type of ["keydown", "keyup", "keypress"]) {
+      window.addEventListener(type, log);
+      document.addEventListener(type, log);
+    }
+    const a = show({ buttons: { cancel: "Cancel" } });
+    await revealed();
+    expect(document.activeElement).toBe(a.element);
+    for (const k of ["a", "Delete", "ArrowDown"]) key(a.element, k);
+    a.element.dispatchEvent(new KeyboardEvent("keyup", {
+      key: "a", bubbles: true, cancelable: true,
+    }));
+    key(button(a, "ok"), "Enter");
+    expect(seen).toEqual([]);
+    a.close();
+    await a.result;
+    key(document.body, "a");
+    expect(seen).toEqual(["keydown:a", "keydown:a"]);
+    for (const type of ["keydown", "keyup", "keypress"]) {
+      window.removeEventListener(type, log);
+      document.removeEventListener(type, log);
+    }
+  });
+
+  it("scrolls nothing under it", async () => {
+    const a = show();
+    await revealed();
+    for (const k of [" ", "PageDown", "End", "ArrowDown"])
+      expect(key(a.element, k).defaultPrevented).toBe(true);
+    // Space presses a focused button, natively: its default stays.
+    expect(key(button(a, "ok"), " ").defaultPrevented).toBe(false);
+    for (const target of [a.element, layers()[0]!]) {
+      const wheel = new WheelEvent("wheel", {
+        bubbles: true, cancelable: true, deltaY: 500,
+      });
+      target.dispatchEvent(wheel);
+      expect(wheel.defaultPrevented).toBe(true);
+    }
+  });
+
   it("beeps for presses outside it", async () => {
     const onBeep = vi.fn();
     const a = show({ onBeep });
@@ -352,8 +394,15 @@ describe("showAlert", () => {
   it("stacks: the top alert takes the keys, closing in either order", async () => {
     for (const lowerFirst of [false, true]) {
       const page = document.createElement("div");
+      const input = document.createElement("input");
+      page.append(input);
       document.body.append(page);
+      input.focus();
+      // Each alert shows before the next opens, so the upper one takes
+      // the focus from the lower one.
       const lower = show({ buttons: { cancel: "Cancel" } });
+      await revealed();
+      expect(document.activeElement).toBe(lower.element);
       const upper = show({ buttons: { cancel: "Cancel" } });
       await revealed();
       expect(document.activeElement).toBe(upper.element);
@@ -376,6 +425,9 @@ describe("showAlert", () => {
       expect(await second.result).toBe("cancel");
       expect(html().classList.contains("osm-modal")).toBe(false);
       expect(page.inert).toBe(false);
+      // Back where it was before the first alert, whichever closed
+      // first (closing the lower one hands its focus to the upper).
+      expect(document.activeElement).toBe(input);
       page.remove();
     }
   });
@@ -398,6 +450,11 @@ describe("showAlert", () => {
   });
 
   it("drags a movable alert by its title bar, kept under the menu bar", async () => {
+    // happy-dom lays nothing out: give the menu bar its 20px.
+    const menubar = document.createElement("div");
+    menubar.className = "osm-menubar";
+    menubar.getBoundingClientRect = () => new DOMRect(0, 0, 1024, 20);
+    document.body.append(menubar);
     const a = show({ modality: "movable" });
     await revealed();
     const bar = a.element.querySelector(".osm-alert-titlebar")!;
@@ -415,7 +472,7 @@ describe("showAlert", () => {
     at("pointermove", 140, 70);
     expect([a.element.style.left, a.element.style.top]).toEqual(["130px", "60px"]);
     at("pointermove", 0, 0);
-    expect([a.element.style.left, a.element.style.top]).toEqual(["0px", "0px"]);
+    expect([a.element.style.left, a.element.style.top]).toEqual(["0px", "20px"]);
     at("pointerup", 0, 0);
   });
 });
@@ -504,6 +561,11 @@ describe("bindDialogKeys", () => {
     const { pressed, unbind } = dialog();
     const a = show();
     await revealed();
+    // Straight to window: past the modal key routing on document, as a
+    // key would get there if that routing ever let it through.
+    key(window, "Enter");
+    await wait(FLASH);
+    expect(pressed).not.toHaveBeenCalled();
     key(a.element, "Enter");
     expect(await a.result).toBe("ok");
     expect(pressed).not.toHaveBeenCalled();

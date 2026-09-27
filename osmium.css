@@ -830,8 +830,9 @@
 /* ---- alerts ---------------------------------------------------------- */
 /* An alert box (alert.ts). W x H is the black outline box; the port,
    where the icon, text and buttons go, is [3, W-4] x [3, H-4]. The
-   frame is Mac OS 8.0's kWindowAlertProc as the Finder, Stickies,
-   AppleCD Audio Player and Process Manager alerts draw it: black
+   frame is the one Mac OS 8.0's Finder, Stickies, AppleCD Audio
+   Player and Process Manager alerts draw (presumably kWindowAlertProc;
+   which window definition an app used can't be read from pixels): black
    outline; ff9999 outer bevel on the top and left, ff6666 on the right
    and bottom; white inner bevel on the top and left, 99 on the right
    and bottom, ff9999 at the two corners where they meet; a dd face;
@@ -926,6 +927,18 @@
 .osm-alert-titlebar .osm-stripes-r {
   left: calc(var(--osm-title-x, 0px) + var(--osm-title-w, 0px) + 3px);
   right: 5px;
+}
+
+/* Forced colors (Windows High Contrast) drop the inset box-shadow
+   outline and the gradient bevels: draw the outline, the title bar's
+   separator and the shadow in system colors so the alert keeps its
+   edge against the windows under it. */
+@media (forced-colors: active) {
+  .osm-alert { outline: 1px solid CanvasText; outline-offset: -1px; }
+  .osm-alert::before, .osm-alert::after { background: CanvasText; }
+  .osm-alert-titlebar {
+    box-sizing: content-box; border-bottom: 1px solid CanvasText;
+  }
 }
 
 /* Under each alert, a transparent layer over the whole page, menu bar
