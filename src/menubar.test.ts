@@ -1,6 +1,6 @@
 // @vitest-environment happy-dom
 import { beforeEach, describe, expect, it } from "vitest";
-import { MENU_SEPARATOR } from "./controls.js";
+import { MENU_SEPARATOR, mountPopup } from "./controls.js";
 import { commandModifier, mountMenuBar } from "./menubar.js";
 import type { OsmiumMenuBar } from "./menubar.js";
 
@@ -190,6 +190,35 @@ describe("menu bar keyboard equivalents", () => {
     bar.removeAttribute("inert");
     press("s", { ctrlKey: true }, field);
     expect(done).toEqual(["save"]);
+  });
+
+  it("leaves keys alone while a pop-up menu is open", () => {
+    const btn = document.createElement("button");
+    document.body.append(btn);
+    mountPopup(btn, { items: ["One", "Two"], selected: 0, onChange: () => {} });
+    key(btn, " ");
+    const menu = document.querySelector<HTMLElement>(".osm-menu")!;
+    expect(menu).not.toBeNull();
+    // Aimed at the menu, which has the keyboard, or anywhere else: an
+    // action (closing the pop-up's window, say) would leave it behind.
+    expect(press("s", { ctrlKey: true }, menu).defaultPrevented).toBe(false);
+    expect(press("s").defaultPrevented).toBe(false);
+    expect(done).toEqual([]);
+    expect(titles()[0]!.classList.contains("osm-open")).toBe(false);
+    key(menu, "Escape");
+    expect(document.querySelector(".osm-menu")).toBeNull();
+    press("s");
+    expect(done).toEqual(["save"]);
+  });
+
+  it("leaves keys aimed inside a menu alone", () => {
+    const menu = document.createElement("ul");
+    menu.className = "osm-menu";
+    const item = document.createElement("li");
+    menu.append(item);
+    document.body.append(menu);
+    expect(press("s", { ctrlKey: true }, item).defaultPrevented).toBe(false);
+    expect(done).toEqual([]);
   });
 
   it("replaces its menus, and their keys, with setMenus", () => {

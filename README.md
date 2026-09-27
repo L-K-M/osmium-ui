@@ -447,9 +447,9 @@ chooses the item and flashes its menu's title. Letters match without
 Shift; another character matches as typed. Only an enabled item takes
 its key, so a dimmed item, and any key no item claims, leaves the
 keystroke to the browser and to text fields. Keys a control already
-handled (`preventDefault`), keys typed while an alert is up and keys
-aimed at an `inert` menu bar (under your own modal dialog) are left
-alone too. Browsers keep some keys for themselves and never pass them
+handled (`preventDefault`), keys typed while an alert is up or a pop-up
+or menu bar menu is open, and keys aimed at an `inert` menu bar (under
+your own modal dialog) are left alone too. Browsers keep some keys for themselves and never pass them
 to a page: in Chromium, for one, Control-N, Control-T and Control-W
 (Command on a Mac) open and close windows and tabs.
 
