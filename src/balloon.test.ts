@@ -376,6 +376,10 @@ describe("attachBalloon", () => {
     expect(() => attachBalloon(u, {
       content: "x", variant: "middle" as BalloonVariant,
     })).toThrow(TypeError);
+    for (const anchor of [{ x: NaN, y: 10 }, { x: 10, y: -1 },
+                          { x: Infinity, y: 0 }])
+      expect(() => attachBalloon(u, { content: "x", anchor }))
+        .toThrow(RangeError);
     expect(u.hasAttribute("aria-describedby")).toBe(false);
   });
 
@@ -428,6 +432,47 @@ describe("attachBalloon", () => {
     b.hide();
     b.show();
     expect(calls).toBe(before + 2);
+  });
+
+  it("keeps a content function's description current while closed", async () => {
+    // Balloon Help hidden and nothing tracking: the description still
+    // follows the target, for screen readers.
+    const t = target() as HTMLButtonElement;
+    t.disabled = true;
+    const b = attach(t, { content: () => t.disabled
+      ? "Wake\n\nNot available during a scan."
+      : "Wake\n\nSends a wake-up packet." });
+    expect(b.element.textContent).toBe("Wake\n\nNot available during a scan.");
+    t.disabled = false;
+    await Promise.resolve(); // MutationObserver records are delivered
+    expect(b.element.textContent).toBe("Wake\n\nSends a wake-up packet.");
+    // A property change with no attribute behind it: caught on focus.
+    let label = "first";
+    const u = target();
+    const c = attach(u, { content: () => label });
+    label = "second";
+    u.dispatchEvent(new FocusEvent("focusin", { bubbles: true }));
+    expect(c.element.textContent).toBe("second");
+    // Stops once detached.
+    c.detach();
+    label = "third";
+    u.dispatchEvent(new FocusEvent("focusin", { bubbles: true }));
+    expect(c.element.textContent).toBe("second");
+  });
+
+  it("re-lays out an open balloon after the click it invites", () => {
+    const box = document.createElement("input");
+    box.type = "checkbox";
+    box.checked = true;
+    document.body.append(box);
+    rect(box, 100, 100, 12, 12);
+    const b = attach(box, { content: () => box.checked
+      ? "Checked. To turn sound off, click here."
+      : "Unchecked. To turn sound on, click here." });
+    b.show();
+    box.click(); // fires input and change
+    expect(b.open).toBe(true);
+    expect(b.element.textContent).toContain("Unchecked");
   });
 
   it("doesn't open empty messages or off-screen targets", () => {
@@ -562,6 +607,59 @@ describe("pointer tracking", () => {
     expect(b.open).toBe(true);
   });
 
+  it("opens when tracking starts with the pointer already on the target", () => {
+    const t = target();
+    const b = attach(t, { content: "Help" });
+    arrive(t); // not tracked: Balloon Help is hidden
+    setBalloonHelp("shown");
+    pointer("pointermove", t, 112, 111); // no pointerover this time
+    vi.advanceTimersByTime(100);
+    expect(b.open).toBe(true);
+  });
+
+  it("stays put when the pointer crosses onto a child of the target", () => {
+    setBalloonHelp("shown");
+    const t = target();
+    const child = document.createElement("span");
+    t.append(child);
+    rect(child, 130, 105, 20, 10);
+    let calls = 0;
+    const b = attach(t, { tip: "pointer", content: () => `Help ${++calls}` });
+    arrive(t);
+    vi.advanceTimersByTime(100);
+    const { left, top } = b.element.style;
+    const opened = calls;
+    hit = child;
+    pointer("pointerover", child, 140, 110);
+    pointer("pointermove", child, 140, 110);
+    vi.advanceTimersByTime(500);
+    expect(b.open).toBe(true);
+    expect([b.element.style.left, b.element.style.top]).toEqual([left, top]);
+    expect(calls).toBe(opened);
+  });
+
+  it("counts a control's <label> as part of the control", () => {
+    setBalloonHelp("shown");
+    const label = document.createElement("label");
+    const box = document.createElement("input");
+    box.type = "checkbox";
+    label.append(box, "Sound");
+    document.body.append(label);
+    rect(label, 100, 100, 80, 16);
+    rect(box, 100, 102, 12, 12);
+    const b = attach(box, { content: "Sound checkbox" });
+    expect(box.getAttribute("aria-describedby")).toBe(b.element.id);
+    arrive(label, 150, 108); // over the title, not the box
+    vi.advanceTimersByTime(100);
+    expect(b.open).toBe(true);
+    pointer("pointermove", label, 170, 110); // still on the label
+    expect(b.open).toBe(true);
+    hit = document.body;
+    pointer("pointerover", document.body, 300, 300);
+    pointer("pointermove", document.body, 300, 300);
+    expect(b.open).toBe(false);
+  });
+
   it("prefers the innermost target and ignores touch", () => {
     setBalloonHelp("shown");
     const outer = target("div");
@@ -678,5 +776,28 @@ describe("keyboard", () => {
     vi.advanceTimersByTime(200);
     expect(cancelled).toBe(1);
     window.removeEventListener("keydown", later);
+  });
+
+  it("leaves Escape to a text field elsewhere, and to an IME", () => {
+    const field = document.createElement("input");
+    field.type = "search";
+    document.body.append(field);
+    const t = target();
+    const b = attach(t, { content: "Copy", trigger: "hover", delay: 100 });
+    arrive(t);
+    vi.advanceTimersByTime(100);
+    expect(b.open).toBe(true);
+    const esc = (init: KeyboardEventInit = {}) => {
+      const e = new KeyboardEvent("keydown", {
+        key: "Escape", bubbles: true, cancelable: true, ...init,
+      });
+      field.dispatchEvent(e);
+      return e;
+    };
+    expect(esc({ isComposing: true }).defaultPrevented).toBe(false);
+    expect(b.open).toBe(true);
+    // Closes the balloon, but the field still clears.
+    expect(esc().defaultPrevented).toBe(false);
+    expect(b.open).toBe(false);
   });
 });

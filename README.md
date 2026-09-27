@@ -225,6 +225,12 @@ attachBalloon(wake, {
 });
 ```
 
+A `content` function runs again whenever the target's attributes change
+(`disabled` above), it fires `input` or `change` (a checkbox's checked
+state), or it gets focus, so the message stays current whether or not
+the balloon is open. State kept anywhere else needs
+`balloon.setContent(fn)` to refresh it.
+
 As in Mac OS 8, balloons open only while Balloon Help is on
 (`setBalloonHelp("shown")`, or the menu command), once the pointer has
 rested on the target for a tenth of a second, and close the moment it
@@ -243,11 +249,15 @@ pointer rests instead. `content` can also be a DOM node, for bold text
 (`<strong>`) or a list; it is copied each time the balloon opens.
 
 The balloon is the target's `aria-describedby` description, so screen
-readers read it whether or not Balloon Help is on. It also opens when a
-control gets keyboard focus while the keyboard is driving, and Escape
-closes it without cancelling the dialog around it. Call `detach()` when
-you remove the target, and drop its `title` attribute, or the browser
-shows its own tooltip too.
+readers read it whether or not Balloon Help is on. Attach it to the
+focusable control itself (a checkbox's `<input>`, not the `<label>`
+around it), because a description on a wrapper reaches no screen
+reader; pointing at the control's `<label>` opens the balloon too. It
+also opens when a control gets keyboard focus while the keyboard is
+driving, and Escape closes it without cancelling the dialog around it.
+Call `detach()` when you remove the target: until then its balloon
+element stays in the page. Drop the target's `title` attribute, or the
+browser shows its own tooltip too.
 
 What differs from Mac OS 8, on purpose or for want of a measurement:
 

@@ -60,9 +60,12 @@ export type BalloonTip =
    * when the balloon has to flip to another side. */
   | "anchor"
   /** Where the pointer came to rest, the tip one pixel right of and
-   * below the hot spot. Observed on Finder title-bar balloons only
-   * (one capture per variant, and an inactive window's balloon measured
-   * two pixels right instead); keyboard focus and show() use "anchor". */
+   * below the hot spot. That offset is a single observation, the Finder
+   * title-bar balloons of e_barBR_a and e_barBL_a in Mac OS 8.0; the
+   * other title-bar captures don't record where the pointer was. The one
+   * inactive-window capture (e_winTL_b) has a fixed tip near the
+   * window's top-left, opened with the pointer far off over the window's
+   * content. Keyboard focus and show() use "anchor". */
   | "pointer";
 
 /** A help message: plain text, whose "\n" starts a new line (an empty
@@ -73,9 +76,14 @@ export type BalloonTip =
 export type BalloonContent = string | Node;
 
 export interface BalloonOptions {
-  /** The message, or a function called each time the balloon opens, so
-   * it can follow the target's state (Apple gave dimmed controls their
-   * own balloon). */
+  /** The message, or a function returning it, so it can follow the
+   * target's state (Apple gave dimmed controls their own balloon). The
+   * function runs when the balloon opens and whenever the target could
+   * have changed: an attribute of the target changes (disabled, class,
+   * aria-selected), it fires input or change, or it gets focus. That
+   * keeps the target's description current for screen readers, and an
+   * open balloon is laid out again with the new text. State kept
+   * anywhere else needs setContent() to refresh it. */
   content: BalloonContent | (() => BalloonContent);
   /** Preferred variant, tried first; others are tried when it doesn't
    * fit. Default "left-top" (the Help Manager's preferred code 0). */
@@ -88,7 +96,8 @@ export interface BalloonOptions {
   /** Default "anchor". */
   tip?: BalloonTip;
   /** How far in from the target's edges an "anchor" tip sits, clamped
-   * to the target's center. Default { x: 10, y: 10 }. */
+   * to the target's center: finite and not negative. Default
+   * { x: 10, y: 10 }. */
   anchor?: { readonly x: number; readonly y: number };
   /** Widest text box, px. Default: the viewport's width less 64. */
   maxWidth?: number;
@@ -100,7 +109,8 @@ export interface OsmiumBalloon {
    * aria-describedby names it for as long as the help is attached. */
   readonly element: HTMLElement;
   readonly open: boolean;
-  /** Replace the message; an open balloon is laid out again in place. */
+  /** Replace the message, or pass the same function again to re-run
+   * it; an open balloon is laid out again in place. */
   setContent(content: BalloonOptions["content"]): void;
   /** Open now, whatever the trigger and state, with the tip at the
    * anchor. It closes like any other: when the pointer, having been on
@@ -511,26 +521,46 @@ let dismissed: Attachment | null = null;
 let seq = 0;
 
 /** The attachment of `node` or its nearest attached ancestor: the
- * innermost wins, like the most specific hot rectangle. */
+ * innermost wins, like the most specific hot rectangle. A <label>
+ * counts as part of the control it labels, as a click on it does, so a
+ * balloon attached to a checkbox's <input> also opens over its title. */
 function attachmentFor(node: EventTarget | null): Attachment | null {
   let e: Element | null = node instanceof Element ? node
     : node instanceof Node ? node.parentElement : null;
   for (; e; e = e.parentElement) {
-    const a = attached.get(e);
+    const a = attached.get(e) ??
+      (e instanceof HTMLLabelElement && e.control
+        ? attached.get(e.control) : undefined);
     if (a) return a;
   }
   return null;
 }
 
+/** Whether (x, y) is on the target or one of its <label>s. */
+function onTarget(att: Attachment, x: number, y: number): boolean {
+  if (inside(att.target, x, y)) return true;
+  const labels = "labels" in att.target
+    ? (att.target as HTMLInputElement).labels : null;
+  return Array.from(labels ?? []).some((l) => inside(l, x, y));
+}
+
 /** Give `target` a help balloon. Throws if the target already has one
  * (detach it first) or an option is out of range.
  *
+ * The balloon becomes the target's aria-describedby description, so
+ * attach it to the focusable control itself (a checkbox's <input>, not
+ * the <label> around it): a description on a wrapper reaches no screen
+ * reader. The control's <label>s open its balloon too.
+ *
  * A target with a `title` attribute also gets the browser's own
  * tooltip next to the balloon; drop the title (the balloon is the
- * target's description anyway) or keep it only in aria-label. A target
- * removed from the page without detach() keeps its balloon element in
- * the body until the balloon next tries to open, which detaches it;
- * frameworks should call detach() when they unmount the target. */
+ * target's description anyway) or keep it only in aria-label.
+ *
+ * Call detach() when you remove the target from the page. Until then
+ * its balloon element stays in the body and its attachment keeps the
+ * page's pointer tracking running. A removed target can't be pointed
+ * at or focused, so the only automatic cleanup is when show() finds it
+ * gone. */
 export function attachBalloon(target: HTMLElement,
                               opts: BalloonOptions): OsmiumBalloon {
   if (attached.has(target))
@@ -550,6 +580,10 @@ export function attachBalloon(target: HTMLElement,
   if (opts.maxWidth !== undefined &&
       !(Number.isFinite(opts.maxWidth) && opts.maxWidth >= 1))
     throw new RangeError(`balloon maxWidth ${opts.maxWidth} is not a width`);
+  const anchor = opts.anchor ?? DEFAULT_ANCHOR;
+  if (![anchor.x, anchor.y].every((n) => Number.isFinite(n) && n >= 0))
+    throw new RangeError(
+      `balloon anchor ${anchor.x}, ${anchor.y} is not an inset in px`);
   void installOsmium().catch(() => {});
 
   const el = document.createElement("div");
@@ -567,7 +601,7 @@ export function attachBalloon(target: HTMLElement,
 
   const att: Attachment = {
     target, el, text, trigger, variant, delay, tip,
-    anchor: opts.anchor ?? DEFAULT_ANCHOR,
+    anchor,
     maxWidth: opts.maxWidth,
     content: opts.content,
     detach,
@@ -579,9 +613,20 @@ export function attachBalloon(target: HTMLElement,
   updateTracking();
 
   let live = true;
+  // Re-run a content function whenever the target may have changed, so
+  // its description (and an open balloon) never goes stale.
+  const follow = () => {
+    if (live && typeof att.content === "function") refresh(att);
+  };
+  const observer = new MutationObserver(follow);
+  observer.observe(target, { attributes: true });
+  for (const type of FOLLOW_EVENTS) target.addEventListener(type, follow);
+
   function detach(): void {
     if (!live) return;
     live = false;
+    observer.disconnect();
+    for (const type of FOLLOW_EVENTS) target.removeEventListener(type, follow);
     if (current?.att === att) close();
     if (dismissed === att) dismissed = null;
     if (hovered === att) hovered = null;
@@ -604,9 +649,7 @@ export function attachBalloon(target: HTMLElement,
     setContent(content) {
       if (!live) return;
       att.content = content;
-      const c = resolve(att);
-      if (current?.att === att) layOut(current, c);
-      else fill(att, c);
+      refresh(att);
     },
     show() {
       if (live) open(att, "show", null);
@@ -618,8 +661,31 @@ export function attachBalloon(target: HTMLElement,
   };
 }
 
+/** Events on the target after which a content function runs again:
+ * a checkbox's checked state and a field's value change without an
+ * attribute changing, and focus is when a screen reader reads the
+ * description. */
+const FOLLOW_EVENTS = ["input", "change", "focusin"] as const;
+
 function resolve(att: Attachment): BalloonContent {
   return typeof att.content === "function" ? att.content() : att.content;
+}
+
+/** Put the current message in: laid out again if the balloon is open
+ * (whether Mac OS 8 redrew an open balloon when its item changed wasn't
+ * measured), as the description if not. */
+function refresh(att: Attachment): void {
+  const c = resolve(att);
+  if (current?.att !== att) {
+    fill(att, c);
+    return;
+  }
+  if (isEmpty(c)) {
+    close();
+    fill(att, c);
+    return;
+  }
+  layOut(current, c);
 }
 
 const MEDIA = "img, svg, picture, canvas, video";
@@ -684,7 +750,9 @@ function menuBars(): Rect[] {
 
 function open(att: Attachment, opener: Opener,
               point: { x: number; y: number } | null): void {
-  // A target taken out of the page without detach() is detached now.
+  // A target taken out of the page without detach() is detached now
+  // (only show() can get here with one: it can't be pointed at or
+  // focused).
   if (!att.target.isConnected) {
     att.detach();
     return;
@@ -760,22 +828,33 @@ function close(): void {
 function onOpenMove(e: PointerEvent): void {
   if (!current || e.pointerType === "touch" || current.opener === "focus")
     return;
-  if (inside(current.att.target, e.clientX, e.clientY)) {
+  if (onTarget(current.att, e.clientX, e.clientY)) {
     current.pointerIn = true;
     return;
   }
   if (current.pointerIn) close();
 }
 
+/** Text-entry fields, which keep their own Escape: the selector
+ * bindDialogKeys and hostWindow use to leave them alone. */
+const TEXT_ENTRY = "input:not([type=checkbox]):not([type=range]), " +
+  "textarea, [contenteditable]";
+
 /** Escape closes the balloon. Only preventDefault: bindDialogKeys and
  * hostWindow leave a prevented Escape alone, so the same press doesn't
  * also cancel the dialog or close the window, while other listeners
- * (an open menu, a search field) still see it. */
+ * (an open menu) still see it. Typed in a text field other than the
+ * target, Escape closes the balloon but keeps its default (a search
+ * field clears), which nothing else acts on. An IME composition keeps
+ * its Escape. */
 function onOpenKey(e: KeyboardEvent): void {
-  if (e.key !== "Escape" || !current) return;
+  if (e.key !== "Escape" || e.isComposing || !current) return;
+  const t = e.target instanceof Element ? e.target : null;
+  const field = t?.closest(TEXT_ENTRY);
+  const own = !field || current.att.target.contains(field);
   dismissed = current.att;
   close();
-  e.preventDefault();
+  if (own) e.preventDefault();
 }
 
 /** A scroll of the page or of anything around the target moves the
@@ -807,7 +886,8 @@ function removeOpenListeners(): void {
 
 // ---- tracking: only while some balloon could open ---------------------------
 // pointerover says which target the pointer is on and pointermove only
-// restarts a timer, so tracking costs no layout per move. When the
+// restarts a timer (or, with no target known, walks up from the event's
+// target), so tracking costs no layout per move. When the
 // pointer has rested, one hit test at the rest point confirms the
 // target. Current Chromium (141), Firefox (155) and WebKit (26) send
 // pointer events to disabled buttons, so dimmed controls get balloons
@@ -850,21 +930,28 @@ function updateTracking(): void {
 
 function onOver(e: PointerEvent): void {
   if (e.pointerType === "touch") return;
+  track(e, attachmentFor(e.target));
+}
+
+function onMove(e: PointerEvent): void {
+  if (e.pointerType === "touch") return;
+  // With no target known, look one up: tracking that starts with the
+  // pointer already on a target (Balloon Help turned on from the
+  // keyboard, say) gets no pointerover until the pointer crosses an
+  // element's edge.
+  track(e, hovered ?? attachmentFor(e.target));
+}
+
+/** The pointer is on `a` (or no target) at the event's point. */
+function track(e: PointerEvent, a: Attachment | null): void {
   restAt = { x: e.clientX, y: e.clientY };
-  const a = attachmentFor(e.target);
   if (a !== hovered) {
     hovered = a;
     if (dismissed && a !== dismissed) dismissed = null;
     if (current && current.opener === "pointer" && current.att !== a) close();
   }
-  rest();
-}
-
-function onMove(e: PointerEvent): void {
-  if (e.pointerType === "touch") return;
-  restAt = { x: e.clientX, y: e.clientY };
   // An open balloon stays where it opened while the pointer moves on
-  // its target.
+  // its target, onto the target's children included.
   if (current && current.att === hovered) return;
   rest();
 }

@@ -729,9 +729,11 @@ const TAB_FRONT = [
 //                    bar: white pixels enclosed by the tail are taken
 //                    as fill, outside ones as transparent
 //   bottom-right (5) d_trash_b 395,288-592,431; d_outside_b
-//                    434,120-592,239; h_saved_b 434,56-592,175, the
-//                    only one whose last two tip pixels aren't hidden
-//                    by an icon label
+//                    434,120-592,239; h_saved_b and d_saved_b
+//                    434,56-592,175 (the same balloon, pointer in
+//                    different places), whose tip pixels lie on white
+//                    desktop; d_trash_b's last two and d_outside_b's
+//                    last tip pixel fall on a black icon label
 //   bottom-left (6)  v_net_b 472,371-592,454 (e_strip1_b and e_strip2_b
 //                    agree up to where the Control Strip covers the tip)
 //   left-bottom (7)  g_actBL_b 288,313-427,420, pinstripes as for (4)
