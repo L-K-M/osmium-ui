@@ -17,14 +17,17 @@ import { CONTROL_SPRITES } from "./controlsprites.js";
 
 /** Extra palette keys for a sprite: one character (a letter from g to
  * z, or uppercase; 0-9 and a-f are grays, '.' transparent) -> CSS
- * color. The kit's own letters are the accent ramp (w q p m l n, and h
- * for the progress bar's center row) and the alert icons' colors (R P
+ * color. The kit's own letters are the accent ramp (w q p m l j n, and
+ * h for the progress bar's center row) and the alert icons' colors (R P
  * M N Y K k y s); a palette may redefine them for its own sprites. */
 export type Palette = Readonly<Record<string, string>>;
 
 const COLORS: Palette = {
-  // Lavender accent — the default Mac OS 8 highlight ramp, dark to light.
-  n: "#000055", l: "#333399", m: "#6666cc", p: "#9999ff", q: "#ccccff",
+  // Lavender accent — the default Mac OS 8 highlight ramp, dark to light
+  // (A6 n, A5 j, A4 l, A3 m, A2 p, A1 q). Among the sprites, only the
+  // indeterminate progress bar draws with A5 (j).
+  n: "#000055", j: "#000088", l: "#333399", m: "#6666cc", p: "#9999ff",
+  q: "#ccccff",
   // Its lightest entry (A0), the gleam on scroll and slider thumbs, and
   // the progress bar's center row, white in Mac OS 8.0. setAppearance
   // (appearance.ts) redraws the sprites that use these keys with
@@ -210,6 +213,47 @@ const FILL_RIGHT = [
   "lll", "mmn", "pln", "qln", "qln", "qln", "pln", "mln", "lln", "nnn",
 ];
 
+// Indeterminate progress bar ("barber pole"), one 16 x 10 tile of the
+// stripes that fill the track inside its black edge. Drawn by Mac OS
+// 8.0's Appearance Extension, 'CDEF' 5 "Progress Bar" (8.1's is the
+// same): every row alternates 8px of an accent color with 8px of a
+// gray, starting one pixel further right than the row above, so the
+// stripes lean down to the right. Row by row the accent runs A5 A4 A3
+// A2 A1 A2 A3 A4 A5 A6 and the gray 55 77 aa bb ff dd bb 99 77 55; in
+// an inactive window every row is A2 and dd. The table and the run
+// lengths are read from the CDEF's code (offsets 0x12e2-0x1578 and
+// 0x1054-0x1264). The pixels match the Finder's "Preparing to copy…"
+// window in Mac OS 8.0 running in Infinite Mac (640 x 480 at 1:1, bar
+// at screen x 190..377, y 133..146), gamma-corrected back to the Mac
+// palette: every captured frame of the ten stripe rows (Lavender and
+// Ivy, active and inactive; Mac OS 8.5's Finder in Lavender too) is
+// this tile at one of four offsets. osmium.css moves it 4px right per
+// step, as the CDEF does.
+const BARBER = [
+  "jjjjjjjj55555555",
+  "7llllllll7777777",
+  "aammmmmmmmaaaaaa",
+  "bbbppppppppbbbbb",
+  "ffffqqqqqqqqffff",
+  "dddddppppppppddd",
+  "bbbbbbmmmmmmmmbb",
+  "9999999llllllll9",
+  "77777777jjjjjjjj",
+  "n55555555nnnnnnn",
+];
+const BARBER_INACTIVE = [
+  "ppppppppdddddddd",
+  "dppppppppddddddd",
+  "ddppppppppdddddd",
+  "dddppppppppddddd",
+  "ddddppppppppdddd",
+  "dddddppppppppddd",
+  "ddddddppppppppdd",
+  "dddddddppppppppd",
+  "ddddddddpppppppp",
+  "pddddddddppppppp",
+];
+
 export const SPRITES = {
   close: CLOSE,
   closePressed: CLOSE_PRESSED,
@@ -225,6 +269,8 @@ export const SPRITES = {
   fill: FILL,
   fillLeft: FILL_LEFT,
   fillRight: FILL_RIGHT,
+  barber: BARBER,
+  barberInactive: BARBER_INACTIVE,
 } as const;
 
 export type SpriteName = keyof typeof SPRITES;

@@ -68,6 +68,38 @@
   not captured and isn't offered.
 - The demo's Finder window turns chasing arrows in its header for two
   seconds whenever it opens, in place of the header's text.
+- Add the indeterminate progress bar, Mac OS 8's barber pole: add
+  `osm-indeterminate` to `.osm-progress` (CSS only; mark it
+  `role="progressbar"` without `aria-valuenow`). The stripe tile is
+  read from Mac OS 8.0's Appearance Extension ('CDEF' 5, the same in
+  8.1): each row 8px of an accent color and 8px of a gray, one pixel
+  further right than the row above, the accent running A5 A4 A3 A2 A1
+  A2 A3 A4 A5 A6 down the ten rows over 55 77 aa bb ff dd bb 99 77 55,
+  and A2 over dd in an inactive window, where the rim goes and the
+  stripes keep moving. QuickDraw never started a stripe in the last
+  column, which repeats the one before it; Osmium does the same at any
+  width. The stripes follow `setAppearance`, through a new accent
+  palette key, `j` (A5). Captures of the Finder's "Preparing to copy…"
+  bar render with 0 differing pixels over the bar, its rim and 1px of
+  window around it: Mac OS 8.0 in Lavender and Ivy, active and
+  inactive, and Mac OS 8.5 in Lavender. Every captured step (96 in 8.0,
+  13 in 8.5) moved the stripes 4px right, as the CDEF's four phases do.
+  The pace is the Finder's, not the control's: the CDEF steps whenever
+  the application idles it, at most every 2 ticks. Osmium steps
+  alternately 6 and 19 ticks apart (a 50-tick cycle), the pace 8.0's
+  Finder kept in the emulator (Infinite Mac, at an unknown emulated
+  CPU speed) while it counted the items to copy: 84 intervals in 12
+  runs, 5 to 9 and 16 to 21 ticks, with the short wait on different
+  steps from run to run. 8.5's Finder there stepped every 16 to 34
+  ticks. The first frame is 8.0's CDEF's first, which stays still
+  under `prefers-reduced-motion`. The Finder showed it for about 13
+  ticks (4 to 23), as the CDEF's first idle call redraws it before
+  stepping; Osmium shows it for 6. Derived, not captured: 8.0 accents
+  other than Lavender and Ivy (the CDEF reads the same entries of any
+  table) and 8.5 variations other than Lavender. Not included: the
+  1-bit black and white stripes.
+- The demo's Controls dialog has an indeterminate progress bar beside
+  its buttons.
 - Add text views (`mountTextView`): a document window's text as
   TeachText and SimpleText show it in Mac OS 8, on a native textarea.
   White, wrapped to the width with no horizontal scrolling, a vertical

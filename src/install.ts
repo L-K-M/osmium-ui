@@ -67,7 +67,7 @@ export type SpriteAccent = "fixed" | "follow";
 
 /** Add an app's own sprites (icons, say) as --osm-sprite-<name>
  * custom properties, drawn with the built-in palette plus `palette`.
- * With `accent: "follow"`, the accent keys (w q p m l n h) take the
+ * With `accent: "follow"`, the accent keys (w q p m l j n h) take the
  * current accent now and after every setAppearance; `palette` still
  * wins over them. Registering a name again replaces it, "fixed" or
  * "follow". Works before or after installOsmium(); throws on an unknown

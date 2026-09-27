@@ -60,7 +60,7 @@ html.desk { height: 100%; background: #9999cc; }
 
 /* ---- Controls (controls.ts) ------------------------------------------- */
 /* A 448 x 302 content area: two group boxes, a slider group, the
-   sample text and the dialog buttons. */
+   sample text, an indeterminate progress bar and the dialog buttons. */
 .ctl { position: absolute; inset: 0; }
 .ctl > * { position: absolute; }
 .ctl .osm-group { box-sizing: border-box; display: flex; }
@@ -86,6 +86,10 @@ html.desk { height: 100%; background: #9999cc; }
 .ctl-line { display: flex; white-space: nowrap; overflow: hidden; }
 .ctl-font { flex: none; width: 84px; color: #666; }
 .ctl-rule { left: 12px; right: 12px; top: 257px; }
+.ctl-busy {
+  left: 12px; top: 271px; display: flex; align-items: center; gap: 6px;
+}
+.ctl-busy .osm-progress { width: 140px; }
 .ctl-ok { right: 12px; top: 265px; }
 .ctl-cancel { right: 89px; top: 268px; }
 
