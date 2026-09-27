@@ -1,7 +1,7 @@
 // Mac OS 8 edit text. A single-line field is a plain
 // <input class="osm-edit"> that osmium.css draws completely: the
 // Platinum frame (a black line with a 1px engraved bevel outside it),
-// the focus ring, the Black & White text highlight. This module wires
+// the focus ring, the Highlight Color text highlight. This module wires
 // the multi-line kind: a <textarea> in a framed host with an Osmium
 // scroll bar. Mac OS 8.0 had no standard scrolling edit text (the
 // scrolling text box came with Appearance 1.1 and is read-only), so

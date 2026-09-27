@@ -1,6 +1,7 @@
 // Osmium runtime: registers the Mac OS 8 bitmap fonts and the sprite
 // images osmium.css draws with. mountWindow() calls it; pages that
 // use Osmium controls without a window call it themselves.
+import { followAccent, unfollowAccent } from "./appearance.js";
 import { emboldened, strikeGlyphs } from "./bitmapfont.js";
 import type { StrikeData } from "./bitmapfont.js";
 import { CHARCOAL_12 } from "./fonts/charcoal12.js";
@@ -55,18 +56,36 @@ function trackInputModality(): void {
   }, true);
 }
 
+/** Whether an app sprite keeps the built-in palette's Lavender accent
+ * keys ("fixed") or is redrawn in the accent setAppearance sets
+ * ("follow"). */
+export type SpriteAccent = "fixed" | "follow";
+
 /** Add an app's own sprites (icons, say) as --osm-sprite-<name>
  * custom properties, drawn with the built-in palette plus `palette`.
- * Works before or after installOsmium(); throws on an unknown palette
- * key or a ragged grid. */
+ * With `accent: "follow"`, the accent keys (w q p m l n h) take the
+ * current accent now and after every setAppearance; `palette` still
+ * wins over them. Registering a name again replaces it, "fixed" or
+ * "follow". Works before or after installOsmium(); throws on an unknown
+ * palette key or a ragged grid. */
 export function registerSprites(
   sprites: Readonly<Record<string, readonly string[]>>,
   palette: Palette = {},
+  options: { readonly accent?: SpriteAccent } = {},
 ): void {
+  const accent = options.accent ?? "fixed";
+  if (accent !== "fixed" && accent !== "follow")
+    throw new RangeError(`sprite accent ${JSON.stringify(accent)} must be ` +
+                         '"fixed" or "follow"');
+  if (accent === "follow") {
+    followAccent(Object.entries(sprites), palette);
+    return;
+  }
+  const css = spriteCss(Object.entries(sprites), palette);
+  unfollowAccent(Object.keys(sprites));
   const style = document.createElement("style");
   style.dataset["osmiumSprites"] = "";
-  style.textContent =
-    `:root {\n${spriteCss(Object.entries(sprites), palette)}\n}`;
+  style.textContent = `:root {\n${css}\n}`;
   document.head.appendChild(style);
 }
 
