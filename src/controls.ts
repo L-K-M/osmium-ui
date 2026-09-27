@@ -593,6 +593,10 @@ export type ScrollAxis = "vertical" | "horizontal";
 export interface Scrollbar {
   /** Re-read the view's extent (call after content changes size). */
   update(): void;
+  /** Take the bar out of the host and stop following the view: its
+   * resize observer and scroll listener go, which otherwise keep the
+   * view and host alive while either is. */
+  destroy(): void;
 }
 
 /** Where the thumb starts (its black leading line) for a scroll
@@ -774,7 +778,16 @@ export function attachScrollbar(host: HTMLElement, view: HTMLElement,
   ro.observe(view);
   ro.observe(host);
   update();
-  return { update };
+  return {
+    update,
+    destroy() {
+      ro.disconnect();
+      view.removeEventListener("scroll", update);
+      bar.remove();
+      host.classList.remove(vertical ? "osm-has-scrollbar"
+                                     : "osm-has-hscrollbar");
+    },
+  };
 }
 
 // ---- list boxes -------------------------------------------------------

@@ -533,6 +533,54 @@ describe("measuring empty lines", () => {
   });
 });
 
+describe("destroy", () => {
+  afterEach(() => {
+    vi.unstubAllGlobals();
+    vi.restoreAllMocks();
+  });
+
+  it("disconnects its observers and listeners and empties the host", () => {
+    // Every observer the view makes, and whether it was let go.
+    const made: { kind: string; targets: Node[]; disconnected: boolean }[] = [];
+    const fake = (kind: string) => class {
+      private readonly rec = { kind, targets: [] as Node[],
+                               disconnected: false };
+      constructor() { made.push(this.rec); }
+      observe(target: Node) { this.rec.targets.push(target); }
+      unobserve() {}
+      takeRecords() { return []; }
+      disconnect() { this.rec.disconnected = true; }
+    };
+    vi.stubGlobal("MutationObserver", fake("mutation"));
+    vi.stubGlobal("ResizeObserver", fake("resize"));
+    document.body.textContent = "";
+    const win = document.createElement("div");
+    const host = document.createElement("div");
+    win.append(host);
+    document.body.append(win);
+    const view = mountTextView(host, { label: "Doc", text: "text" });
+    // The window's activation on every ancestor, the text's size and
+    // the scroll bar's.
+    expect(made.map((o) => o.kind).sort())
+      .toEqual(["mutation", "resize", "resize"]);
+    expect(made.find((o) => o.kind === "mutation")!.targets)
+      .toContain(document.body);
+    const focus = vi.spyOn(view.textarea, "focus");
+
+    view.destroy();
+    expect(made.every((o) => o.disconnected)).toBe(true);
+    expect(host.childElementCount).toBe(0);
+    expect(host.className).toBe("");
+    expect(host.dataset["mode"]).toBeUndefined();
+    // Its press handling on the host is gone too.
+    host.dispatchEvent(new PointerEvent("pointerdown", { bubbles: true }));
+    expect(focus).not.toHaveBeenCalled();
+    expect(() => view.setText("more")).toThrow(/destroyed/);
+    expect(() => view.update()).toThrow(/destroyed/);
+    view.destroy();
+  });
+});
+
 // A view reused across documents (the demo's editor) keeps working.
 it("reuses one view for several documents", () => {
   document.body.textContent = "";

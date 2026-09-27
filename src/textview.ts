@@ -128,6 +128,13 @@ export interface OsmiumTextView {
    * changing `textarea` from script, say). Edits, scrolling, resizing and
    * window activation are followed by themselves. */
   update(): void;
+  /** End the view: disconnect what it observes (the class of every
+   * ancestor, for window activation; its size; the scroll bar's),
+   * remove its listeners and take its parts out of the host. Call it
+   * before dropping a view: one merely taken out of the page stays
+   * observed from the ancestors it had, and alive and redrawing, as
+   * long as they are. The other methods throw afterwards. */
+  destroy(): void;
 }
 
 /** Line heights of the fonts, osmium.css's (the arrow step and the
@@ -244,7 +251,7 @@ export function trimTrailingSpace(text: string, start: number,
 /** Mount a text view in `host`, which it fills: give it a size (the
  * whole content area of a document window, say, with `inset: 0`). The
  * host should be in the document, so the scroll bar can size itself.
- * Throws on an unknown mode or font. */
+ * Throws on an unknown mode or font. End it with `destroy()`. */
 export function mountTextView(host: HTMLElement,
                               opts: TextViewOptions): OsmiumTextView {
   let mode = opts.mode ?? "editable";
@@ -266,6 +273,10 @@ export function mountTextView(host: HTMLElement,
   const strip = part("div", "osm-textview-strip");
   host.append(mirror, textarea, layer, strip);
   const sb = attachScrollbar(host, textarea, () => LINE_H[font]);
+  // Every listener the view adds, removed by destroy().
+  const listening = new AbortController();
+  const signal = listening.signal;
+  let destroyed = false;
 
   function applyMode(): void {
     textarea.readOnly = mode === "read-only";
@@ -363,7 +374,7 @@ export function mountTextView(host: HTMLElement,
     // sends it last) that overflows goes back to.
     before = composition.before;
     group("insertCompositionText");
-  });
+  }, { signal });
 
   // A composition that passed maxLength goes back whole: the text, the
   // selection and undo return to what they were before it began.
@@ -379,7 +390,7 @@ export function mountTextView(host: HTMLElement,
       typedTo = [textarea.selectionStart, textarea.selectionEnd];
     }
     changed();
-  });
+  }, { signal });
 
   textarea.addEventListener("beforeinput", (e) => {
     if (e.inputType === "historyUndo" || e.inputType === "historyRedo") {
@@ -398,7 +409,7 @@ export function mountTextView(host: HTMLElement,
     }
     before = current();
     if (!scripted) group(e.inputType);
-  });
+  }, { signal });
 
   textarea.addEventListener("input", () => {
     if (composition) {
@@ -414,7 +425,7 @@ export function mountTextView(host: HTMLElement,
     }
     typedTo = [textarea.selectionStart, textarea.selectionEnd];
     changed();
-  });
+  }, { signal });
 
   textarea.addEventListener("keydown", (e) => {
     if (e.isComposing) return;
@@ -439,7 +450,7 @@ export function mountTextView(host: HTMLElement,
     if (mode !== "read-only" || e.repeat || command) return;
     if (e.key.length === 1 || ["Enter", "Backspace", "Delete"].includes(e.key))
       opts.onRejectedEdit?.();
-  });
+  }, { signal });
 
   // Double-click selects a word; browsers that take the space after it
   // too (Chromium on Windows) give it back, as TextEdit does.
@@ -447,7 +458,7 @@ export function mountTextView(host: HTMLElement,
     const { selectionStart: s, selectionEnd: t, value } = textarea;
     const e = trimTrailingSpace(value, s, t);
     if (e !== t) textarea.setSelectionRange(s, e, "forward");
-  });
+  }, { signal });
 
   // Presses in the margins around the text rectangle and on the strip
   // go to the text, as a press anywhere in TextEdit's view rectangle
@@ -456,7 +467,7 @@ export function mountTextView(host: HTMLElement,
     if (e.target !== host && e.target !== strip) return;
     e.preventDefault();
     textarea.focus({ preventScroll: true });
-  });
+  }, { signal });
 
   // ---- edits made from menus ------------------------------------------------
 
@@ -668,12 +679,22 @@ export function mountTextView(host: HTMLElement,
   }
   watchAncestors();
   for (const type of ["focus", "blur"])
-    textarea.addEventListener(type, () => { watchAncestors(); redraw(); });
-  textarea.addEventListener("scroll", redraw, { passive: true });
-  textarea.addEventListener("select", redraw);
-  new ResizeObserver(redraw).observe(textarea);
+    textarea.addEventListener(type, () => { watchAncestors(); redraw(); },
+                              { signal });
+  textarea.addEventListener("scroll", redraw, { passive: true, signal });
+  textarea.addEventListener("select", redraw, { signal });
+  const resize = new ResizeObserver(redraw);
+  resize.observe(textarea);
   // The fonts change the text's layout once they are in.
-  void installOsmium().catch(() => {}).finally(() => { sb.update(); redraw(); });
+  void installOsmium().catch(() => {}).finally(() => {
+    if (destroyed) return;
+    sb.update();
+    redraw();
+  });
+
+  function alive(): void {
+    if (destroyed) throw new Error("this text view was destroyed");
+  }
 
   return {
     element: host,
@@ -686,6 +707,7 @@ export function mountTextView(host: HTMLElement,
       return textarea.selectionStart < textarea.selectionEnd;
     },
     setText(text) {
+      alive();
       textarea.value = text;
       reported = textarea.value;
       composition = null;
@@ -699,11 +721,13 @@ export function mountTextView(host: HTMLElement,
       redraw();
     },
     setMode(next) {
+      alive();
       checkMode(next);
       mode = next;
       applyMode();
     },
     setFont(next) {
+      alive();
       checkFont(next);
       font = next;
       applyFont();
@@ -711,24 +735,55 @@ export function mountTextView(host: HTMLElement,
       redraw();
     },
     undo() {
+      alive();
       if (mode === "editable") undo();
     },
-    cut,
-    copy,
-    paste,
+    async cut() {
+      alive();
+      return cut();
+    },
+    async copy() {
+      alive();
+      return copy();
+    },
+    async paste() {
+      alive();
+      return paste();
+    },
     clear() {
+      alive();
       requireEditable("clear");
       if (textarea.selectionStart < textarea.selectionEnd) replaceSelection("");
     },
     selectAll() {
+      alive();
       textarea.focus({ preventScroll: true });
       textarea.select();
       redraw();
     },
-    focus: () => textarea.focus({ preventScroll: true }),
+    focus() {
+      alive();
+      textarea.focus({ preventScroll: true });
+    },
     update() {
+      alive();
       sb.update();
       redraw();
+    },
+    destroy() {
+      if (destroyed) return;
+      destroyed = true;
+      listening.abort();
+      watch.disconnect();
+      resize.disconnect();
+      sb.destroy();
+      mirror.remove();
+      textarea.remove();
+      layer.remove();
+      strip.remove();
+      host.classList.remove("osm-textview");
+      delete host.dataset["mode"];
+      delete host.dataset["font"];
     },
   };
 }

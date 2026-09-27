@@ -16,7 +16,8 @@
   copy, paste and clear that reject when the browser refuses the
   clipboard, double-click selection without the trailing space, and
   TextEdit's highlight where the browser draws none: an outline in an
-  inactive window, a fill while a menu has the keyboard. Not TextEdit:
+  inactive window, a fill while a menu has the keyboard. `destroy()`
+  disconnects its observers and listeners. Not TextEdit:
   the browser's caret sits 1px right, the browser's own selection
   doesn't run to the text rectangle's edges, Tab moves the focus, the
   text is plain, and a read-only document's text can be selected and
@@ -47,7 +48,9 @@
   SimpleText's menus. Its advance can't be read from a menu; 10 is
   chosen, which puts the key letter on its measured pen.
 - `attachScrollbar` takes a function for its arrow step, read at each
-  step (a line height that follows the font).
+  step (a line height that follows the font). Its `Scrollbar` has
+  `destroy()`, which removes the bar and disconnects its resize
+  observer.
 - The demo has Foolscap, a text editor in the manner of TeachText 7.0,
   with its own menus in the menu bar while its window is in front, a
   movable modal Open dialog of sample documents (and text files from

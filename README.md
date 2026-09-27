@@ -384,6 +384,11 @@ for its Edit menu:
   does, in browsers that would take the space too.
 - `setMode`, `setFont` and `setText` let one view show one document
   after another.
+- `destroy()` ends a view: it disconnects the observers that follow
+  window activation (on every ancestor), the view's size and its scroll
+  bar's, removes its listeners and takes its parts out of the host.
+  Call it before dropping a view: one only taken out of the page stays
+  observed, and in memory, as long as its old ancestors are.
 
 The geometry is measured from SimpleText 1.4 on Mac OS 8.0 in an
 emulator: the text rectangle 4px inside the content area and 4px short
