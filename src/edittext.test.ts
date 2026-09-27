@@ -6,7 +6,7 @@
 // engines instead; here the text's extent is stubbed where the scroll
 // bar needs it.
 import { afterEach, beforeEach, describe, expect, it, vi } from "vitest";
-import { bindDialogKeys, setEnabled } from "./controls.js";
+import { attachScrollbar, bindDialogKeys, setEnabled } from "./controls.js";
 import { mountTextArea } from "./edittext.js";
 import { hostWindow } from "./host.js";
 import type { WindowOp } from "./host.js";
@@ -80,6 +80,37 @@ describe("mountTextArea", () => {
       for (const type of ["pointerdown", "pointerup"])
         down.dispatchEvent(new PointerEvent(type, { button: 0, pointerId: 1 }));
       expect(ta.scrollTop).toBe(13);
+    } finally {
+      vi.useRealTimers();
+    }
+  });
+});
+
+describe("attachScrollbar's destroy", () => {
+  beforeEach(() => {
+    document.body.textContent = "";
+    Element.prototype.setPointerCapture ??= () => {};
+  });
+
+  it("ends an arrow press still repeating", () => {
+    vi.useFakeTimers();
+    try {
+      const { host, ta } = mountArea(400);
+      // mountArea's bar is left alone; this one is the one destroyed.
+      const sb = attachScrollbar(host, ta, 13);
+      const down = host.querySelectorAll(".osm-sb-down")[1]!;
+      vi.spyOn(down, "getBoundingClientRect")
+        .mockReturnValue(new DOMRect(0, 0, 16, 16));
+      down.dispatchEvent(new PointerEvent("pointerdown", {
+        button: 0, pointerId: 1, clientX: 5, clientY: 5 }));
+      vi.advanceTimersByTime(1000);
+      const at = ta.scrollTop;
+      expect(at).toBeGreaterThan(13);
+      // Taken down mid-press: the pointerup never reaches the bar.
+      sb.destroy();
+      vi.advanceTimersByTime(1000);
+      expect(ta.scrollTop).toBe(at);
+      expect(down.classList.contains("osm-pressed")).toBe(false);
     } finally {
       vi.useRealTimers();
     }

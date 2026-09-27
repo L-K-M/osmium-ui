@@ -669,6 +669,8 @@ export function attachScrollbar(host: HTMLElement, view: HTMLElement,
 
   const ax = axisOps(axis, view, bar, thumb);
   let dragging = false;
+  /** Ends the arrow or track press repeating now, if one is. */
+  let endPress: (() => void) | null = null;
 
   function update(): void {
     const m = ax.max();
@@ -698,7 +700,9 @@ export function attachScrollbar(host: HTMLElement, view: HTMLElement,
       el.removeEventListener("pointerup", end);
       el.removeEventListener("pointercancel", end);
       el.classList.remove("osm-pressed");
+      if (endPress === end) endPress = null;
     };
+    endPress = end;
     step(x, y);
     timer = setTimeout(tick, REPEAT_DELAY_MS);
     el.addEventListener("pointermove", move);
@@ -781,6 +785,8 @@ export function attachScrollbar(host: HTMLElement, view: HTMLElement,
   return {
     update,
     destroy() {
+      // The bar leaves the page, so no pointerup would end a press.
+      endPress?.();
       ro.disconnect();
       view.removeEventListener("scroll", update);
       bar.remove();
