@@ -8,20 +8,23 @@
   8.0's Finder 8.0 in an emulator: the outline's top-left pixel on the
   hot spot; a flip to the left of the hot spot when the menu would pass
   the right edge; the push back that keeps 3 columns right of and 5 rows
-  below the outline; the release of the opening press choosing the item
-  under it (seen after 150 ms on the item; quicker releases, possibly
-  lagging in the emulator, left the menu open), or else leaving the menu
-  open when it comes within about half a second (520 ms stayed open, 550
-  ms closed; 533 ms, 32 ticks, is assumed) and closing it after; a click
-  outside only closing the menu; and a highlighted first or last item
-  coloring its bevel row. Five captured menus and five highlights render
-  with 0 differing pixels, submenu triangles masked. Not measured:
-  dimmed items and check marks (the Finder's contextual menus have none;
-  they are the menu bar's), placement past the left or top edge, and
-  menus taller than the window. The keyboard (arrows, Return, Space,
-  Escape, Tab, first letters) is Osmium's; Mac OS 8.0 ignores keys in
-  menus. An alert closes the menu, and none opens under one. The demo's
-  Finder rows, desktop and desktop icons have contextual menus.
+  below the outline, a flipped menu's too; after about half a second
+  (520 ms stayed open, 550 ms closed; 533 ms, 32 ticks, is assumed), the
+  release of the opening press choosing the item under it or else
+  closing the menu, and a sooner one off the items leaving it open; a
+  click outside only closing the menu; and a highlighted first or last
+  item coloring its bevel row. Five captured menus and five highlights
+  render with 0 differing pixels, submenu triangles and the emulator's
+  pointer masked. Not measured: dimmed items and check marks (the
+  Finder's contextual menus have none; they are the menu bar's),
+  placement past the left or top edge, and menus taller than the window.
+  Released over an item within the half second, the emulator chose it in
+  22 of 47 trials and left the menu open in the rest, so that isn't
+  known; here such a release always chooses. The keyboard (arrows,
+  Return, Space, Escape, Tab, first letters) is Osmium's; Mac OS 8.0
+  ignores keys in menus. An alert closes the menu, and none opens under
+  one. The demo's Finder rows, desktop and desktop icons have contextual
+  menus.
 - Add text views (`mountTextView`): a document window's text as
   TeachText and SimpleText show it in Mac OS 8, on a native textarea.
   White, wrapped to the width with no horizontal scrolling, a vertical
