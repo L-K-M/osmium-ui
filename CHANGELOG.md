@@ -29,6 +29,10 @@
   get elements, which brings 4096 rows to 2 to 5 ms per insert and
   about 30 ms per reorder in Chromium, WebKit and Firefox, at the cost
   of find-in-page (`rendering: "all"` keeps every row).
+- The demo's Finder window runs on `mountListView`, with the sort order
+  button and column dividers to drag. Otherwise it draws as before,
+  pixel for pixel, except that the selected name takes the highlight
+  color rather than black.
 - Add edit text: `<input class="osm-edit">` draws the Platinum field
   (22px, or 20px with `osm-compact`) with its bevel, the lavender focus
   ring and the Black & White text highlight, and
