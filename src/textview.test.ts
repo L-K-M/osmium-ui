@@ -145,6 +145,29 @@ describe("mountTextView", () => {
     expect(ta.value).toBe("new\ntext");
   });
 
+  it("reports to onChange only edits that change the text", () => {
+    const onChange = vi.fn();
+    const { ta, view } = mount({ text: "ab", maxLength: 3, onChange });
+    ta.setSelectionRange(2, 2);
+    type(ta, "c");
+    backspace(ta);
+    expect(onChange).toHaveBeenCalledTimes(2);
+    // Undo takes back "c" and its deletion together: the same text.
+    view.undo();
+    expect(ta.value).toBe("ab");
+    expect(onChange).toHaveBeenCalledTimes(2);
+    // An overflow the view takes back leaves the text as it was.
+    ta.dispatchEvent(new InputEvent("beforeinput", {
+      inputType: "insertReplacementText", data: "abcd", cancelable: false,
+    }));
+    ta.value = "abcd";
+    ta.dispatchEvent(new InputEvent("input", {
+      inputType: "insertReplacementText",
+    }));
+    expect(ta.value).toBe("ab");
+    expect(onChange).toHaveBeenCalledTimes(2);
+  });
+
   it("refuses typing past maxLength and says so", () => {
     const onLimit = vi.fn();
     const { ta } = mount({ text: "abcd", maxLength: 5, onLimit });

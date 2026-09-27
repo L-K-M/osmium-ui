@@ -65,7 +65,9 @@ interface OpenDocument {
   mode: TextViewMode;
   /** The sample it came from, if any. */
   readonly id: DocumentId | null;
-  dirty: boolean;
+  /** The text as opened or last saved: the document has changes while
+   * the view's text differs, so undoing back to it leaves none. */
+  saved: string;
 }
 
 export function buildEditor(content: HTMLElement,
@@ -77,7 +79,6 @@ export function buildEditor(content: HTMLElement,
   const view = mountTextView(host, {
     label: UNTITLED,
     maxLength: TEXTEDIT_MAX,
-    onChange: () => { if (doc) doc.dirty = true; },
     onLimit: () => void alert({
       kind: "stop",
       message: `“${doc?.name ?? UNTITLED}” can’t hold any more text.`,
@@ -137,9 +138,9 @@ export function buildEditor(content: HTMLElement,
 
   // ---- documents ------------------------------------------------------------
 
-  function show(next: OpenDocument, text: string): void {
-    doc = next;
+  function show(next: Omit<OpenDocument, "saved">, text: string): void {
     view.setText(text);
+    doc = { ...next, saved: view.text };
     view.setMode(next.mode);
     view.textarea.setAttribute("aria-label", next.name);
     env.window()?.setTitle(next.name);
@@ -148,13 +149,12 @@ export function buildEditor(content: HTMLElement,
   }
 
   const newDocument = () => show({
-    name: UNTITLED, origin: "new", mode: "editable", id: null, dirty: false,
+    name: UNTITLED, origin: "new", mode: "editable", id: null,
   }, "");
 
   function openSample(id: DocumentId): void {
     const d = DOCUMENTS[id];
-    show({ name: d.name, origin: "named", mode: d.mode, id, dirty: false },
-         d.text);
+    show({ name: d.name, origin: "named", mode: d.mode, id }, d.text);
   }
 
   /** Download the text as `<name>.txt`. The browser decides where the
@@ -174,7 +174,7 @@ export function buildEditor(content: HTMLElement,
     if (!doc || doc.mode === "read-only") return false;
     if (doc.origin === "new") return saveAs();
     download(doc.name);
-    doc.dirty = false;
+    doc.saved = view.text;
     return true;
   }
 
@@ -206,7 +206,7 @@ export function buildEditor(content: HTMLElement,
         download(name);
         current.name = name;
         current.origin = "named";
-        current.dirty = false;
+        current.saved = view.text;
         view.textarea.setAttribute("aria-label", name);
         env.window()?.setTitle(name);
         done(true);
@@ -221,7 +221,7 @@ export function buildEditor(content: HTMLElement,
 
   /** Whether the open document may go: asks about unsaved changes. */
   async function mayClose(): Promise<boolean> {
-    if (!doc?.dirty) return true;
+    if (!doc || view.text === doc.saved) return true;
     const r = await alert({
       kind: "caution",
       message: `Do you want to save the changes you made to “${doc.name}”?`,
@@ -274,7 +274,7 @@ export function buildEditor(content: HTMLElement,
         return;
       }
       show({ name: file.name.replace(/\.txt$/i, ""), origin: "named",
-             mode: "editable", id: null, dirty: false }, text);
+             mode: "editable", id: null }, text);
     }, () => void alert({ kind: "stop",
       message: `“${file.name}” couldn’t be read.` }));
   }

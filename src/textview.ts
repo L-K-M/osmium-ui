@@ -67,7 +67,9 @@ export interface TextViewOptions {
    * 32767. An edit that would pass it is refused and reported to
    * `onLimit`. Unlimited when omitted. */
   readonly maxLength?: number;
-  /** After every edit: typing, undo, cut, paste, clear (not setText). */
+  /** After every edit that changes the text: typing, undo, cut, paste,
+   * clear (not setText). An edit taken back (one past `maxLength`) or
+   * undone to the same text isn't reported. */
   readonly onChange?: () => void;
   /** An edit was refused because the text would pass `maxLength`. */
   readonly onLimit?: () => void;
@@ -264,6 +266,9 @@ export function mountTextView(host: HTMLElement,
   let before: Snapshot | null = null;
   // An edit this module makes itself has taken its snapshot already.
   let scripted = false;
+  // The text onChange last saw (or setText set), so only a change of
+  // it is reported.
+  let reported = textarea.value;
 
   const current = (): Snapshot => ({
     text: textarea.value, start: textarea.selectionStart,
@@ -284,6 +289,8 @@ export function mountTextView(host: HTMLElement,
   function changed(): void {
     sb.update();
     redraw();
+    if (textarea.value === reported) return;
+    reported = textarea.value;
     opts.onChange?.();
   }
 
@@ -604,6 +611,7 @@ export function mountTextView(host: HTMLElement,
     },
     setText(text) {
       textarea.value = text;
+      reported = textarea.value;
       textarea.setSelectionRange(0, 0);
       textarea.scrollTop = 0;
       saved = null;
