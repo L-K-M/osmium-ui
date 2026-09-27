@@ -106,6 +106,23 @@ export function commandModifier(platform: string): "meta" | "control" {
   return /Mac|iPhone|iPad|iPod/.test(platform) ? "meta" : "control";
 }
 
+/** Whether a modal <dialog> (showModal) is open that doesn't hold
+ * `el`: the page outside it is inert to the reader, though document
+ * listeners still hear its keys. Engines without :modal (Safari before
+ * 15.6) can't tell such a dialog from one shown with show(), and count
+ * none. */
+function underModalDialog(el: Element): boolean {
+  for (const d of Array.from(document.querySelectorAll("dialog[open]"))) {
+    if (d.contains(el)) continue;
+    try {
+      if (d.matches(":modal")) return true;
+    } catch {
+      // :modal unsupported: see above.
+    }
+  }
+  return false;
+}
+
 /** The element a key event is aimed at, if it is one. */
 function keyTarget(e: KeyboardEvent): Element | null {
   return e.target instanceof Element ? e.target : null;
@@ -129,7 +146,8 @@ export function typesKey(e: KeyboardEvent, key: string,
  * appended to the bar, a clock say, is the app's to place. Removing
  * the bar from the page ends it; mount a fresh element to show one
  * again. Keyboard equivalents act while the bar is in the page, no
- * alert is up (showAlert), no pop-up or menu bar menu is open and the
+ * alert is up (showAlert), no pop-up or menu bar menu is open, no
+ * modal <dialog> without the bar in it is open (showModal) and the
  * bar isn't inert (under an app's own modal dialog, say). */
 export function mountMenuBar(bar: HTMLElement, initial: readonly Menu[],
                              options: MenuBarOptions = {}): OsmiumMenuBar {
@@ -444,7 +462,7 @@ export function mountMenuBar(bar: HTMLElement, initial: readonly Menu[],
     if (detached() || open >= 0 || e.defaultPrevented || e.repeat) return;
     if (!e.metaKey && !e.ctrlKey) return;
     if (e.isComposing || e.keyCode === IME_KEY_CODE) return;
-    if (isModal() || bar.closest("[inert]")) return;
+    if (isModal() || bar.closest("[inert]") || underModalDialog(bar)) return;
     // An open menu (a pop-up's, or another bar's) takes no key
     // equivalents, as Mac OS menus don't while tracking: an action
     // could hide the menu's window and leave the menu behind.

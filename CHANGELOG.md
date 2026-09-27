@@ -35,7 +35,8 @@
   chooses) chooses the item, flashing its title. Only enabled items
   claim keys, so browser shortcuts and text fields keep the rest; keys
   a control handled, keys under an alert or an open menu and keys aimed
-  at an inert menu bar are left alone. `keyDispatch: "browser"` leaves a key to the
+  at an inert menu bar or one outside a modal `<dialog>` are left
+  alone. `keyDispatch: "browser"` leaves a key to the
   browser (Cut, Copy and Paste in a text field). Items can show a check
   mark (`checked`).
 - `mountMenuBar` returns a handle (`OsmiumMenuBar`) whose `setMenus`

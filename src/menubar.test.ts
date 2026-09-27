@@ -1,5 +1,5 @@
 // @vitest-environment happy-dom
-import { beforeEach, describe, expect, it } from "vitest";
+import { afterEach, beforeEach, describe, expect, it, vi } from "vitest";
 import { MENU_SEPARATOR, mountPopup } from "./controls.js";
 import { commandModifier, mountMenuBar } from "./menubar.js";
 import type { OsmiumMenuBar } from "./menubar.js";
@@ -122,6 +122,8 @@ describe("menu bar keyboard equivalents", () => {
     ], { commandKey: "control" });
   });
 
+  afterEach(() => vi.restoreAllMocks());
+
   const titles = () =>
     Array.from(bar.querySelectorAll<HTMLElement>(".osm-menubar-title"));
 
@@ -209,6 +211,32 @@ describe("menu bar keyboard equivalents", () => {
     expect(document.querySelector(".osm-menu")).toBeNull();
     press("s");
     expect(done).toEqual(["save"]);
+  });
+
+  it("skips keys under a native modal dialog, but not inside one", () => {
+    const dialog = document.createElement("dialog");
+    const field = document.createElement("input");
+    dialog.append(field);
+    document.body.append(dialog);
+    // happy-dom doesn't match :modal; browsers do after showModal().
+    let modal = false;
+    const matches = dialog.matches.bind(dialog);
+    vi.spyOn(dialog, "matches").mockImplementation(
+      (sel: string) => (sel === ":modal" ? modal : matches(sel)));
+    // A dialog shown without showModal blocks nothing.
+    dialog.show();
+    press("s", { ctrlKey: true }, field);
+    expect(done).toEqual(["save"]);
+    dialog.close();
+    dialog.showModal();
+    modal = true;
+    expect(press("s", { ctrlKey: true }, field).defaultPrevented).toBe(false);
+    expect(press("s").defaultPrevented).toBe(false);
+    expect(done).toEqual(["save"]);
+    // A menu bar in the dialog is the dialog's own.
+    dialog.append(bar);
+    press("s", { ctrlKey: true }, field);
+    expect(done).toEqual(["save", "save"]);
   });
 
   it("leaves keys aimed inside a menu alone", () => {
