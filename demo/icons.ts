@@ -2,8 +2,9 @@
 // --osm-sprite-<name> custom properties: the menu bar's logo, desktop
 // and About icons (32 x 32), Finder list icons (16 x 16) and control
 // panel pane icons (32 x 32). Grids use the
-// kit's palette keys (a hex digit is a gray level, n/l/m/p/q the
-// lavender ramp, '.' is transparent) plus the colors in PALETTE.
+// kit's palette keys (a hex digit is a gray level, w/q/p/m/l/n the
+// Lavender accent ramp, '.' is transparent) plus the colors in PALETTE.
+// Icons keep Lavender; the logo follows the accent setAppearance sets.
 import { registerSprites } from "../src/index.js";
 
 const PALETTE = {
@@ -491,5 +492,7 @@ let registered = false;
 export function registerDemoSprites(): void {
   if (registered) return;
   registered = true;
-  registerSprites(SPRITES, PALETTE);
+  const { logo, ...icons } = SPRITES;
+  registerSprites(icons, PALETTE);
+  registerSprites({ logo }, PALETTE, { accent: "follow" });
 }
