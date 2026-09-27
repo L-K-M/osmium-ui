@@ -116,24 +116,33 @@ export function buildControls(content: HTMLElement,
     content: "Disabled button\n\nThis button is dimmed because it " +
       "never has anything to do.",
   });
-  // A checkbox's balloon follows its state, as Apple's did.
+  // Balloons go on the focusable controls, whose description they
+  // become; a control's <label> opens its balloon too. A checkbox's
+  // balloon follows its state, as Apple's did.
   for (const [box, what] of [[sound, "sound"], [music, "music"]] as const) {
     const input = box.querySelector("input")!;
-    attachBalloon(box, { trigger, content: () => input.checked
+    attachBalloon(input, { trigger, content: () => input.checked
       ? `${box.textContent} checkbox\n\nChecked. To turn ${what} off, ` +
         "click here."
       : `${box.textContent} checkbox\n\nUnchecked. To turn ${what} on, ` +
         "click here." });
   }
-  attachBalloon(dim, { trigger, content: "Disabled checkbox\n\nThis " +
-    "checkbox is dimmed, so it can't be changed." });
-  attachBalloon(volume.unit, { trigger, content: "Volume slider\n\nDrag " +
+  attachBalloon(dim.querySelector("input")!, { trigger, content:
+    "Disabled checkbox\n\nThis checkbox is dimmed, so it can't be " +
+    "changed." });
+  attachBalloon(volume.input, { trigger, content: "Volume slider\n\nDrag " +
     "the slider to set how loud the Beep button is." });
-  attachBalloon(level.unit, { trigger, content: "Level slider\n\nDrag " +
+  attachBalloon(level.input, { trigger, content: "Level slider\n\nDrag " +
     "the slider to fill the progress bar." });
-  attachBalloon(meter, { trigger, content: () => "Progress bar\n\n" +
-    `Shows the Level slider's setting, now ${level.input.value}%.` });
-  attachBalloon(sampleRow, { trigger, content: "Sample pop-up menu\n\n" +
+  // The progress bar's state lives in the slider, so the slider
+  // refreshes its message.
+  const progressHelp = () => "Progress bar\n\n" +
+    `Shows the Level slider's setting, now ${level.input.value}%.`;
+  const meterBalloon = attachBalloon(meter, { trigger,
+                                             content: progressHelp });
+  level.input.addEventListener("input",
+                               () => meterBalloon.setContent(progressHelp));
+  attachBalloon(pop, { trigger, content: "Sample pop-up menu\n\n" +
     "Choose the text shown below in each of the kit's three fonts." });
   attachBalloon(cancel, { trigger, variant: "bottom-left",
     content: "Cancel button\n\nTo close this dialog box, click here or " +

@@ -12,7 +12,7 @@ import {
   MENU_SEPARATOR, attachBalloon, balloonMenuItem, installOsmium,
   mountMenuBar, mountWindow,
 } from "../src/index.js";
-import type { OsmiumWindow, Size } from "../src/index.js";
+import type { OsmiumBalloon, OsmiumWindow, Size } from "../src/index.js";
 import { el, swallowClick } from "./dom.js";
 import { registerDemoSprites, sprite } from "./icons.js";
 import type { SpriteName } from "./icons.js";
@@ -256,16 +256,25 @@ for (const spec of WINDOWS) {
 }
 
 /** Help balloons for a window's frame, their tips where the pointer
- * rests, as the Finder points at title bars. */
+ * rests, as the Finder points at title bars.
+ *
+ * A demo deviation: Mac OS 8 gives an inactive window one balloon for
+ * the whole window, tip fixed near its top-left (e_winTL_b). Here only
+ * the frame's parts switch to the inactive-window message; the
+ * controls inside an inactive window keep their own balloons, though
+ * there the first click only activates the window. */
 function frameBalloons(w: DeskWindow): void {
   const inactive = () => w.el.classList.contains("osm-inactive");
+  const parts: { balloon: OsmiumBalloon; content: () => string }[] = [];
   const part = (sel: string, text: string) => {
     const e = w.el.querySelector<HTMLElement>(sel);
     if (!e) return;
-    attachBalloon(e, { tip: "pointer", content: () => inactive()
+    const content = () => inactive()
       ? "This window is behind another one. To bring it to the front, " +
         "click anywhere in it."
-      : text });
+      : text;
+    parts.push({ balloon: attachBalloon(e, { tip: "pointer", content }),
+                 content });
   };
   part(".osm-titlebar", "Title bar\n\nShows the window's name. To " +
     "move the window, drag it by its title bar.");
@@ -275,6 +284,14 @@ function frameBalloons(w: DeskWindow): void {
     "you gave the window and the size that shows all of it.");
   part(".osm-collapse", "Collapse box\n\nClick here to fold the window " +
     "up to its title bar, and again to unfold it.");
+  // The activation state lives on the window, not on the parts, so
+  // their descriptions are refreshed when it changes.
+  let wasInactive = inactive();
+  new MutationObserver(() => {
+    if (inactive() === wasInactive) return;
+    wasInactive = inactive();
+    for (const p of parts) p.balloon.setContent(p.content);
+  }).observe(w.el, { attributes: true, attributeFilter: ["class"] });
 }
 
 /** Put every window back where it started (Special > Clean Up),

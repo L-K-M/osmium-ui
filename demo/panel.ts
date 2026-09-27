@@ -259,7 +259,9 @@ export function buildPanel(content: HTMLElement,
     strip.append(item);
     panesEl.append(p.el);
     centerText(cap, true);
-    attachBalloon(item, { trigger: env.balloons, content:
+    // On the tab, whose description it becomes (its caption below isn't
+    // part of the balloon's target).
+    attachBalloon(tab, { trigger: env.balloons, content:
       `${p.label} button\n\nTo show the ${p.label} settings, click here.` });
     // Pane buttons select on press, like radio buttons; the keyboard
     // moves to the new pane (the old one's list just hid).
