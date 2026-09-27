@@ -2,6 +2,26 @@
 
 ## Unreleased
 
+- Add edit text: `<input class="osm-edit">` draws the Platinum field
+  (22px, or 20px with `osm-compact`) with its bevel, the lavender focus
+  ring and the Black & White text highlight, and
+  `<div class="osm-edit-area">` frames a multi-line `<textarea>`, to
+  which `mountTextArea` adds a scroll bar. Measured from Mac OS 8.0
+  Find File in an emulator (active and inactive) and Mac OS 9.0 Date
+  Formats (focus ring). The disabled look wasn't captured and copies
+  the inactive one; the bevel's top-right and bottom-left pixels are
+  left open where Find File draws them gray; the caret sits one pixel
+  right of TextEdit's; the selection doesn't run on to the field's
+  right edge. Placeholder text is an addition Mac OS 8 didn't have. The
+  demo has a File Sharing window.
+- `setEnabled` takes text fields and text areas.
+- `bindDialogKeys` passes Return, Enter and Escape typed in a one-line
+  edit text (`input.osm-edit`) on to the dialog's buttons, as the
+  Dialog Manager does, unless the field's own handler calls
+  `preventDefault()` or an input method is composing. Other text
+  fields and text areas keep their keys, as before.
+- Edit text shows its focus ring on any focus, not only while you use
+  the keyboard: the ring marks where typing goes.
 - The native window host clips each window to its outline and drop
   shadow, so WebKit's white backdrop no longer shows as a stray pixel
   beside the shadow's ends (top right and bottom left).

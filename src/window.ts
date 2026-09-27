@@ -35,7 +35,9 @@ export interface OsmiumWindow {
   readonly content: HTMLElement;
   setTitle(text: string): void;
   setShaded(on: boolean): void;
-  /** Draw the window active or inactive (with "manual" activation). */
+  /** Draw the window active or inactive (with "manual" activation).
+   * Deactivating hides a focused edit text's caret and ring but leaves
+   * it the DOM focus: blur it, or typing still reaches it. */
   setActive(on: boolean): void;
 }
 

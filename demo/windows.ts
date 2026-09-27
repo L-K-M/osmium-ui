@@ -8,10 +8,11 @@ import { buildAppearance } from "./appearance.js";
 import { buildControls } from "./controls.js";
 import { buildFinder } from "./finder.js";
 import { buildPanel } from "./panel.js";
+import { buildSharing } from "./sharing.js";
 import type { Pattern } from "./patterns.js";
 
 export type WindowId =
-  "controls" | "finder" | "panel" | "appearance" | "about";
+  "controls" | "finder" | "panel" | "appearance" | "about" | "sharing";
 
 /** What the window's host (the desktop or a one-window page) offers
  * its content. */
@@ -68,6 +69,8 @@ export const WINDOWS: readonly WindowSpec[] = [
     build: buildAppearance },
   { id: "about", title: "About Osmium UI", size: { w: 341, h: 221 },
     info: true, build: buildAbout },
+  { id: "sharing", title: "File Sharing", size: { w: 381, h: 331 },
+    build: buildSharing },
 ];
 
 export function windowSpec(id: string): WindowSpec | undefined {

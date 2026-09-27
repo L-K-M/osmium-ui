@@ -134,6 +134,8 @@ const MIN_BUTTON = 59;
 const RING = 3;
 /** How long Return or Escape shows a button pressed: 8 ticks. */
 const FLASH_MS = 133;
+/** KeyboardEvent.keyCode of a keydown an input method is handling. */
+const IME_KEY_CODE = 229;
 
 /** Size a push button and place its title where the Control Manager
  * draws it: floor((width - title) / 2) from the button's left, on a
@@ -151,11 +153,15 @@ export function fitButton(b: HTMLElement): void {
   b.style.paddingRight = "0";
 }
 
-/** Enable or disable a checkbox or slider input, dimming its whole
- * control (osmium.css reads .osm-disabled on the wrapper). */
-export function setEnabled(input: HTMLInputElement, on: boolean): void {
+/** Enable or disable a checkbox, slider or edit text, dimming its
+ * whole control: osmium.css reads :disabled on a bare input.osm-edit
+ * and .osm-disabled on the wrapper of the others (.osm-checkbox,
+ * .osm-slider, and a text area's .osm-edit-area). A field's label is
+ * ordinary text; dim it yourself. */
+export function setEnabled(input: HTMLInputElement | HTMLTextAreaElement,
+                           on: boolean): void {
   input.disabled = !on;
-  input.closest(".osm-checkbox, .osm-slider")
+  input.closest(".osm-checkbox, .osm-slider, .osm-edit-area")
     ?.classList.toggle("osm-disabled", !on);
 }
 
@@ -175,10 +181,14 @@ export function setButtonTitle(b: HTMLElement, text: string): void {
 
 /** Return and Enter press `ok`, Escape (and Command-period) press
  * `cancel`, each flashing the button the way the Dialog Manager does.
- * Keys typed into text fields, menus and focused buttons (which have
- * their own Return handling) are left alone. With several windows in
- * one page, `active` says whether the buttons' window is the one the
- * keys are for. */
+ * ModalDialog's standard filter sees these keys before TextEdit does,
+ * so they work while a single-line edit text (input.osm-edit) has the
+ * keyboard, unless the field's own keydown handler calls
+ * preventDefault (to save on Return, say). Other text fields, text
+ * areas, menus and focused buttons (which have their own Return
+ * handling) keep their keys, and so does the Return that ends an input
+ * method's composition. With several windows in one page, `active`
+ * says whether the buttons' window is the one the keys are for. */
 export function bindDialogKeys(ok: HTMLButtonElement | null,
                                cancel: HTMLButtonElement | null,
                                actions: { ok?: () => void;
@@ -186,10 +196,15 @@ export function bindDialogKeys(ok: HTMLButtonElement | null,
                                           active?: () => boolean }): void {
   window.addEventListener("keydown", (e) => {
     if (e.defaultPrevented || e.repeat) return;
+    // Safari reports the composition's last keydown as keyCode 229
+    // with isComposing false.
+    if (e.isComposing || e.keyCode === IME_KEY_CODE) return;
     const t = e.target as HTMLElement | null;
-    if (t?.closest("input:not([type=checkbox]):not([type=range]), " +
-                   "textarea, [contenteditable], button, .osm-menu"))
-      return;
+    const field = t?.closest(
+      "input:not([type=checkbox]):not([type=range]), textarea, " +
+      "[contenteditable]");
+    if (field && !field.matches("input.osm-edit")) return;
+    if (t?.closest("button, .osm-menu")) return;
     const isOk = e.key === "Enter";
     const isCancel = e.key === "Escape" || (e.metaKey && e.key === ".");
     const b = isOk ? ok : isCancel ? cancel : null;

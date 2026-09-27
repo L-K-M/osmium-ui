@@ -225,3 +225,31 @@ html.desk { height: 100%; background: #9999cc; }
 .apr-row > .osm-checkbox { left: 121px; top: 1px; white-space: nowrap; }
 .apr-caption { left: 123px; top: 20px; white-space: nowrap; }
 .apr-check > .apr-caption { left: 137px; }
+
+/* ---- File Sharing (sharing.ts) -------------------------------------------- */
+/* A 368 x 302 content area laid out with the HIG's edit text spacing:
+   labels right-aligned on a shared edge 5px before their field's black
+   line, the label box 3px below the field's top so the baselines meet
+   (2px beside a 20px field), fields 6px apart, a field and its pop-up
+   4px apart and top-aligned (Mac OS 8.0 Find File), a label 5px above
+   the multi-line field. The dialog buttons sit as in Controls. */
+.shr { position: absolute; inset: 0; }
+.shr > * { position: absolute; }
+.shr-identity {
+  box-sizing: border-box; left: 12px; top: 20px; width: 344px; height: 104px;
+  display: flex; flex-direction: column; gap: 6px; padding-top: 13px;
+}
+.shr-row { display: flex; align-items: flex-start; }
+.shr-label {
+  flex: none; width: 112px; margin: 3px 5px 0 0;
+  text-align: right; white-space: nowrap;
+}
+.shr-idle { left: 12px; top: 140px; display: flex; align-items: flex-start; }
+.shr-idle > .osm-checkbox { margin-top: 2px; white-space: nowrap; }
+.shr-minutes { width: 30px; margin-left: 5px; }
+.shr-unit { width: 90px; margin-left: 4px; }
+.shr-message-title { left: 12px; top: 172px; }
+.shr-message { left: 12px; right: 12px; top: 193px; height: 54px; }
+.shr-rule { left: 12px; right: 12px; top: 257px; }
+.shr-ok { right: 12px; top: 265px; }
+.shr-cancel { right: 89px; top: 268px; }
