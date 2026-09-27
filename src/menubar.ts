@@ -462,6 +462,9 @@ export function mountMenuBar(bar: HTMLElement, initial: readonly Menu[],
     if (detached() || open >= 0 || e.defaultPrevented || e.repeat) return;
     if (!e.metaKey && !e.ctrlKey) return;
     if (e.isComposing || e.keyCode === IME_KEY_CODE) return;
+    // No item can take a named key (typesKey wants one character), so
+    // Control-Left and the like build no menus.
+    if (e.key.length !== 1) return;
     if (isModal() || bar.closest("[inert]") || underModalDialog(bar)) return;
     // An open menu (a pop-up's, or another bar's) takes no key
     // equivalents, as Mac OS menus don't while tracking: an action

@@ -171,6 +171,25 @@ describe("menu bar keyboard equivalents", () => {
     expect(done).toEqual([]);
   });
 
+  it("leaves a dimmed browser-dispatched key alone, unflashed", () => {
+    pasteOn = false;
+    expect(press("v").defaultPrevented).toBe(false);
+    expect(done).toEqual([]);
+    expect(titles()[1]!.classList.contains("osm-open")).toBe(false);
+  });
+
+  it("builds no menus for a key no item can take", () => {
+    const items = vi.fn(() => [{ title: "Save", key: "S", action: () => {} }]);
+    mb.setMenus([{ title: "File", items }]);
+    // Control-Left moves by words in a text field; it can't be an
+    // equivalent, which is one character.
+    press("ArrowLeft");
+    press("F5");
+    expect(items).not.toHaveBeenCalled();
+    press("s");
+    expect(items).toHaveBeenCalledTimes(1);
+  });
+
   it("leaves a browser-dispatched key to the browser", () => {
     const e = press("v");
     expect(e.defaultPrevented).toBe(false);
