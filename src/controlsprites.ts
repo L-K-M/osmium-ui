@@ -3,8 +3,8 @@
 // corners, copied from a running Mac OS 8.0 (Keyboard and General
 // Controls control panels, Finder windows, an alert) and from
 // guidebookgallery.org screenshots (Open dialog, Monitors & Sound,
-// Desktop Pictures). Tabs come from Mac OS 8.5 (see below). Same
-// palette keys as sprites.ts.
+// Desktop Pictures). Tabs come from Mac OS 8.5 and help balloons from
+// an emulated Mac OS 8.0 (see below). Same palette keys as sprites.ts.
 //
 // Variable-width controls are stored as 9-slices: the columns (and for
 // bevel buttons, rows) either side of the single middle one are the
@@ -698,6 +698,230 @@ const TAB_FRONT = [
   "feeeeeeeeeeeeeeeeeeeeeef",
 ];
 
+// ---- help balloons: a 6 | 1 | 7 slice and eight tail overlays -------
+// From Mac OS 8.0 in the Infinite Mac emulator
+// (infinitemac.org/1997/Mac%20OS%208.0), its 640 x 480 framebuffer
+// captured 1:1 with Help > Show Balloons on. Each balloon was diffed
+// against a balloon-free capture of the same screen, the pointer
+// masked out. Rectangles below are the balloon's outline in screen
+// pixels, left,top-right,bottom inclusive. Balloons are pure black and
+// white, so the emulator's gamma doesn't touch them, and the shape is
+// the same in System 7.5.3, Mac OS 8.5 and 9.0 (0 differing pixels on
+// their File and Help menu balloons).
+//
+// The body: a white rounded rectangle, a 1px black outline, and a 1px
+// black shadow outside its right and bottom edges only. The corners
+// are the consensus of 14 to 17 captures each; the corners aren't
+// mirror images of one another (row 0 starts 5px in on the left, 4px
+// before the outline on the right).
+//
+// A tail overlays the body at a fixed offset from one outline corner
+// pixel (balloon.ts TAILS and osmium.css place them); '.' leaves the
+// body showing, so the white mouth that opens the outline is part of
+// the overlay. Help Manager variation code, capture and outline:
+//   left-top (0)     e_winTL_b 78,58-198,129; v_title_b 118,62-257,169
+//   top-left (1)     f_help_b and c_help_b 231,38-370,121; c_file_b
+//                    53,38-192,133; f_view_b 89,38-228,133 (the
+//                    research manifest's bottom of 131 is wrong)
+//   top-right (2)    f_app_b 458,38-616,133; d_infhd_b 434,149-592,268
+//   right-top (3)    c_saved_b 444,165-564,248, the only complete one
+//   right-bottom (4) g_actBR_b 463,313-602,420, over an active title
+//                    bar: white pixels enclosed by the tail are taken
+//                    as fill, outside ones as transparent
+//   bottom-right (5) d_trash_b 395,288-592,431; d_outside_b
+//                    434,120-592,239; h_saved_b 434,56-592,175, the
+//                    only one whose last two tip pixels aren't hidden
+//                    by an icon label
+//   bottom-left (6)  v_net_b 472,371-592,454 (e_strip1_b and e_strip2_b
+//                    agree up to where the Control Strip covers the tip)
+//   left-bottom (7)  g_actBL_b 288,313-427,420, pinstripes as for (4)
+// Rebuilt from these grids, every clean capture listed reproduces with
+// 0 differing frame and tail pixels. That is a fit to the captures the
+// grids were merged from, not an independent check.
+
+const BALLOON = [
+  ".....0000.....",
+  "...000ff000...",
+  "..00ffffff00..",
+  ".00ffffffff00.",
+  ".0fffffffff00.",
+  "00ffffffffff00",
+  "0fffffffffff00",
+  "0ffffffffff000",
+  "00fffffffff000",
+  ".0ffffffff000.",
+  ".00ffffff0000.",
+  "..000ff00000..",
+  "...00000000...",
+  ".....0000.....",
+];
+
+const BALLOON_LEFT_TOP = [
+  "0................",
+  ".00..............",
+  "..000............",
+  "...0000..........",
+  "....00000........",
+  ".....00f000......",
+  "......00ff000....",
+  ".......00fff000..",
+  "........00ffff00.",
+  ".........00ffffff",
+  "..........00fffff",
+  "...........00ffff",
+  "............00fff",
+  ".............00ff",
+  "..............00f",
+  "...............0.",
+];
+
+const BALLOON_TOP_LEFT = [
+  "0................",
+  ".0...............",
+  ".00..............",
+  "..00.............",
+  "..000............",
+  "...000...........",
+  "...0000..........",
+  "....0f00.........",
+  "....00f00........",
+  ".....0ff00.......",
+  ".....00ff00......",
+  "......0fff00.....",
+  "......00fff00....",
+  ".......0ffff00...",
+  ".......00ffff00..",
+  "........0fffff00.",
+  "........0ffffff00",
+  ".........fffffff.",
+];
+
+const BALLOON_TOP_RIGHT = [
+  "...............0",
+  "..............0.",
+  ".............00.",
+  "............00..",
+  "...........000..",
+  "..........000...",
+  ".........0000...",
+  "........0000....",
+  ".......00000....",
+  "......00000.....",
+  ".....00f000.....",
+  "....00f000......",
+  "...00ff000......",
+  "..00ff000.......",
+  ".00fff000.......",
+  "00ffff00........",
+  ".ffffff.........",
+];
+
+const BALLOON_RIGHT_TOP = [
+  "..................0",
+  "................00.",
+  "..............000..",
+  "............0000...",
+  "..........00000....",
+  "........000000.....",
+  "......0000000......",
+  "....000f0000.......",
+  "f.000ff0000........",
+  "ffffff0000.........",
+  "fffff0000..........",
+  "ffff0000...........",
+  "fff0000............",
+  "ff0000.............",
+  "f.000..............",
+  "..00...............",
+  "..0................",
+];
+
+const BALLOON_RIGHT_BOTTOM = [
+  "f.0.................",
+  "ff00................",
+  "fff00...............",
+  "ffff00..............",
+  "fffff00.............",
+  "ffffff00............",
+  "fffffff00...........",
+  "..0fffff00..........",
+  "..000ffff00.........",
+  "...0000fff00........",
+  ".....0000ff00.......",
+  ".......0000f00......",
+  ".........000000.....",
+  "...........00000....",
+  ".............0000...",
+  "...............000..",
+  ".................00.",
+  "...................0",
+];
+
+const BALLOON_BOTTOM_RIGHT = [
+  "fffffff..........",
+  ".ffffff..........",
+  "00fffff00........",
+  ".00ffff00........",
+  "..00ffff00.......",
+  "...00fff00.......",
+  "....00fff00......",
+  ".....00ff00......",
+  "......00ff00.....",
+  ".......00f00.....",
+  "........00f00....",
+  ".........0000....",
+  "..........0000...",
+  "...........000...",
+  "............000..",
+  ".............00..",
+  "..............00.",
+  "...............0.",
+  "................0",
+];
+
+const BALLOON_BOTTOM_LEFT = [
+  ".........fffffff..",
+  "..........fffff...",
+  ".........0ffff0000",
+  "........00fff0000.",
+  "........0fff0000..",
+  ".......00ff0000...",
+  ".......0ff0000....",
+  "......00f0000.....",
+  "......0f0000......",
+  ".....000000.......",
+  ".....00000........",
+  "....00000.........",
+  "....0000..........",
+  "...0000...........",
+  "...000............",
+  "..000.............",
+  "..00..............",
+  ".00...............",
+  ".0................",
+  "0.................",
+];
+
+const BALLOON_LEFT_BOTTOM = [
+  "................0.",
+  "...............00f",
+  "..............00ff",
+  ".............00fff",
+  "............00ffff",
+  "...........00fffff",
+  "..........00ffffff",
+  ".........00ff0000f",
+  "........00f000000.",
+  ".......00000000...",
+  "......0000000.....",
+  ".....000000.......",
+  "....00000.........",
+  "...0000...........",
+  "..000.............",
+  ".00...............",
+  "0.................",
+];
+
 // Dimmed default button — not captured: the dimmed button inside a
 // ring drawn the way dimmed controls are (88 outline on the flat face).
 const dimRing = (px: string): string =>
@@ -758,4 +982,13 @@ export const CONTROL_SPRITES: Record<string, readonly string[]> = {
   "menubar-corner-right": MENUBAR_CORNER_RIGHT,
   tab: TAB,
   "tab-front": TAB_FRONT,
+  balloon: BALLOON,
+  "balloon-left-top": BALLOON_LEFT_TOP,
+  "balloon-top-left": BALLOON_TOP_LEFT,
+  "balloon-top-right": BALLOON_TOP_RIGHT,
+  "balloon-right-top": BALLOON_RIGHT_TOP,
+  "balloon-right-bottom": BALLOON_RIGHT_BOTTOM,
+  "balloon-bottom-right": BALLOON_BOTTOM_RIGHT,
+  "balloon-bottom-left": BALLOON_BOTTOM_LEFT,
+  "balloon-left-bottom": BALLOON_LEFT_BOTTOM,
 };
