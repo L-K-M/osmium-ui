@@ -21,11 +21,15 @@
   The pace is the Finder's, not the control's: the CDEF steps whenever
   the application idles it, at most every 2 ticks. Osmium steps
   alternately 6 and 19 ticks apart (a 50-tick cycle), the pace 8.0's
-  Finder kept while it counted the items to copy (75 intervals in 11
-  runs, 5 to 9 and 16 to 20 ticks); 8.5's Finder took 14 to 34 ticks.
-  The first frame is the CDEF's first, which stays still under
-  `prefers-reduced-motion`. Derived, not captured: 8.0 accents other
-  than Lavender and Ivy (the CDEF reads the same entries of any
+  Finder kept in the emulator (Infinite Mac, at an unknown emulated
+  CPU speed) while it counted the items to copy: 84 intervals in 12
+  runs, 5 to 9 and 16 to 21 ticks, with the short wait on different
+  steps from run to run. 8.5's Finder there stepped every 16 to 34
+  ticks. The first frame is 8.0's CDEF's first, which stays still
+  under `prefers-reduced-motion`. The Finder showed it for about 13
+  ticks (4 to 23), as the CDEF's first idle call redraws it before
+  stepping; Osmium shows it for 6. Derived, not captured: 8.0 accents
+  other than Lavender and Ivy (the CDEF reads the same entries of any
   table) and 8.5 variations other than Lavender. Not included: the
   1-bit black and white stripes.
 - The demo's Controls dialog has an indeterminate progress bar beside

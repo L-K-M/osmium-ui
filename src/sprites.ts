@@ -24,8 +24,8 @@ export type Palette = Readonly<Record<string, string>>;
 
 const COLORS: Palette = {
   // Lavender accent — the default Mac OS 8 highlight ramp, dark to light
-  // (A6 n, A5 j, A4 l, A3 m, A2 p, A1 q). Only the indeterminate
-  // progress bar draws with A5.
+  // (A6 n, A5 j, A4 l, A3 m, A2 p, A1 q). Among the sprites, only the
+  // indeterminate progress bar draws with A5 (j).
   n: "#000055", j: "#000088", l: "#333399", m: "#6666cc", p: "#9999ff",
   q: "#ccccff",
   // Its lightest entry (A0), the gleam on scroll and slider thumbs, and

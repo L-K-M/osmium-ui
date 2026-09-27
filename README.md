@@ -79,7 +79,7 @@ Native `<button>` and `<input>` elements stay underneath, so keyboard
 navigation and assistive technology keep working.
 
 <p align="center">
-  <img src="docs/controls.png" width="492" alt="A dialog with push buttons, checkboxes, sliders, a progress bar, a pop-up button and text in Charcoal 12, Geneva 10 and Geneva 9">
+  <img src="docs/controls.png" width="492" alt="A dialog with push buttons, checkboxes, sliders, a progress bar, a pop-up button, an indeterminate progress bar and text in Charcoal 12, Geneva 10 and Geneva 9">
   <img src="docs/finder.png" width="532" alt="A Finder list view with a placard, sortable column headers, icons, a selected row and scroll bars">
   <img src="docs/panel.png" width="552" alt="A control panel with bevel buttons, a list box, a preview well and a caption area">
   <img src="docs/appearance.png" width="492" alt="An Appearance window with Appearance, Fonts and Options tabs over a pane of titled pop-up buttons with captions">
@@ -260,9 +260,11 @@ stripes in the accent color that move to the right:
 
 Leave out `aria-valuenow`: a progress bar without a value is how ARIA
 marks progress of unknown length. A `.osm-progress-fill` inside stays
-hidden until you remove the class and set `--osm-value` again. In an
-inactive window the stripes dim and keep moving, as on a Mac. With
-`prefers-reduced-motion` they stand still.
+hidden while the class is on. In an inactive window the stripes dim
+and keep moving, as on a Mac. With `prefers-reduced-motion` they stand
+still. Remove the bar, or the class, when the work ends: while the
+stripes move, Chromium recalculates style every frame, not only at
+each step.
 
 How faithful it is:
 
@@ -276,10 +278,16 @@ How faithful it is:
 - Each step moves the stripes 4px, as every captured step did.
 - The pace is the Finder's, not the control's. A Mac OS 8 application
   moved the stripes each time it gave the control idle time, at most
-  every 2 ticks (1/30 s). Mac OS 8.0's Finder, preparing a copy, moved
-  them alternately 6 and 19 ticks apart, and Osmium does the same; 8.5's
-  Finder took 14 to 34 ticks a step. The stripes move on their own in
-  Osmium, as long as the element is shown.
+  every 2 ticks (1/30 s). Osmium steps alternately 6 and 19 ticks
+  apart, the pace of Mac OS 8.0's Finder preparing a copy in the
+  emulator (Infinite Mac, at an unknown emulated CPU speed), so a real
+  Mac may have been faster or slower. Which steps got the short wait
+  varied between runs. 8.5's Finder, in the same emulator, stepped
+  every 16 to 34 ticks. The stripes move on their own in Osmium, as
+  long as the element is shown.
+- The Finder showed the first frame longer than Osmium's 6 ticks:
+  about 13 (4 to 23 in ten runs), because the control's first idle
+  call redraws that frame before it steps.
 - The black-and-white stripes Mac OS drew on a 1-bit screen aren't
   included.
 

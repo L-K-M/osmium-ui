@@ -239,10 +239,7 @@ describe("the indeterminate progress bar", () => {
     expect(holds).toEqual([6, 19, 6, 19]);
   });
 
-  it("starts at the CDEF's first frame and holds it for reduced motion", () => {
-    // The first frame the CDEF draws (phase 1) is the tile 8px right.
-    expect(css).toMatch(/var\(--osm-sprite-barber\) 8px 0 \/ 16px 10px/);
-    expect(css).toMatch(/var\(--osm-sprite-barber\) 9px 0 \/ 16px 10px/);
+  it("holds still for reduced motion", () => {
     expect(css).toMatch(/@media \(prefers-reduced-motion: reduce\) \{\s*\.osm-progress\.osm-indeterminate > \.osm-progress-track \{ animation: none; \}/);
   });
 
@@ -250,21 +247,58 @@ describe("the indeterminate progress bar", () => {
     expect(css).toMatch(/\.osm-inactive \.osm-progress\.osm-indeterminate > \.osm-progress-track \{\s*background-image: var\(--osm-sprite-barber-inactive\),\s*var\(--osm-sprite-barber-inactive\);/);
   });
 
-  it("repeats the next-to-last column in the last, as QuickDraw drew it", () => {
-    // osmium.css: the tile from the left edge `shift` px right, clipped
-    // 1px short of the right edge, over the same tile 1px further right,
-    // which shows only in the last column. At any width, each of the
-    // four positions draws what one of the CDEF's four phases draws.
-    const drawn = (w: number, shift: number) =>
-      Array.from({ length: 10 }, (_, r) =>
+  it("draws the CDEF's phases at any width, last column too", () => {
+    // Paints the track as osmium.css declares it. Its padding box is
+    // the CDEF's inner rect, w px wide inside the black edge, and the
+    // rule's own padding narrows the content box. Each background layer
+    // repeats the tile along x from its origin box's left edge, moved
+    // by its position, and paints only inside its clip box (one box
+    // sets both, none means padding-box and border-box); the first
+    // layer is on top. Unanimated, and at each keyframe, the track must
+    // show what the CDEF draws in its first phase and in the phase that
+    // step brings, including the last column, which QuickDraw never
+    // started a stripe in and which repeats the one before it.
+    const rule = css.match(
+      /^\.osm-progress\.osm-indeterminate > \.osm-progress-track \{([^}]*)\}/m)![1]!;
+    expect(rule.match(/padding[\w-]*:/g)).toEqual(["padding-right:"]);
+    const pad = Number(rule.match(/padding-right: (\d+)px;/)?.[1] ?? 0);
+    const layers = rule.match(/background:([^;]*);/)![1]!.split(",").map((l) => {
+      const m = l.trim().replace(/\s+/g, " ").match(
+        /^var\(--osm-sprite-barber\) (-?\d+)px 0 \/ 16px 10px repeat-x((?: [a-z]+-box){0,2})$/);
+      expect(m, l).not.toBeNull();
+      const b = m![2]!.split(" ").filter(Boolean);
+      return { x: Number(m![1]), origin: b[0] ?? "padding-box",
+               clip: b[1] ?? b[0] ?? "border-box" };
+    });
+    const frames = [...css.matchAll(
+      /(\d+)% \{ background-position: ([^;]+); \}/g)].map((m) =>
+      m[2]!.split(",").map((p) => Number(p.trim().match(/^(-?\d+)px 0$/)![1])));
+    expect(frames).toHaveLength(5);
+    const paint = (w: number, xs: readonly number[]) => {
+      const box: Record<string, readonly [number, number]> = {
+        "border-box": [-1, w + 1], "padding-box": [0, w],
+        "content-box": [0, w - pad],
+      };
+      return SPRITES.barber.map((line, r) =>
         Array.from({ length: w }, (_, x) => {
-          const col = (x < w - 1 ? x : x - 1) - shift;
-          return (col - r + 64) % 16 < 8 ? "A" : "g";
+          let px = "?";
+          for (let i = layers.length - 1; i >= 0; i--) {
+            const { origin, clip } = layers[i]!;
+            if (x < box[clip]![0] || x >= box[clip]![1]) continue;
+            const col = (((x - box[origin]![0] - xs[i]!) % 16) + 16) % 16;
+            px = line[col] === POLE.accent[r] ? "A" : "g";
+          }
+          return px;
         }).join(""));
+    };
+    const cases: [string, readonly number[], 1 | 2 | 3 | 4][] = [
+      ["unanimated", layers.map((l) => l.x), 1],
+      ...frames.map((xs, i) => [`keyframe ${i}`, xs, (i % 4) + 1] as
+        [string, number[], 1 | 2 | 3 | 4]),
+    ];
     for (let w = 2; w <= 200; w++)
-      for (const [phase, shift] of [[1, 8], [2, 12], [3, 0], [4, 4]] as const)
-        expect(drawn(w, shift), `width ${w}, phase ${phase}`)
-          .toEqual(cdefRows(w, phase));
+      for (const [name, xs, phase] of cases)
+        expect(paint(w, xs), `width ${w}, ${name}`).toEqual(cdefRows(w, phase));
   });
 });
 
