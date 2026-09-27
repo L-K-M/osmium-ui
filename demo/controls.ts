@@ -91,8 +91,11 @@ export function buildControls(content: HTMLElement,
   showSample(0);
 
   // An indeterminate progress bar, left of the dialog's buttons.
+  // The bar names itself; its caption would say it twice.
   const busy = el("div", "ctl-busy");
-  busy.append(el("div", "osm-caption", "Working"), indeterminate("Working"));
+  const busyCaption = el("div", "osm-caption", "Working");
+  busyCaption.setAttribute("aria-hidden", "true");
+  busy.append(busyCaption, indeterminate("Working"));
 
   // The dialog's own buttons: Return presses OK, Escape Cancel. Both
   // dismiss the dialog (it keeps its settings).

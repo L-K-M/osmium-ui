@@ -315,6 +315,41 @@ describe("showContextMenu", () => {
     expect(ctx.defaultPrevented).toBe(false);
   });
 
+  // Windows and Linux send no contextmenu event for a Control-click.
+  it("lets the menu key through after a Control-click closed it", async () => {
+    let native = 0;
+    document.addEventListener("contextmenu", () => native++);
+    show();
+    pointer("pointerup", 270, 282);
+    pointer("pointerdown", 10, 10, document.body, { ctrlKey: true });
+    pointer("pointerup", 10, 10, document.body, { ctrlKey: true });
+    expect(el()).toBeNull();
+    await wait();
+    // Control, held since before the press, repeats; then the menu key.
+    key(document.body, "Control", { ctrlKey: true, repeat: true });
+    key(document.body, "ContextMenu");
+    const ctx = new MouseEvent("contextmenu", { bubbles: true, cancelable: true });
+    document.body.dispatchEvent(ctx);
+    expect(native).toBe(1);
+    expect(ctx.defaultPrevented).toBe(false);
+  });
+
+  // Windows sends a right-click's contextmenu event on release.
+  it("still takes a right-click's late contextmenu past a held key", async () => {
+    let native = 0;
+    document.addEventListener("contextmenu", () => native++);
+    show();
+    pointer("pointerup", 270, 282);
+    pointer("pointerdown", 10, 10, document.body, { button: 2, shiftKey: true });
+    await wait();
+    key(document.body, "Shift", { shiftKey: true, repeat: true });
+    pointer("pointerup", 10, 10, document.body, { button: 2, shiftKey: true });
+    const ctx = new MouseEvent("contextmenu", { bubbles: true, cancelable: true });
+    document.body.dispatchEvent(ctx);
+    expect(ctx.defaultPrevented).toBe(true);
+    expect(native).toBe(0);
+  });
+
   it("keeps right-clicks on it from the page", () => {
     let native = 0;
     document.addEventListener("contextmenu", () => native++);
@@ -372,9 +407,9 @@ describe("showContextMenu", () => {
 
   it("calls onClose once, after the action", async () => {
     const order: string[] = [];
-    showContextMenu({ x: 0, y: 0 }, [
+    menus.push(showContextMenu({ x: 0, y: 0 }, [
       { title: "Help", action: () => order.push("action") },
-    ], { onClose: (chosen) => order.push(`close:${chosen}`) });
+    ], { onClose: (chosen) => order.push(`close:${chosen}`) }));
     key(document.activeElement!, "ArrowDown");
     key(document.activeElement!, "Enter");
     key(document.activeElement!, "Enter");
@@ -386,17 +421,21 @@ describe("showContextMenu", () => {
     const m = show();
     expect(isMenuOpen()).toBe(true);
     const alert: OsmiumAlert = showAlert({ kind: "note", message: "Hello" });
-    expect(m.open).toBe(false);
-    expect(el()).toBeNull();
-    expect(closes).toEqual([false]);
-    expect(isMenuOpen()).toBe(false);
-    // Nothing opens under an alert.
-    const later = show();
-    expect(later.open).toBe(false);
-    expect(el()).toBeNull();
-    await wait();
-    expect(closes).toEqual([false, false]);
-    alert.close();
+    // An alert left up would keep every later test's menu from opening.
+    try {
+      expect(m.open).toBe(false);
+      expect(el()).toBeNull();
+      expect(closes).toEqual([false]);
+      expect(isMenuOpen()).toBe(false);
+      // Nothing opens under an alert.
+      const later = show();
+      expect(later.open).toBe(false);
+      expect(el()).toBeNull();
+      await wait();
+      expect(closes).toEqual([false, false]);
+    } finally {
+      alert.close();
+    }
   });
 
   it("replaces an open contextual menu", () => {

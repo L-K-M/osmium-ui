@@ -284,11 +284,18 @@ function swallowContextMenu(): void {
     ev.stopPropagation();
     done();
   };
+  // A key held since before the press repeats; it isn't a new one.
+  const onKey = (ev: KeyboardEvent) => { if (!ev.repeat) done(); };
   const done = () => {
     document.removeEventListener("contextmenu", eat, true);
     document.removeEventListener("pointerdown", done, true);
+    document.removeEventListener("keydown", onKey, true);
   };
   document.addEventListener("contextmenu", eat, true);
-  // A press without one mustn't eat the next press's.
-  setTimeout(() => document.addEventListener("pointerdown", done, true));
+  // A press without one (a Control-click on Windows or Linux) mustn't
+  // eat the next press's, nor the menu key's, which follows a keydown.
+  setTimeout(() => {
+    document.addEventListener("pointerdown", done, true);
+    document.addEventListener("keydown", onKey, true);
+  });
 }
