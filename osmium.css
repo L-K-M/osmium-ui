@@ -255,6 +255,47 @@
   box-shadow: 1px 0 0 #000, 2px 0 0 #555, 3px 0 0 #888;
 }
 
+/* Indeterminate progress bar, the Appearance Manager's barber pole:
+   add osm-indeterminate to .osm-progress (any fill inside is hidden),
+   give it role="progressbar" and no aria-valuenow. Inside the same rim
+   and black edge, the track fills with the stripe tile (sprites.ts),
+   which moves 4px right per step as Mac OS 8.0's CDEF moves it. The
+   steps come alternately 6 and 19 ticks apart (a 50-tick cycle), the
+   pace of the Finder's "Preparing to copy…" bar in an emulator; the
+   CDEF itself steps whenever its application idles it, at most every
+   2 ticks. QuickDraw never started a stripe in the track's last
+   column, which repeats the one before it: a second layer 1px further
+   right shows through the 1px of padding there. With
+   prefers-reduced-motion the stripes hold still, at the CDEF's first
+   frame. */
+.osm-progress.osm-indeterminate > .osm-progress-track {
+  padding-right: 1px;
+  background:
+    var(--osm-sprite-barber) 8px 0 / 16px 10px repeat-x padding-box
+      content-box,
+    var(--osm-sprite-barber) 9px 0 / 16px 10px repeat-x padding-box;
+  animation: osm-barber 831ms step-end infinite;
+}
+.osm-indeterminate > .osm-progress-track > .osm-progress-fill {
+  display: none;
+}
+/* Inactive window: A2 and dd stripes that keep moving, in the 55 edge
+   without a rim (see .osm-inactive above). */
+.osm-inactive .osm-progress.osm-indeterminate > .osm-progress-track {
+  background-image: var(--osm-sprite-barber-inactive),
+    var(--osm-sprite-barber-inactive);
+}
+@keyframes osm-barber {
+  0% { background-position: 8px 0, 9px 0; }
+  12% { background-position: 12px 0, 13px 0; }
+  50% { background-position: 16px 0, 17px 0; }
+  62% { background-position: 20px 0, 21px 0; }
+  100% { background-position: 24px 0, 25px 0; }
+}
+@media (prefers-reduced-motion: reduce) {
+  .osm-progress.osm-indeterminate > .osm-progress-track { animation: none; }
+}
+
 /* ---- push buttons ---------------------------------------------------- */
 /* 20px tall, drawn from a 9-slice (4px ends, stretched middle). The
    title is Charcoal 12 with its baseline on row 13; controls.ts

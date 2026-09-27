@@ -40,7 +40,8 @@ information window (class `osm-info`, whose text dims when inactive).
 - List views over any data: sortable columns, the Finder's sort order
   button, resizable columns, icons and controls in rows, and thousands
   of rows kept up to date by key.
-- Progress bars, separators, wells, and label/value rows.
+- Progress bars, including the indeterminate barber pole, separators,
+  wells, and label/value rows.
 - Edit text fields, one-line and multi-line.
 - Document text views: a document window's wrapped text with its scroll
   bar, as TeachText and SimpleText show it, with TextEdit's undo, its
@@ -227,7 +228,7 @@ window.
 | List-view header | `<div class="osm-colheads"><button class="osm-colhead">Name</button>…</div>`, add `osm-sorted` to one header | none |
 | List view | `<div>` with a size | `mountListView(el, { label, columns, key, cell })`, then `setRows(rows)`; see [List view](#list-view) |
 | Placard | `<div class="osm-placard">3 items</div>` | `centerText(el)` |
-| Progress bar | `.osm-progress > .osm-progress-track > .osm-progress-fill`, set `--osm-value` (0 to 1) | none |
+| Progress bar | `.osm-progress > .osm-progress-track > .osm-progress-fill`, set `--osm-value` (0 to 1); add `osm-indeterminate` for the barber pole, see [Indeterminate progress bar](#indeterminate-progress-bar) | none |
 | Label/value rows | `<div class="osm-fields">` of `.osm-label` and value pairs | none |
 | Separator, well | `<div class="osm-separator">`, `<div class="osm-well">` | none |
 | Edit text | `<input class="osm-edit">` (22px), add `osm-compact` for 20px; `<div class="osm-edit-area"><textarea></textarea></div>` for several lines | native input; `mountTextArea(el)` adds a scroll bar to a multi-line field; `setEnabled(field, on)` |
@@ -243,6 +244,44 @@ custom properties.
 
 The demo's source (`demo/`) uses every control. It's the best place
 to see complete markup.
+
+### Indeterminate progress bar
+
+When there's no telling how long something will take, add
+`osm-indeterminate` to a progress bar. It shows Mac OS 8's barber pole,
+stripes in the accent color that move to the right:
+
+```html
+<div class="osm-progress osm-indeterminate" role="progressbar"
+     aria-label="Preparing to copy">
+  <div class="osm-progress-track"></div>
+</div>
+```
+
+Leave out `aria-valuenow`: a progress bar without a value is how ARIA
+marks progress of unknown length. A `.osm-progress-fill` inside stays
+hidden until you remove the class and set `--osm-value` again. In an
+inactive window the stripes dim and keep moving, as on a Mac. With
+`prefers-reduced-motion` they stand still.
+
+How faithful it is:
+
+- The stripes are Mac OS 8.0's, read from the code that draws them
+  (the Appearance Extension's progress bar CDEF, which 8.1 shares) and
+  checked against the Finder's "Preparing to copy…" bar in an
+  emulator. Captures in Lavender and Ivy, active and inactive, and in
+  Mac OS 8.5's Lavender render with 0 differing pixels, rim and edge
+  included. Other accents use the same entries of their own tables,
+  which is what the CDEF does; 8.5's other variations weren't captured.
+- Each step moves the stripes 4px, as every captured step did.
+- The pace is the Finder's, not the control's. A Mac OS 8 application
+  moved the stripes each time it gave the control idle time, at most
+  every 2 ticks (1/30 s). Mac OS 8.0's Finder, preparing a copy, moved
+  them alternately 6 and 19 ticks apart, and Osmium does the same; 8.5's
+  Finder took 14 to 34 ticks a step. The stripes move on their own in
+  Osmium, as long as the element is shown.
+- The black-and-white stripes Mac OS drew on a 1-bit screen aren't
+  included.
 
 ### Edit text
 
@@ -777,10 +816,11 @@ What differs from Mac OS 8:
 Sprites are pixel grids, one character per pixel. Hex digits are gray
 levels (`0` is black, `f` white), other letters are palette colors
 (`g` to `z`, or uppercase), and `.` is transparent. Osmium's own
-letters are the accent ramp (`w`, `q`, `p`, `m`, `l`, `n` from lightest
-to darkest, Lavender unless the sprite follows the accent, and `h`, a
-progress bar's center row) and the alert icons' colors (`R`, `P`, `M`,
-`N`, `Y`, `K`, `k`, `y`, `s`); your palette may redefine any of them.
+letters are the accent ramp (`w`, `q`, `p`, `m`, `l`, `j`, `n` from
+lightest to darkest, Lavender unless the sprite follows the accent, and
+`h`, a progress bar's center row) and the alert icons' colors (`R`, `P`,
+`M`, `N`, `Y`, `K`, `k`, `y`, `s`); your palette may redefine any of
+them.
 Register yours and use them as custom properties:
 
 ```ts

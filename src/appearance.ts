@@ -22,6 +22,9 @@
 //   A4  menu highlight fill, thumb grip shadows
 //   A5  menu highlight right column and bottom row
 //   A6  progress bottom row and right end, pressed grip shadows
+// The indeterminate progress bar's stripes run A5 A4 A3 A2 A1 A2 A3 A4
+// A5 A6 down its ten rows, and A2 in an inactive window (measured in
+// Lavender and Ivy; see sprites.ts).
 // The menu-bar title highlight (A3 top row, A4 fill, A5 bottom row) is
 // measured from a Mac OS 8.0 screenshot; the thumb roles for accents
 // other than Lavender follow Mozilla's reverse engineering (see
@@ -490,8 +493,8 @@ function resolve(appearance: Appearance): Resolved {
 /** Sprite palette keys (sprites.ts) for an accent. */
 function accentPalette({ ramp, center }: Resolved): Palette {
   return {
-    w: ramp[0], q: ramp[1], p: ramp[2], m: ramp[3], l: ramp[4], n: ramp[6],
-    h: center,
+    w: ramp[0], q: ramp[1], p: ramp[2], m: ramp[3], l: ramp[4], j: ramp[5],
+    n: ramp[6], h: center,
   };
 }
 
@@ -500,7 +503,7 @@ function accentPalette({ ramp, center }: Resolved): Palette {
 /** The built-in sprites drawn in the accent. alert-note uses the same
  * letters but is an icon, and icons keep their colors. */
 const ACCENT_SPRITES = new Set([
-  "fill", "fill-left", "fill-right",
+  "fill", "fill-left", "fill-right", "barber", "barber-inactive",
   "slider-thumb", "slider-thumb-pressed",
   "scroll-thumb", "scroll-thumb-pressed",
   "scroll-hthumb", "scroll-hthumb-pressed",

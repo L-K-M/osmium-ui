@@ -29,7 +29,7 @@ Balloon Help
 Choose Show Balloons from the Help menu, then rest the pointer on a control, a window's title bar or a desktop icon. Choose Hide Balloons to stop.
 
 Controls (desktop icon: Controls)
-Push buttons with the default button's ring, checkboxes, sliders with tick marks, a progress bar the Level slider drives, a pop-up menu, and the three bitmap fonts: Charcoal 12, Geneva 10 and Geneva 9. Return presses OK and Escape presses Cancel, each flashing its button.
+Push buttons with the default button's ring, checkboxes, sliders with tick marks, a progress bar the Level slider drives, an indeterminate progress bar, a pop-up menu, and the three bitmap fonts: Charcoal 12, Geneva 10 and Geneva 9. Return presses OK and Escape presses Cancel, each flashing its button.
 
 Control Panel (desktop icon: Control Panel)
 Bevel buttons down the left switch panes. The Desktop pane has a list box of patterns (type a name to jump to it) and Set Desktop paints the desktop. Monitor has two list boxes and a pop-up; Picture has sliders in group boxes.
