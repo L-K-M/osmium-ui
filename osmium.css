@@ -805,6 +805,148 @@
     #888;
 }
 
+/* ---- list views ------------------------------------------------------ */
+/* A Finder list view over any data (listview.ts): the column headers
+   above, then rows of an 18px cell over a 1px white rule, cells ee and
+   the sort column's dd. Widths (whole pixels), a row pitch other than
+   19px and icon images come from listview.ts, in a style sheet of the
+   list's own. The header strip runs on over the vertical scroll bar;
+   there the sort order button (Finder 8.1) covers it, 15px wide so that
+   the list's own black edge is its 16th column, as in the Mac OS 9.0
+   Finder (Sherlock 2 draws that column over the edge instead). Its
+   bottom row covers the scroll bar's top edge. The selection takes the
+   highlight color. Insets are the Finder demo's: 4px text, the icon at
+   26px and the label at 48px (Mac OS 9.0 measures 6/7, 22 and 42). */
+/* TEMPORARY: defaults for the highlight and focus colors, defined on
+   :root by the accent and highlight work (impl/accent). Delete this
+   block when merging that. */
+:root {
+  --osm-highlight: #ccccff;
+  --osm-highlight-text: #000000;
+  --osm-focus-ring: #6666cc;
+}
+/* END TEMPORARY */
+.osm-listview {
+  position: relative;
+  box-sizing: border-box;
+  display: flex; flex-direction: column;
+  border: 1px solid #000;
+  background: #eee; color: #000;
+  font: var(--osm-font-small);
+}
+.osm-lv-grid {
+  flex: 1; min-height: 0;
+  display: flex; flex-direction: column;
+  outline: none;
+}
+.osm-lv-heads { flex: none; }
+.osm-lv-head { position: relative; flex: none; display: flex; }
+.osm-lv-head > .osm-colhead { flex: 1; min-width: 0; }
+.osm-lv-head[data-align="right"] > .osm-colhead {
+  text-align: right; padding-right: 5px;
+}
+.osm-lv-has-icon .osm-lv-head.osm-lv-primary > .osm-colhead {
+  padding-left: var(--osm-lv-label-x, 48px);
+}
+.osm-lv-head:last-child { flex: 1 0 auto; }
+/* Divider grip for resize "drag", an approximation: 4px left and 3px
+   right of the line between two header cells, and the browser's
+   col-resize cursor (Mac OS 8.5's theme cursor was not captured). */
+.osm-lv-divider {
+  position: absolute; top: 0; right: -4px; z-index: 1;
+  width: 7px; height: 21px;
+  cursor: col-resize; touch-action: none;
+}
+.osm-lv-sortdir {
+  position: absolute; top: 0; right: 0; z-index: 3;
+  width: 15px; height: 21px; margin: 0; padding: 0; border: 0;
+  appearance: none; -webkit-appearance: none;
+  outline: none;
+  background: var(--osm-sprite-sortdir) 0 0 / 16px 21px no-repeat;
+}
+.osm-lv-sortdir[aria-pressed="true"] {
+  background-image: var(--osm-sprite-sortdir-reversed);
+}
+.osm-lv-body { flex: 1; min-height: 0; border: 0; background: #eee; }
+/* setRows keeps the reader's place itself. */
+.osm-lv-body > .osm-list-view { overflow-anchor: none; }
+/* content-visibility lets the browser skip laying out rows out of view,
+   which keeps a long list's updates fast where it is supported (it also
+   clips each row's content to the row). */
+.osm-lv-row {
+  display: flex;
+  height: 19px;
+  background:
+    linear-gradient(#eee, #eee) 0 0 / 100% calc(100% - 1px) no-repeat,
+    #fff;
+  white-space: nowrap;
+  content-visibility: auto;
+}
+/* "window" rendering: only rows near the view exist, each at its offset
+   in a box as tall as all the rows. */
+.osm-lv-windowed { position: relative; }
+.osm-lv-windowed > .osm-lv-row { position: absolute; left: 0; right: 0; }
+.osm-lv-cell {
+  position: relative;
+  box-sizing: border-box; flex: none;
+  height: 18px; padding: 2px 4px 0;
+  overflow: hidden; text-overflow: ellipsis;
+}
+.osm-lv-cell[data-align="right"] { text-align: right; }
+.osm-lv-cell.osm-lv-sorted { background: #ddd; }
+.osm-lv-has-icon .osm-lv-cell.osm-lv-primary {
+  padding-left: var(--osm-lv-label-x, 48px);
+}
+.osm-lv-icon {
+  position: absolute; left: var(--osm-lv-icon-x, 26px); top: 1px;
+  width: 16px; height: 16px;
+  background: 0 0 / 16px 16px no-repeat;
+}
+/* The label truncates itself, so a selected label's ellipsis stays on
+   the highlight. */
+.osm-lv-label {
+  display: inline-block; max-width: 100%; vertical-align: top;
+  overflow: hidden; text-overflow: ellipsis;
+}
+/* "label", the Finder's: the name takes the highlight and the icon
+   darkens, in an inactive window too. */
+.osm-listview[data-highlight="label"] .osm-lv-row.osm-selected .osm-lv-label {
+  background: var(--osm-highlight);
+  color: var(--osm-highlight-text);
+  box-shadow: 1px 0 var(--osm-highlight), -1px 0 var(--osm-highlight);
+}
+.osm-listview[data-highlight="label"] .osm-lv-row.osm-selected .osm-lv-icon {
+  filter: brightness(0.5);
+}
+/* "row", the List Manager's: the whole row but its rule, cleared in an
+   inactive window. */
+.osm-listview[data-highlight="row"] .osm-lv-row.osm-selected {
+  background:
+    linear-gradient(var(--osm-highlight), var(--osm-highlight))
+      0 0 / 100% calc(100% - 1px) no-repeat,
+    #fff;
+  color: var(--osm-highlight-text);
+}
+.osm-listview[data-highlight="row"] .osm-lv-row.osm-selected > .osm-lv-sorted {
+  background: none;
+}
+.osm-inactive .osm-listview[data-highlight="row"] .osm-lv-row.osm-selected {
+  background:
+    linear-gradient(#eee, #eee) 0 0 / 100% calc(100% - 1px) no-repeat,
+    #fff;
+  color: inherit;
+}
+.osm-inactive .osm-listview[data-highlight="row"]
+  .osm-lv-row.osm-selected > .osm-lv-sorted { background: #ddd; }
+/* The placeholder sits where the rows go, under the headers. */
+.osm-lv-empty { position: absolute; left: 0; right: 15px; top: 21px; }
+.osm-kbd .osm-lv-grid:focus-visible {
+  outline: 2px solid var(--osm-focus-ring); outline-offset: 2px;
+}
+.osm-kbd .osm-lv-sortdir:focus-visible {
+  outline: 2px solid var(--osm-focus-ring); outline-offset: -3px;
+}
+
 /* Keyboard focus, only while the keyboard is driving (install.ts sets
    .osm-kbd on the root; scripts focus lists and pop-ups on mouse presses
    too, which :focus-visible alone would ring). Mac OS 8.0 control

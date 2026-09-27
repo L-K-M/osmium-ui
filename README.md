@@ -35,6 +35,9 @@ information window (class `osm-info`, whose text dims when inactive).
 - Tab controls, measured from Mac OS 8.5's Appearance control panel.
 - Scroll bars, vertical and horizontal, and list boxes.
 - Finder list-view headers and placards.
+- List views over any data: sortable columns, the Finder's sort order
+  button, resizable columns, icons and controls in rows, and thousands
+  of rows kept up to date by key.
 - Progress bars, separators, wells, and label/value rows.
 - Edit text fields, one-line and multi-line.
 - Balloon Help: help balloons measured from Mac OS 8.0, with the Help
@@ -194,6 +197,7 @@ window.
 | Group box | `<div class="osm-group"><div class="osm-group-title">Title</div>…</div>` | none |
 | Tab control | `<div>` holding `<div class="osm-tablist">` of `<button class="osm-tab">` and then `<div class="osm-tab-pane">` with one panel per tab, in order. Give the `<div>` a height to have the pane fill it | `mountTabs(el, { selected, onChange })`; the arrow keys, Home and End move between tabs |
 | List-view header | `<div class="osm-colheads"><button class="osm-colhead">Name</button>…</div>`, add `osm-sorted` to one header | none |
+| List view | `<div>` with a size | `mountListView(el, { label, columns, key, cell })`, then `setRows(rows)`; see [List view](#list-view) |
 | Placard | `<div class="osm-placard">3 items</div>` | `centerText(el)` |
 | Progress bar | `.osm-progress > .osm-progress-track > .osm-progress-fill`, set `--osm-value` (0 to 1) | none |
 | Label/value rows | `<div class="osm-fields">` of `.osm-label` and value pairs | none |
@@ -410,6 +414,137 @@ titles dim, `bindDialogKeys` handlers stand down, and a window with
 Some of the alert is derived rather than measured (the explanation's
 spacing, the third button's place, how buttons and the alert grow);
 the CHANGELOG lists which parts.
+
+### List view
+
+`mountListView` builds a Finder list view from your data: column
+headers that pick the sort column, the sort order button above the
+scroll bar, both scroll bars, and rows with small icons. Rows are
+matched by key, so you can call `setRows` as often as your data changes
+(a network scan, say) and the selection, each row's elements and the
+reader's place survive.
+
+```ts
+import { mountListView } from "osmium-ui";
+
+const list = mountListView<Host>(document.getElementById("hosts")!, {
+  label: "Hosts",
+  columns: [
+    { id: "fav", title: "Fav.", width: 30 },
+    { id: "ip", title: "IP", width: 120, sort: "ascending" },
+    { id: "ports", title: "Ports", width: 60, sort: "descending",
+      align: "right" },
+  ],
+  primary: "ip", // gets the icon and the Finder's "label" highlight
+  key: (h) => h.ip,
+  cell(h, column, width, current) {
+    if (column.id === "ip") return h.ip;
+    if (column.id === "ports") return String(h.ports.length);
+    // Update the node you returned before, so the control keeps it.
+    const star = (current as HTMLButtonElement | null) ?? makeStar(h.ip);
+    star.setAttribute("aria-pressed", String(favorites.has(h.ip)));
+    return star;
+  },
+  icon: (h) => ({ image: "var(--osm-sprite-icon-printer)", label: "Printer" }),
+  rowClass: (h) => (h.stale ? ["stale"] : []),
+  sort: { column: "ip", order: "normal" },
+  onSort: (s) => list.setRows(sortHosts(hosts, s), { scroll: "top" }),
+  onSelect: (ip) => showDetails(ip),
+  onContextMenu: (ip, event) => openMenu(ip, event.clientX, event.clientY),
+  emptyText: "No hosts yet. Start a scan.",
+  loadingText: "Scanning...",
+});
+list.setRows(sortHosts(hosts, list.sort!));
+```
+
+**Sorting.** As in the Finder, the list has one sort column and one
+order for the whole list: `"normal"`, the column's own order (names A
+to Z, sizes largest first), or `"reversed"`. A click on a header picks
+that column and keeps the order; the sort order button (Finder 8.1)
+flips the order. Clicking the sorted header again does nothing. The
+list shows the sort and reports it to `onSort`; you sort the rows by
+the column's normal order, turn the whole list over when it is
+reversed, and pass them to `setRows`. A column's `sort` names its
+normal direction, which screen readers hear as `aria-sort`.
+
+**Updates.** `setRows` takes the rows in display order. A row whose
+object is the same (`===`) as before keeps its cells untouched, so treat
+rows as immutable values and call `refresh()` when something else that
+`cell` or `rowClass` reads has changed. The selection stays with its key,
+even while the row is filtered out. While the list is scrolled, the row
+at the top of the view stays put as rows arrive above it; at the very
+top, arrivals show. `{ scroll: "top" }` goes back to the top and then to
+the selection, for a new order. `cell` gets the cell's width, so you can
+shorten a date as its column narrows, as the Finder does.
+
+**Controls in rows.** A press on a button, input, label, link or an
+element marked `data-osm-control` inside a cell belongs to that
+control: the selection doesn't move, the list doesn't capture the
+pointer, and double-clicks don't open the row. While a press in the rows
+lasts, and until its click is over, the list holds updates back, so no
+control is replaced or moved under the pointer. Give such controls
+`tabIndex = -1` so the list stays one tab stop; Space then clicks the
+selected row's first control, so they stay usable from the keyboard.
+
+**Keyboard.** The arrow keys, Home, End, Page Up and Page Down move the
+selection, Return calls `onOpen`, and typing selects the first row whose
+primary text (or `typeSelect(row)`) starts with what you typed within
+the last second, spaces included. A space while you type is part of the
+name; Space on its own goes to the row's control. A contextual menu
+request from the keyboard (the menu key or Shift-F10, where the system
+sends one) is for the selected row.
+
+**Resize to fit.** `contentHeight` is the height the rows need (or the
+placeholder's, while there are none) and `viewportHeight` the height
+they have now; a zoom box or "resize to fit" adds the difference.
+
+**Long lists.** Up to 1000 rows, every row is in the DOM, laid out
+lazily with `content-visibility`. Above that (`rendering: "auto"`, the
+default) only the rows in and near the view, the selected row and rows
+under a press have elements: 4096 rows then take 2 to 5 ms per update
+and about 30 ms to reorder in Chromium, WebKit and Firefox, where every
+row in the DOM costs WebKit 24 ms per update and 0.7 s to reorder.
+Browser find-in-page doesn't see rows without elements; pass
+`rendering: "all"` to keep them all. `cell` must be cheap either way.
+
+**Assistive technology.** The rows form a `grid` with the headers as
+its first row. The selected row is the grid's active descendant, row
+icons carry their `label`, and the placeholder is a status message.
+Sortable headers and the sort order button are buttons of their own, so
+the list takes one tab stop for the rows plus one per sortable column
+and one for the button.
+
+Options: `highlight: "label"` highlights only the primary column's name
+and darkens its icon, as the Finder does, instead of the whole row;
+`resize: "drag"` lets the reader drag the dividers between header cells
+(Finder 8.5) and reports widths to `onColumnResize`; a column's `grow`
+shares out width beyond the columns' total; `sortOrderButton: "none"`
+leaves the button out, as in Finder 8.0. The selection uses
+`--osm-highlight` and `--osm-highlight-text`.
+
+What differs from Mac OS 8:
+
+- No Mac OS 8.x list view capture was found, so the sort order button
+  was measured from Mac OS 9.0, where the Finder and Sherlock 2 draw it
+  alike. The reversed button was never captured: its pyramid is drawn
+  upside down from the captured one's steps and shading. Pressed
+  headers and a pressed sort order button weren't captured either, so
+  they don't look pressed.
+- The divider's hit zone (7px), its cursor (the browser's `col-resize`)
+  and the 24px narrowest column are guesses. Mac OS 8.5's theme cursor
+  wasn't captured.
+- One row is selected at a time. A mouse drag moves the selection, as
+  in a List Manager list; the Finder's drag selects a group of items,
+  which isn't reproduced.
+- Home, End and the Page keys move the selection, like `mountList`;
+  the Finder only scrolled. Type-select matches the start of a name
+  rather than the List Manager's nearest match, and Tab doesn't move
+  through the items alphabetically as it does in the Finder.
+- `grow`, the placeholder text, icon headers and controls in rows are
+  additions; so is a contextual menu request from the keyboard.
+- Text insets follow the kit's earlier Finder window (text 4px in, the
+  icon at 26px, the name at 48px); Mac OS 9.0 measures 6 or 7, 22 and
+  42.
 
 ### Your own icons
 
