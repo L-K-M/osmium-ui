@@ -23,7 +23,7 @@ Windows
 Drag a window by its title bar. The close box (left) puts it away; its desktop icon brings it back. The collapse box (far right) folds it up to its title bar. The Osmium HD and Foolscap windows also have a zoom box and a grow box in their bottom-right corner. Windows behind the front one draw inactive: gray frame, no stripes, no boxes. A click in one brings it forward. Special > Clean Up puts every window back where it started.
 
 The menu bar
-Menus stay open after a click and follow the pointer, or you can drag to an item and let go. Items with a keyboard equivalent show it at the right: hold down the Command key (Control on Windows and Linux) and type the letter. While a Foolscap window is in front, the menu bar holds Foolscap's own menus; click the desktop or another window and the Finder's come back.
+Menus stay open after a click and follow the pointer, or you can drag to an item and let go. Items with a keyboard equivalent show it at the right: hold down the Command key (Control on Windows and Linux) and type the letter. While a Foolscap window is in front, the menu bar holds Foolscap's own menus; click the desktop or another window and the Finder's come back. The crystal at the left end of the menu bar is the Apple menu: it lists every window in the demo, whichever application is in front.
 
 Balloon Help
 Choose Show Balloons from the Help menu, then rest the pointer on a control, a window's title bar or a desktop icon. Choose Hide Balloons to stop.

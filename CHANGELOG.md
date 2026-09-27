@@ -2,6 +2,59 @@
 
 ## Unreleased
 
+- Add text views (`mountTextView`): a document window's text as
+  TeachText and SimpleText show it in Mac OS 8, on a native textarea.
+  White, wrapped to the width with no horizontal scrolling, a vertical
+  scroll bar over the content's edges and a blank 15px strip along the
+  bottom beside the grow box. The geometry is measured from SimpleText
+  1.4 on Mac OS 8.0 in an emulator; typed text, a wrapped long line, a
+  resized window and an inactive window's framed selection render with
+  0 differing pixels against the captures. The view adds TextEdit's
+  single-level undo (by edit groups, undoing again redoes; Command-Z and
+  the browser's Undo go to it), `"read-only"` documents that report
+  typing to `onRejectedEdit`, a `maxLength` reported to `onLimit`, cut,
+  copy, paste and clear that reject when the browser refuses the
+  clipboard, double-click selection without the trailing space, and
+  TextEdit's highlight where the browser draws none: an outline in an
+  inactive window, a fill while a menu has the keyboard. Not TextEdit:
+  the browser's caret sits 1px right, the browser's own selection
+  doesn't run to the text rectangle's edges, Tab moves the focus, the
+  text is plain, and a read-only document's text can be selected and
+  copied. Not captured: the inactive bottom strip (55, like the frame)
+  and the outline with a colored highlight (black).
+- Add Geneva 12 (`--osm-font-document`, `.osm-document`), the document
+  font of TeachText and SimpleText, extracted from SimpleText 1.4's
+  text in Mac OS 8.0: ASCII and ten punctuation marks; a separately
+  captured line matches with 0 differing pixels. Its leading is folded
+  into the descent for TextEdit's 16px line. `installOsmium` registers
+  it with synthesized bold.
+- Menu bars take keyboard equivalents: a `MenuItem`'s `key` is drawn
+  after the command key symbol, as SimpleText 1.4's menus draw it, and
+  Command-key (Control-key where there is no Command key; `commandKey`
+  chooses) chooses the item, flashing its title. Only enabled items
+  claim keys, so browser shortcuts and text fields keep the rest; keys
+  a control handled, keys under an alert and keys aimed at an inert
+  menu bar are left alone. `keyDispatch: "browser"` leaves a key to the
+  browser (Cut, Copy and Paste in a text field). Items can show a check
+  mark (`checked`).
+- `mountMenuBar` returns a handle (`OsmiumMenuBar`) whose `setMenus`
+  replaces the menus, for an application's own menus while its window
+  is in front. Callers that ignored the old `void` result are unaffected.
+- Menu bar menus leave 9px after an item without a key, 3px less than
+  before (pop-up menus keep 12): SimpleText's File, Edit and Help menus,
+  now reproduced with 0 differing pixels, measure so.
+- Charcoal 12 has the command key symbol (U+2318), measured from
+  SimpleText's menus. Its advance can't be read from a menu; 10 is
+  chosen, which puts the key letter on its measured pen.
+- `attachScrollbar` takes a function for its arrow step, read at each
+  step (a line height that follows the font).
+- The demo has Foolscap, a text editor in the manner of TeachText 7.0,
+  with its own menus in the menu bar while its window is in front, a
+  movable modal Open dialog of sample documents (and text files from
+  disk), Save and Save As that download a text file, a Save Changes
+  alert, fonts and sizes, and a read-only Read Me that tours the kit.
+  The Finder's menus have keyboard equivalents, and its window lists
+  Foolscap and the Read Me. The native demo has an editor page.
 - Add accent and highlight colors (`setAppearance`, `getAppearance`,
   `nearestAccent`): Mac OS 8.0's 18 accent colors and 8.5's 20
   variations, and both releases' highlight colors, transcribed from

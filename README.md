@@ -6,7 +6,7 @@
 The Mac OS 8 look, pixel for pixel, for web pages and WKWebView apps.
 
 <p align="center">
-  <img src="docs/demo@2x.png" width="1024" alt="The Osmium UI demo: a Mac OS 8 desktop with a dialog full of controls, a Finder list view, a control panel and an About window">
+  <img src="docs/demo@2x.png" width="1024" alt="The Osmium UI demo: a Mac OS 8 desktop with a dialog full of controls, a Finder list view, a control panel, an About window and desktop icons">
 </p>
 
 Osmium UI recreates the classic Mac OS 8 appearance in HTML and CSS:
@@ -30,7 +30,9 @@ information window (class `osm-info`, whose text dims when inactive).
 - Push buttons, including the default button's ring, pressed and dimmed.
 - Checkboxes and sliders with tick marks.
 - Pop-up buttons with their menus, and separators in them.
-- The menu bar, with pull-down menus.
+- The menu bar, with pull-down menus, check marks and keyboard
+  equivalents, and menus an application swaps in while its window is in
+  front.
 - Group boxes and bevel buttons.
 - Tab controls, measured from Mac OS 8.5's Appearance control panel.
 - Scroll bars, vertical and horizontal, and list boxes.
@@ -40,6 +42,9 @@ information window (class `osm-info`, whose text dims when inactive).
   of rows kept up to date by key.
 - Progress bars, separators, wells, and label/value rows.
 - Edit text fields, one-line and multi-line.
+- Document text views: a document window's wrapped text with its scroll
+  bar, as TeachText and SimpleText show it, with TextEdit's undo, its
+  highlighting and read-only documents.
 - Balloon Help: help balloons measured from Mac OS 8.0, with the Help
   menu's Show Balloons / Hide Balloons command.
 - Alert boxes: stop, caution and note alerts, modal or movable. The
@@ -51,10 +56,12 @@ information window (class `osm-info`, whose text dims when inactive).
 colors, from Apple's own tables for Mac OS 8.0 and 8.5, or any color
 (see [Accent and highlight colors](#accent-and-highlight-colors)).
 
-**Fonts.** Charcoal 12, Geneva 10 and Geneva 9 as bitmap strikes. They
-are compiled into TrueType fonts in the browser at startup, with
-QuickDraw-style synthesized bold for Charcoal 12 and Geneva 10, so
-text renders with the original glyphs on any platform.
+**Fonts.** Charcoal 12, Geneva 12, Geneva 10 and Geneva 9 as bitmap
+strikes. They are compiled into TrueType fonts in the browser at
+startup, with QuickDraw-style synthesized bold, so text renders with
+the original glyphs on any platform. Geneva 12 was captured for ASCII
+and ten punctuation marks (curly quotes, bullet, ellipsis, dashes, © and
+™); other characters fall through to the next font.
 
 **Behavior.**
 - Press tracking: releasing outside a control cancels.
@@ -109,14 +116,27 @@ npm run demo
 
 This builds the demo and serves it locally: a Mac OS 8 desktop with a
 dialog full of controls, a Finder list view, a control panel, a tabbed
-Appearance window and a File Sharing window full of edit text (open
-them from their desktop icons), and an About window.
+Appearance window that sets the accent and highlight colors, a File
+Sharing window full of edit text, an Alerts window and an About window
+(open them from their desktop icons or the crystal menu at the left of
+the menu bar). Double-click the Read Me icon for a tour: it lists every
+part of the kit and where the demo shows it.
+
 You can drag the windows, click to bring them to the front, close them
-and windowshade them, and zoom and resize the Finder window.
-Choose Show Balloons from the Help menu, then rest the pointer on a
-control, a window's title bar or a desktop icon to see its help balloon.
-The Alerts window (open it from its desktop icon) and Special > Empty
-Trash… bring up alerts.
+and windowshade them, and zoom and resize the Finder and Foolscap
+windows. In the Finder window, click a column header to sort, the
+button above the scroll bar to reverse the order, and drag the lines
+between headers to resize columns. Choose Show Balloons from the Help
+menu, then rest the pointer on a control, a window's title bar or a
+desktop icon to see its help balloon. The Alerts window and Special >
+Empty Trash… bring up alerts.
+
+Foolscap (its desktop icon) is a small text editor in the manner of
+TeachText, built on the text view. While its window is in front the
+menu bar shows its own menus, with keyboard equivalents: New, Open…,
+Close (which asks about unsaved changes), Save and Save As… (which
+download a text file), Undo, Cut, Copy, Paste, and fonts and sizes. The
+Read Me is a read-only document: typing in it brings up an alert.
 
 On a Mac with the Xcode command line tools, the same pages run as
 native windows:
@@ -194,7 +214,7 @@ window.
 | Checkbox | `<label class="osm-checkbox"><input type="checkbox"> Title</label>` | `trackHighlight(label)` |
 | Slider | `<div class="osm-slider"><input type="range" min="0" max="100"></div>` (125px wide, 100 steps) | native input |
 | Pop-up button | `<button class="osm-popup">`, with an optional `<label class="osm-popup-title">` | `mountPopup(el, { items, selected, onChange })`; put `MENU_SEPARATOR` among the items for a dividing line |
-| Menu bar | a `<div>` along the top of the page | `mountMenuBar(el, [{ title, items: () => [{ title, action }, MENU_SEPARATOR, …] }])`; an item without an `action` is dimmed, and `icon` names a 16x16 sprite to show instead of a title |
+| Menu bar | a `<div>` along the top of the page | `mountMenuBar(el, [{ title, items: () => [{ title, action, key }, MENU_SEPARATOR, …] }])`; an item without an `action` is dimmed, `key` is its keyboard equivalent, `checked` draws a check mark, and `icon` names a 16x16 sprite to show instead of a title; see [Menu bar](#menu-bar) |
 | List box | `<div>` with a height | `mountList(el, { rowHeight, label, onSelect })`, then `setRows(rows)`. `scrollbars: "both"` adds a horizontal bar (give the rows a `min-width`), and `header` keeps a list view's column headers scrolled with the rows |
 | Scroll bar | a positioned `host` with a scrolling child `view` that leaves 15px on the right (or, for a horizontal bar, at the bottom) and hides its native scroll bars (as `mountList` sets up) | `attachScrollbar(host, view, lineHeight)`, or `attachScrollbar(host, view, step, "horizontal")` |
 | Bevel button | `<button class="osm-bevel">`, a 32x32 icon in `--osm-icon`, `osm-selected` for pushed in, a `.osm-bevel-caption` below. 40x40 as in Monitors & Sound; set an even `width` for wider ones, such as Desktop Pictures' 54px | `trackPress(el, action)` |
@@ -207,13 +227,15 @@ window.
 | Label/value rows | `<div class="osm-fields">` of `.osm-label` and value pairs | none |
 | Separator, well | `<div class="osm-separator">`, `<div class="osm-well">` | none |
 | Edit text | `<input class="osm-edit">` (22px), add `osm-compact` for 20px; `<div class="osm-edit-area"><textarea></textarea></div>` for several lines | native input; `mountTextArea(el)` adds a scroll bar to a multi-line field; `setEnabled(field, on)` |
+| Text view | a `<div>` filling a document window's content | `mountTextView(el, { label, text, mode, font })`; see [Text view](#text-view) |
 | Help balloon | none: attach it to any element | `attachBalloon(el, { content })`, and `balloonMenuItem()` in a Help menu; see [Balloon Help](#balloon-help) |
 | Alert | built for you | `showAlert({ kind, message, explanation, buttons })`, see [Alerts](#alerts) |
 
 Disable a checkbox, slider or edit text with `setEnabled(input, false)`
 so the whole control dims. The fonts are available as `osm-system` (Charcoal
-12), `osm-small` (Geneva 10) and `osm-caption` (Geneva 9), or as the
-`--osm-font-*` custom properties.
+12), `osm-small` (Geneva 10), `osm-caption` (Geneva 9) and `osm-document`
+(Geneva 12 on 16px lines, the document font), or as the `--osm-font-*`
+custom properties.
 
 The demo's source (`demo/`) uses every control. It's the best place
 to see complete markup.
@@ -297,6 +319,138 @@ matches Mac OS 9.0 Date Formats. Some details differ:
   text.
 - Selected text is white on 010101 rather than black: WebKit lightens
   an opaque black selection to 333333.
+
+### Text view
+
+<p align="center">
+  <img src="docs/foolscap.png" width="512" alt="A document window titled Read Me: Geneva 12 text wrapped to the window, a phrase selected, a vertical scroll bar and a blank strip along the bottom beside the grow box">
+</p>
+
+`mountTextView` turns an element into a document window's text, the way
+TeachText and SimpleText show it in Mac OS 8: white, wrapped to the
+window's width with no horizontal scrolling, a vertical scroll bar whose
+black edges lie on the content's edges, and a blank strip along the
+bottom that leaves the corner to the window's grow box. Give it the
+whole content area of a window:
+
+```ts
+import { mountTextView, mountWindow, showAlert } from "osmium-ui";
+
+const win = mountWindow(el, { title: "Read Me", onGrow, onZoom, onClose });
+const host = document.createElement("div");
+host.style.cssText = "position: absolute; inset: 0";
+win.content.append(host);
+const view = mountTextView(host, {
+  label: "Read Me",
+  text: readMe,
+  mode: "read-only",       // or "editable" (the default)
+  font: "geneva-12",       // "geneva-10", "geneva-9", "charcoal-12"
+  maxLength: 32767,        // TextEdit's own limit
+  onChange: () => { dirty = true; },
+  onLimit: () => showAlert({ kind: "stop", message: "The document is full." }),
+  onRejectedEdit: () => showAlert({ kind: "stop", modality: "movable",
+    message: "This document can only be read." }),
+});
+```
+
+The text is a native `<textarea>` (`view.textarea`), so input methods,
+the browser's clipboard shortcuts and assistive technology work as in
+any text field. The view adds what a TeachText-style application needs
+for its Edit menu:
+
+- `undo()` is TextEdit's single level of undo, as a Mac OS 8
+  application's Undo command offers it: it takes back the last edit (a
+  run of typing, a cut, a paste, a clear, a drop) and redoes it when
+  chosen again. Command-Z (Control-Z) and the browser's own Undo come to
+  it too. `canUndo` says whether there is anything to undo. `setText`
+  starts over.
+- `cut()`, `copy()` and `paste()` use the clipboard as far as the
+  browser allows, and reject rather than pretend when it refuses: a
+  script may write to the clipboard only while handling the reader's own
+  click or keystroke, and may read it only with the reader's permission
+  (a prompt, or a Paste button of the browser's own). Chromium asked for
+  that permission in testing, and its headless mode leaves the prompt
+  unanswered. The keyboard's Command-X, C and V are the browser's own
+  and need no permission, so a menu bar leaves them to it (see
+  `keyDispatch` below). `clear()` deletes the selection, `selectAll()`
+  selects everything, and `hasSelection` says whether anything is
+  selected.
+- `"read-only"` shows a document the way SimpleText shows its read-only
+  (ttro) documents: no caret, and every attempt to type goes to
+  `onRejectedEdit`, where SimpleText puts up a stop alert. Unlike
+  SimpleText, its text can still be selected and copied, which readers
+  and assistive technology need.
+- A double-click selects a word without the space after it, as TextEdit
+  does, in browsers that would take the space too.
+- `setMode`, `setFont` and `setText` let one view show one document
+  after another.
+
+The geometry is measured from SimpleText 1.4 on Mac OS 8.0 in an
+emulator: the text rectangle 4px inside the content area and 4px short
+of the scroll bar and the strip, the first glyph 1px inside it, 16px
+lines. Rendered in the same window with Geneva 12, typed text, a wrapped
+long line, a window resized narrower and an inactive window's framed
+selection match the captures with 0 differing pixels. In an inactive
+window the text stays black, the caret goes, the scroll bar is blank
+(white inside its 55 edges) and a selection is framed in a 1px outline,
+TextEdit's outline highlighting.
+
+What differs from TextEdit:
+
+- The browser draws the caret, one pixel right of TextEdit's.
+- While the text has the keyboard the browser draws the selection too:
+  it covers only the selected characters, where TextEdit starts a line's
+  highlight at the text rectangle's left edge and runs it on to the
+  right edge when the selection goes past the line's end. The view draws
+  TextEdit's region itself where the browser draws none: framed in an
+  inactive window, and filled while a menu has the keyboard.
+- The outline is black whatever the highlight color; it was captured
+  only with the Black & White highlight. The bottom strip's line turns
+  55 in an inactive window, which wasn't captured.
+- Tab moves the keyboard to the next control, as in any web page, where
+  TextEdit types a tab. Plain text only: no styles.
+
+### Menu bar
+
+`mountMenuBar` returns a handle whose `setMenus` replaces the menus, so
+an application can show its own while its window is in front, as the
+demo's Foolscap does. A menu item's `key` is its keyboard equivalent,
+drawn after the command key symbol in the columns SimpleText's menus use
+in Mac OS 8.0:
+
+```ts
+const bar = mountMenuBar(el, finderMenus);
+bar.setMenus([
+  { title: "Edit", items: () => [
+    { title: "Undo", key: "Z", ...(view.canUndo ? { action: view.undo } : {}) },
+    MENU_SEPARATOR,
+    // Typed while the text has the keyboard, Command-C stays the
+    // browser's own copy, which needs no clipboard permission.
+    { title: "Copy", key: "C", action: () => void view.copy(),
+      keyDispatch: textHasKeyboard() ? "browser" : "action" },
+    { title: "Select All", key: "A", action: () => view.selectAll() },
+  ] },
+  { title: "Size", items: () => [
+    { title: "12", checked: true, action: () => setSize(12) },
+  ] },
+]);
+```
+
+Command and the key (Control where there is no Command key; pass
+`{ commandKey: "meta" }` or `"control"` as the third argument to choose)
+chooses the item and flashes its menu's title. Letters match without
+Shift; another character matches as typed. Only an enabled item takes
+its key, so a dimmed item, and any key no item claims, leaves the
+keystroke to the browser and to text fields. Keys a control already
+handled (`preventDefault`), keys typed while an alert is up and keys
+aimed at an `inert` menu bar (under your own modal dialog) are left
+alone too. Browsers keep some keys for themselves and never pass them
+to a page: in Chromium, for one, Control-N, Control-T and Control-W
+(Command on a Mac) open and close windows and tabs.
+
+Menu bar menus leave 9px after an item without a key and fit a key
+equivalent in 32px more, as SimpleText's File, Edit and Help menus do;
+rendered, they match those menus with 0 differing pixels.
 
 ### Balloon Help
 
@@ -737,7 +891,7 @@ ResizeObserver and CSS `border-image`.
 
 ## Not included yet
 
-Radio buttons and keyboard equivalents shown in menus.
+Radio buttons.
 
 ## Development
 
