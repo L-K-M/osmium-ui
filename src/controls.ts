@@ -646,12 +646,14 @@ function axisOps(axis: ScrollAxis, view: HTMLElement, bar: HTMLElement,
 
 /** Give `view` (a scrolling child of `host`) an Osmium scroll bar,
  * overlapping `host`'s 1px edge: on its right edge, or with
- * "horizontal" along its bottom. `line` is the arrow step. The view
- * keeps native wheel and keyboard scrolling. */
+ * "horizontal" along its bottom. `step` is the arrow step, or a
+ * function read at each step (a line height that changes with the
+ * font, say). The view keeps native wheel and keyboard scrolling. */
 export function attachScrollbar(host: HTMLElement, view: HTMLElement,
-                                line: number,
+                                step: number | (() => number),
                                 axis: ScrollAxis = "vertical"): Scrollbar {
   const vertical = axis === "vertical";
+  const lineOf = typeof step === "number" ? () => step : step;
   const bar = part("div", vertical ? "osm-scrollbar" : "osm-hscrollbar");
   bar.setAttribute("aria-hidden", "true"); // the view scrolls natively
   const back = part("div", vertical ? "osm-sb-up" : "osm-sb-left");
@@ -704,7 +706,7 @@ export function attachScrollbar(host: HTMLElement, view: HTMLElement,
     arrow.addEventListener("pointerdown", (e) => {
       if (e.button !== 0 || ax.max() <= 0) return;
       arrow.classList.add("osm-pressed");
-      repeat(arrow, e, () => ax.scrollTo(ax.pos() + dir * line),
+      repeat(arrow, e, () => ax.scrollTo(ax.pos() + dir * lineOf()),
              (x, y) => {
                const over = inside(arrow, x, y);
                arrow.classList.toggle("osm-pressed", over);
@@ -716,6 +718,7 @@ export function attachScrollbar(host: HTMLElement, view: HTMLElement,
   // Track: page toward the pointer until the thumb reaches it.
   bar.addEventListener("pointerdown", (e) => {
     if (e.button !== 0 || e.target !== bar || ax.max() <= 0) return;
+    const line = lineOf();
     const page = Math.max(line, ax.page() - line);
     repeat(bar, e, (x, y) => {
       const t = ax.thumb(), p = ax.along(x, y);
@@ -762,7 +765,7 @@ export function attachScrollbar(host: HTMLElement, view: HTMLElement,
   // scrolls sideways.
   bar.addEventListener("wheel", (e) => {
     const d = vertical ? e.deltaY : e.deltaX || e.deltaY;
-    ax.scrollTo(ax.pos() + d * (e.deltaMode === 1 ? line
+    ax.scrollTo(ax.pos() + d * (e.deltaMode === 1 ? lineOf()
       : e.deltaMode === 2 ? ax.page() : 1));
     e.preventDefault();
   }, { passive: false });

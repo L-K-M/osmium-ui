@@ -44,6 +44,10 @@ export { mountTabs } from "./tabs.js";
 export type { OsmiumTabs, TabsOptions } from "./tabs.js";
 export { mountTextArea } from "./edittext.js";
 export type { OsmiumTextArea } from "./edittext.js";
+export { mountTextView } from "./textview.js";
+export type {
+  OsmiumTextView, TextViewFont, TextViewMode, TextViewOptions,
+} from "./textview.js";
 export {
   attachBalloon, balloonHelp, balloonMenuItem, onBalloonHelpChange,
   setBalloonHelp,

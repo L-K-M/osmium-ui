@@ -1195,6 +1195,83 @@
 .osm-edit-area.osm-disabled > .osm-scrollbar { pointer-events: none; }
 .osm-edit-area.osm-disabled > .osm-scrollbar > * { visibility: hidden; }
 
+/* ---- text view --------------------------------------------------------- */
+/* A document window's text (textview.ts), as SimpleText 1.4 shows it in
+   Mac OS 8.0: white, the text rectangle 4px in from the view's left and
+   top, 4px short of the scroll bar and of the bottom strip, the first
+   glyph's pen 1px inside the rectangle. The view fills whatever it is
+   given (a window's whole content area): the vertical scroll bar's
+   black edges lie on the content's top and right edges and it stops
+   above the 15px bottom strip, whose black top line runs from the left
+   edge to the scroll bar, leaving the corner to the window's grow box.
+   The font follows data-font; the text area clips like TextEdit's view
+   rectangle, and the outline and mirror share its box. */
+.osm-textview {
+  position: relative;
+  box-sizing: border-box;
+  overflow: hidden;
+  background: #fff; color: #000;
+  font: var(--osm-font-document);
+  font-synthesis: none;
+  -webkit-font-smoothing: none;
+}
+.osm-textview[data-font="geneva-10"] { font: var(--osm-font-small); }
+.osm-textview[data-font="geneva-9"] { font: var(--osm-font-caption); }
+.osm-textview[data-font="charcoal-12"] { font: var(--osm-font-system); }
+.osm-textview > textarea, .osm-textview-outline, .osm-textview-mirror {
+  position: absolute; left: 4px; top: 4px; right: 19px; bottom: 19px;
+  box-sizing: border-box;
+}
+.osm-textview > textarea, .osm-textview-mirror {
+  margin: 0; padding: 0 0 0 1px; border: 0;
+  font: inherit; letter-spacing: normal; word-spacing: normal;
+  text-indent: 0; text-transform: none; tab-size: 8;
+  white-space: pre-wrap; overflow-wrap: break-word; word-break: normal;
+}
+.osm-textview > textarea {
+  width: auto; height: auto;
+  border-radius: 0;
+  background: transparent; color: #000;
+  font-synthesis: none;
+  -webkit-font-smoothing: none;
+  caret-color: #000;
+  cursor: text;
+  user-select: text; -webkit-user-select: text;
+  resize: none;
+  overflow-x: hidden; overflow-y: auto;
+  scrollbar-width: none;
+  appearance: none; -webkit-appearance: none;
+  outline: none;
+}
+.osm-textview > textarea::-webkit-scrollbar { display: none; }
+.osm-textview > textarea::selection {
+  background: var(--osm-highlight);
+  background: color-mix(in srgb, var(--osm-highlight) 99.6%, transparent);
+  color: var(--osm-highlight-text);
+}
+.osm-textview-mirror { visibility: hidden; overflow: hidden; }
+.osm-textview-outline { overflow: hidden; pointer-events: none; }
+.osm-textview-outline > div { position: absolute; background: #000; }
+.osm-textview > .osm-scrollbar { bottom: 14px; }
+.osm-textview-strip {
+  position: absolute; left: 0; right: 15px; bottom: 0;
+  box-sizing: border-box; height: 15px;
+  border-top: 1px solid #000;
+  background: #fff;
+}
+/* A read-only document (SimpleText's ttro) shows no caret. */
+.osm-textview[data-mode="read-only"] > textarea { caret-color: transparent; }
+/* Inactive, measured: black text, no caret or highlight (textview.ts
+   frames the selection instead), the scroll bar blank white inside its
+   55 edges. APPROXIMATION: the strip's line turns 55 like the frame's;
+   the inactive window's bottom edge wasn't captured. */
+.osm-inactive .osm-textview > textarea { caret-color: transparent; }
+.osm-inactive .osm-textview > textarea::selection {
+  background: transparent; color: inherit;
+}
+.osm-inactive .osm-textview > .osm-scrollbar { background: #fff; }
+.osm-inactive .osm-textview-strip { border-top-color: #555; }
+
 /* ---- Balloon Help ---------------------------------------------------- */
 /* A help balloon (balloon.ts): the body is a 9-slice of the Mac OS 8.0
    balloon (1px black outline, 1px black shadow right and below, white
