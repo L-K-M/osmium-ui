@@ -145,6 +145,10 @@ native windows:
 make -C demo/macos run
 ```
 
+The native demo's editor window has no menu bar and closes without
+asking about unsaved changes: `hostWindow` gives a page no say in
+closing its window.
+
 ## Install
 
 Osmium UI ships as TypeScript source plus one stylesheet. Add it as a

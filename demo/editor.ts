@@ -17,9 +17,13 @@
 //
 // The Read Me is read-only, as SimpleText's ttro documents are: typing
 // in it brings up a movable stop alert (in words of the demo's own, not
-// Apple's). Closing a document with changes asks Save, Don't Save or
-// Cancel. In a one-window page (the native demo app) there is no menu
-// bar: the window holds a new document, with the text view's own keys.
+// Apple's). On the desktop, closing a document with changes (Close, or
+// the close box) asks Save, Don't Save or Cancel. In a one-window page
+// (the native demo app) there is no menu bar: the window holds a new
+// document, with the text view's own keys, and its close box (or
+// Escape while the text doesn't have the keyboard) closes it without
+// asking, changes and all: hostWindow gives the page no say in closing
+// its window.
 import {
   MENU_SEPARATOR, attachBalloon, balloonMenuItem, mountList, mountTextView,
   pushButton, showAlert,

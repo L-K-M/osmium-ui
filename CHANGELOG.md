@@ -58,7 +58,9 @@
   disk), Save and Save As that download a text file, a Save Changes
   alert, fonts and sizes, and a read-only Read Me that tours the kit.
   The Finder's menus have keyboard equivalents, and its window lists
-  Foolscap and the Read Me. The native demo has an editor page.
+  Foolscap and the Read Me. The native demo has an editor page, which
+  closes without asking about unsaved changes (`hostWindow` has no
+  close hook).
 - Add accent and highlight colors (`setAppearance`, `getAppearance`,
   `nearestAccent`): Mac OS 8.0's 18 accent colors and 8.5's 20
   variations, and both releases' highlight colors, transcribed from
