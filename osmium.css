@@ -587,6 +587,44 @@
     var(--osm-accent-4);
   color: #fff;
 }
+/* A contextual menu's (contextmenu.ts) first and last items take over
+   the bevel rows they sit on: highlighted, the top row turns A3 and the
+   bottom row A5, the corners the A4 fill, as the bevel leaves them dd
+   (Finder 8.0's Help and Make Alias, Mac OS 8.0; a lone item gets both,
+   which wasn't seen). Menu bar menus draw their first item the same way
+   (Finder 8.0's File menu), which .osm-pulldown doesn't do yet. */
+.osm-contextmenu > .osm-menu-item.osm-highlight:first-child {
+  background:
+    linear-gradient(var(--osm-accent-3), var(--osm-accent-3))
+      0 0 / calc(100% - 1px) 1px no-repeat,
+    linear-gradient(var(--osm-accent-3), var(--osm-accent-3))
+      0 0 / 1px 100% no-repeat,
+    linear-gradient(var(--osm-accent-5), var(--osm-accent-5))
+      right 0 top 1px / 1px calc(100% - 1px) no-repeat,
+    var(--osm-accent-4);
+}
+.osm-contextmenu > .osm-menu-item.osm-highlight:last-child {
+  background:
+    linear-gradient(var(--osm-accent-3), var(--osm-accent-3))
+      0 0 / 1px calc(100% - 1px) no-repeat,
+    linear-gradient(var(--osm-accent-5), var(--osm-accent-5))
+      left 1px bottom 0 / calc(100% - 1px) 1px no-repeat,
+    linear-gradient(var(--osm-accent-5), var(--osm-accent-5))
+      right 0 top 0 / 1px 100% no-repeat,
+    var(--osm-accent-4);
+}
+.osm-contextmenu > .osm-menu-item.osm-highlight:only-child {
+  background:
+    linear-gradient(var(--osm-accent-3), var(--osm-accent-3))
+      0 0 / calc(100% - 1px) 1px no-repeat,
+    linear-gradient(var(--osm-accent-3), var(--osm-accent-3))
+      0 0 / 1px calc(100% - 1px) no-repeat,
+    linear-gradient(var(--osm-accent-5), var(--osm-accent-5))
+      left 1px bottom 0 / calc(100% - 1px) 1px no-repeat,
+    linear-gradient(var(--osm-accent-5), var(--osm-accent-5))
+      right 0 top 1px / 1px calc(100% - 1px) no-repeat,
+    var(--osm-accent-4);
+}
 .osm-menu-item[aria-disabled="true"] { color: #888; }
 /* A separator (MENU_SEPARATOR): 6px, an engraved line on rows 2 and 3
    across the whole menu, bevel included (Mac OS 8.0's Apple menu). */

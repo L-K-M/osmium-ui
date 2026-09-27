@@ -8,7 +8,9 @@
 // collapse boxes windowshade; the Finder and Foolscap windows zoom and
 // grow. The Help menu turns Balloon Help on and off for every window,
 // the window frames and the desktop icons included. Special > Empty
-// Trash… brings up a caution alert over the front window.
+// Trash… brings up a caution alert over the front window. Control-click
+// or right-click on the desktop or an icon brings up its contextual
+// menu, laid out like Finder 8.0's.
 //
 // Two applications share the screen: the Finder, which owns the
 // desktop and most windows, and Foolscap (editor.ts), whose window
@@ -18,10 +20,10 @@
 // until the reader clicks the desktop or a Finder window, or quits it.
 import {
   MENU_SEPARATOR, attachBalloon, balloonMenuItem, installOsmium,
-  mountMenuBar, mountWindow, showAlert,
+  mountMenuBar, mountWindow, showAlert, showContextMenu,
 } from "../src/index.js";
 import type {
-  Menu, MenuEntry, OsmiumBalloon, OsmiumWindow, Size,
+  Menu, MenuEntry, MenuPoint, OsmiumBalloon, OsmiumWindow, Size,
 } from "../src/index.js";
 import { beep } from "./controls.js";
 import type { DocumentId } from "./documents.js";
@@ -402,6 +404,15 @@ for (const d of ICONS) {
     selectIcon(target);
   });
   icon.addEventListener("dblclick", () => open(d.id, d.doc));
+  icon.addEventListener("contextmenu", (e) => {
+    e.preventDefault();
+    finderFront();
+    selectIcon(target);
+    showContextMenu(menuPoint(e, icon), [
+      helpItem(), MENU_SEPARATOR,
+      { title: "Open", action: () => open(d.id, d.doc) },
+    ], { label: d.label });
+  });
   // Code 6, the variant the Finder uses for most of its balloons.
   const what = d.doc ? `${d.label} document\n\nDouble-click to read it ` +
       "in Foolscap."
@@ -424,6 +435,39 @@ desktop.addEventListener("pointerdown", (e) => {
   if (e.target !== desktop && e.target !== iconsEl) return;
   selectIcon(null);
   finderFront();
+});
+
+// ---- contextual menus -------------------------------------------------------
+// The desktop's and its icons', in Finder 8.0's order: Help first, then
+// the commands the demo has of Finder 8.0's desktop menu, Clean Up
+// (Special > Clean Up's window tidying) and Change Desktop Background…
+// (the Control Panel, which sets the desktop pattern).
+
+/** Help, which opens the Read Me. */
+function helpItem(): MenuEntry {
+  return { title: "Help", action: () => open("editor", "readme") };
+}
+
+/** The pointer, or for a menu asked for from the keyboard (whose
+ * position may be anywhere), the bottom left of `target`. */
+function menuPoint(e: MouseEvent, target: HTMLElement): MenuPoint {
+  const r = target.getBoundingClientRect();
+  const x = e.clientX, y = e.clientY;
+  return x >= r.left && x < r.right && y >= r.top && y < r.bottom
+    ? { x, y } : { x: r.left, y: r.bottom };
+}
+
+desktop.addEventListener("contextmenu", (e) => {
+  if (e.target !== desktop && e.target !== iconsEl) return;
+  e.preventDefault();
+  selectIcon(null);
+  finderFront();
+  showContextMenu({ x: e.clientX, y: e.clientY }, [
+    helpItem(), MENU_SEPARATOR,
+    { title: "Clean Up", action: cleanUp },
+    MENU_SEPARATOR,
+    { title: "Change Desktop Background…", action: () => open("panel") },
+  ], { label: "Desktop" });
 });
 
 /** Center each label box under its icon on a whole pixel. */

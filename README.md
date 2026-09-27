@@ -34,6 +34,8 @@ information window (class `osm-info`, whose text dims when inactive).
 - The menu bar, with pull-down menus, check marks and keyboard
   equivalents, and menus an application swaps in while its window is in
   front.
+- Contextual menus (Control-click or right-click), placed and tracked
+  as Finder 8.0's are.
 - Group boxes and bevel buttons.
 - Tab controls, measured from Mac OS 8.5's Appearance control panel.
 - Scroll bars, vertical and horizontal, and list boxes.
@@ -467,6 +469,88 @@ Mac) open and close windows and tabs.
 Menu bar menus leave 9px after an item without a key and fit a key
 equivalent in 32px more, as SimpleText's File, Edit and Help menus do;
 rendered, they match those menus with 0 differing pixels.
+
+### Contextual menus
+
+`showContextMenu` shows a Mac OS 8 contextual menu at a point in client
+coordinates. Its entries are the menu bar's: items with a `title`, an
+`action` (dimmed without one) and `checked`, and `MENU_SEPARATOR`. A
+`key` isn't drawn, because Mac OS 8 draws contextual menus without
+keys. Call it while handling the press that asks for the menu (a
+`contextmenu` event, say), so that a press-drag-release chooses:
+
+```ts
+const list = mountListView(el, {
+  // ...
+  onContextMenu(key, e) {
+    showContextMenu({ x: e.clientX, y: e.clientY }, [
+      { title: "Help", action: showHelp },
+      MENU_SEPARATOR,
+      { title: "Open", action: () => open(key) },
+      { title: "Move To Trash" }, // dimmed
+    ], { label: key });
+  },
+});
+```
+
+The Mac OS 8 guidelines make the first item Help, and put every item in
+the menu bar too. `onClose(chosen)` is called once, after a chosen
+item's action. The returned handle has the menu's `element`, `open` and
+`close()`. One contextual menu is open at a time; an alert
+(`showAlert`) closes it like other menus, and while one is up nothing
+opens (`open` is false and `onClose(false)` comes in a microtask). The
+list is a `ul.osm-menu.osm-pulldown.osm-contextmenu` with
+`role="menu"`, appended to `<body>`.
+
+Measured in Mac OS 8.0 with Finder 8.0 (in an emulator, 640 x 480):
+- **Placement.** The menu's outline has its top-left pixel on the hot
+  spot. When the menu would run past the right edge (its content, inside
+  the outline), it flips: the outline's right column lands 1px left of
+  the hot spot. Either way (a flipped menu too, at a hot spot x of 638
+  or 639) the menu is then pushed left and up to keep 3 columns right
+  of its outline and 5 rows below it (its 1px shadow and 2 or 4 more).
+  It never flips upward.
+- **Tracking.** The menu opens during the press. Released after about
+  half a second, the press chooses the item under the pointer (11 of
+  11 trials), or closes the menu off the items. Released sooner off
+  the items, it leaves the menu open. A click outside an open menu only
+  closes it: nothing under it gets the click, a menu bar title
+  included. A click on a separator closes it too.
+- **Look.** A menu bar menu's: outline, bevel, shadow, 16px items,
+  6px separators, and the widest item plus 29px. A highlighted first or
+  last item also colors the bevel row it sits on (Mac OS 8.0's menu bar
+  menus do so too; Osmium's don't yet). Rendered at 1x,
+  five captured menus (a list-view row, an icon, empty window space,
+  the desktop and the Trash, two of them flipped and two pushed back)
+  and five highlights (first, middle and last items) match with 0
+  differing pixels, with the submenu triangles Osmium doesn't draw and
+  the emulator's pointer masked out.
+
+Not measured, or not Mac OS 8.0:
+- The Finder's contextual menus have no dimmed items or check marks.
+  They are drawn as in menu bar menus (dimmed text 88 on dd, as in Mac
+  OS 8.0's Application menu).
+- The half second: the menu stayed open after a 520 ms press and closed
+  after 550 ms. Osmium uses 533 ms, assuming the default double-click
+  time of 32 ticks is the limit.
+- A press released over an item within the half second: in 47
+  emulator trials it chose the item 22 times and left the menu open,
+  the item highlighted, 25 times. Neither the time on the item nor the
+  time since the press made a difference, and the menu stayed open
+  even when it had been seen up with the item highlighted. Emulated
+  input arrives late, so Mac OS 8.0's rule isn't known. Here a release
+  over an item always chooses, as the longer presses did.
+- Menus that would pass the left or top edge (not captured): here they
+  are kept inside the window.
+- Menus taller than the window (not captured; Mac OS presumably
+  scrolls them with scroll arrows): here the menu scrolls with a scroll
+  bar, and has no shadow while it does.
+- Keys: Mac OS 8.0 ignores the keyboard while a menu is open. Here the
+  menu bar menus' keys work (the arrow keys, Return, Space, Escape and
+  Tab), and typing an item's first letter highlights it, which only
+  contextual menus do.
+- Mac OS 8.5 draws contextual menus 4px wider, with the text 2px
+  further in. Osmium draws Mac OS 8.0's.
 
 ### Balloon Help
 
