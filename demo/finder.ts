@@ -118,8 +118,8 @@ export function buildFinder(content: HTMLElement,
   content.append(root);
   const arrows = mountChasingArrows(arrowsEl);
   let reading: ReturnType<typeof setTimeout> | undefined;
-  // The Finder blanks the header and turns the arrows until the folder
-  // is read, then puts the header's text back.
+  // Opening a window, the Finder blanks the header and turns the arrows
+  // until the folder is read, then puts the header's text back.
   const readDisk = () => {
     clearTimeout(reading);
     status.data = "";

@@ -10,9 +10,9 @@
   Mac OS 8.0's Finder in an emulator (a window header while it expands
   folders), all eight frames match those bitmaps in both states, and
   Osmium's renders match the captures with 0 differing pixels over the
-  arrows and a 1px margin. They step every 6 ticks, the Finder's pace
-  in the emulator when it wasn't busy (the CDEF allows 2); not checked
-  on real hardware.
+  arrows and a 1px margin. They step every 6 ticks (100 ms), the
+  Finder's pace in the emulator when it wasn't busy (the CDEF allows
+  2); not checked on real hardware.
   Inside a placard they sit where the Finder puts them, 4px in and 2px
   down. Not Mac OS: stopped arrows draw nothing and are `aria-hidden`,
   and `prefers-reduced-motion` holds frame 0. The disabled look was

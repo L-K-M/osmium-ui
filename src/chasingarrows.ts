@@ -8,15 +8,18 @@
 // Mac OS 8.0 (Appearance Extension, CDEF 7) and what it means here:
 // - The control starts on frame 0 and steps through frames 0 to 7 and
 //   round again, one frame per step, always forward. Stopped, Mac OS
-//   apps remove the arrows (the Finder puts the header's text back),
-//   so a stopped control draws nothing.
+//   apps remove the arrows, so a stopped control draws nothing.
+//   (Opening a window, the Finder blanked its header for them and put
+//   the text back after; expanding all folders, it blanked the header
+//   too; expanding one folder, it kept the text beside them.)
 // - The CDEF steps only when its application idles it, and then only
 //   once at least 2 ticks have passed since its last step. The pace is
 //   the application's: Mac OS 8.0's Finder stepped every 6 ticks
-//   (100 ms) whenever it wasn't busy (63 of 120 steps captured in an
-//   emulator; most others 5 or 7 at the capture's 60 Hz sampling, or
-//   much longer while the Finder was busy), which is the pace here.
-//   Osmium never stalls the way a busy Finder did.
+//   (99.75 ms) whenever it wasn't busy, which is the pace here, in
+//   whole milliseconds (FRAME_MS). Of 120 steps captured in an
+//   emulator, 63 took 6 ticks, 2 took 5, 14 took 7 and 41 took 8 or
+//   more while the Finder was busy. Osmium never stalls the way a busy
+//   Finder did.
 // - An inactive window's arrows keep turning, drawn in 88 instead of
 //   black (the CDEF's own gray, and the Finder's measured behavior):
 //   osmium.css switches frames under .osm-inactive.
@@ -28,6 +31,9 @@ import { installOsmium } from "./install.js";
 const TICK_MS = 1000 / 60.15;
 /** Ticks between frames: the Finder 8.0's pace (see above). */
 const FRAME_TICKS = 6;
+/** 6 ticks in whole milliseconds, 100. Browsers truncate a timer's
+ * delay to an integer, so 99.75 would run at 99; 100 is nearer. */
+const FRAME_MS = Math.round(FRAME_TICKS * TICK_MS);
 /** Frames in a turn, 0 to 7 (CDEF 7 wraps its frame index at 8). */
 const FRAME_COUNT = 8;
 const REDUCED_MOTION = "(prefers-reduced-motion: reduce)";
@@ -43,7 +49,8 @@ export interface OsmiumChasingArrows {
    * Does nothing while stopped. */
   stop(): void;
   /** Stop, and let go of the element and the reduced-motion listener.
-   * The element keeps its class, role and label. */
+   * The element keeps its class, role and label, and stays blank and
+   * `aria-hidden`. */
   destroy(): void;
 }
 
@@ -79,7 +86,7 @@ export function mountChasingArrows(el: HTMLElement): OsmiumChasingArrows {
     const turn = running && !motion?.matches;
     if (turn && timer === undefined) {
       timer = setInterval(() => show((frame + 1) % FRAME_COUNT),
-                          FRAME_TICKS * TICK_MS);
+                          FRAME_MS);
     } else if (!turn && timer !== undefined) {
       clearInterval(timer);
       timer = undefined;
@@ -128,4 +135,4 @@ export function mountChasingArrows(el: HTMLElement): OsmiumChasingArrows {
 }
 
 // ---- module-internal, exported for tests only (not from index.ts) --------
-export const ARROWS_FRAME_MS = FRAME_TICKS * TICK_MS;
+export const ARROWS_FRAME_MS = FRAME_MS;

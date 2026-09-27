@@ -564,15 +564,18 @@ import { mountChasingArrows } from "osmium-ui";
 const arrows = mountChasingArrows(span); // stopped: nothing drawn
 arrows.start(); // frame 0, then one frame every 6 ticks (100 ms)
 // … when the work is done:
-arrows.stop();  // blank again; the Finder puts the header's text back
+arrows.stop();  // blank again
 ```
 
 In a window whose `.osm-inactive` class is set, the arrows keep turning
 in 88 gray instead of black, as they do in Mac OS 8.0. With the reader's
 `prefers-reduced-motion` setting, running arrows hold frame 0 (Mac OS
 had no such setting). A stopped control is `aria-hidden`; a running one
-is an image named "Working" unless you name it. `destroy()` stops the
-arrows and removes the reduced-motion listener.
+is an image named "Working" unless you name it. It is not a live region,
+so starting and stopping isn't announced: mark the region being filled
+`aria-busy` if screen readers should know. `destroy()` stops the arrows
+and removes the reduced-motion listener; the element stays blank and
+`aria-hidden`.
 
 What was measured and what wasn't:
 
@@ -586,7 +589,14 @@ What was measured and what wasn't:
   Osmium's renders match the captures with 0 differing pixels over the
   arrows and a 1px margin. The arrows kept turning in an inactive
   window. The Finder stepped every 6 ticks while it wasn't busy; that
-  pace is the emulator's Finder, not checked on real hardware.
+  pace is the emulator's Finder, not checked on real hardware. Osmium
+  steps every 100 ms (6 ticks are 99.75 ms; browser timers take whole
+  milliseconds).
+- Opening a window, the Finder blanked the header while the arrows
+  turned and put its text back after. Expanding all folders, it blanked
+  the header too (the captures end before the arrows stopped). Expanding
+  one folder, it kept the text beside the arrows. In an `.osm-placard`
+  the arrows are absolutely positioned, so they don't move its text.
 - Inside an `.osm-placard` the arrows sit 4px right of the header's
   left pixel and 2px below its top one, as in the Finder.
 - Not captured: the disabled look (the CDEF's code draws it like the

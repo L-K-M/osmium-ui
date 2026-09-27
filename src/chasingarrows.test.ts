@@ -106,8 +106,9 @@ describe("mountChasingArrows", () => {
 
   const frame = () => span.dataset["frame"];
 
-  it("steps every 6 ticks, the Finder's pace", () => {
-    expect(ARROWS_FRAME_MS).toBeCloseTo(6000 / 60.15, 6);
+  it("steps every 6 ticks, the Finder's pace, in whole milliseconds", () => {
+    // 6 ticks are 99.75 ms; browsers would truncate that to 99.
+    expect(ARROWS_FRAME_MS).toBe(100);
   });
 
   it("marks the span up and starts stopped and blank", () => {
@@ -246,5 +247,6 @@ describe("mountChasingArrows", () => {
     a.destroy();
     expect(span.classList.contains("osm-arrows")).toBe(true);
     expect(span.getAttribute("aria-label")).toBe("Working");
+    expect(span.getAttribute("aria-hidden")).toBe("true");
   });
 });
