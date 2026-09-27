@@ -104,7 +104,8 @@ export interface AlertOptions {
 
 export interface OsmiumAlert {
   /** The alert box: its outline box (the 1px shadow hangs outside).
-   * The app may move it. */
+   * The app may move it, but a window resize puts it back in its
+   * computed place unless it was dragged by its title bar. */
   readonly element: HTMLElement;
   /** Settles once the alert is gone, the page released and focus back:
    * with the button pressed, or "dismissed". Never rejects. */
@@ -289,6 +290,9 @@ const ICON_LABEL: Readonly<Record<Exclude<AlertKind, "plain">, string>> = {
 };
 /** DOM order, which is also the order Tab takes them in: left to right. */
 const SLOTS: readonly AlertButton[] = ["other", "cancel", "ok"];
+const KINDS: readonly AlertKind[] = ["stop", "note", "caution", "plain"];
+const MODALITIES: readonly AlertModality[] = ["modal", "movable"];
+const POSITIONS: readonly AlertPosition[] = ["screen", "parent"];
 
 let alertSeq = 0;
 
@@ -296,12 +300,20 @@ let alertSeq = 0;
  * blocks the rest of the page until a button is pressed. It stays
  * hidden until the bitmap fonts are in (installOsmium), so its layout
  * is right the first time it shows; then it takes the focus and the
- * keys. Throws only for a programming error: `icon` with a kind other
- * than "plain", "parent" without `parent`, or a defaultButton or
- * cancelButton naming a button the alert doesn't have. */
+ * keys. Throws only for a programming error: an unknown kind,
+ * modality or position, `icon` with a kind other than "plain",
+ * "parent" without `parent`, or a defaultButton or cancelButton naming
+ * a button the alert doesn't have. */
 export function showAlert(opts: AlertOptions): OsmiumAlert {
   const modality = opts.modality ?? "modal";
   const position = opts.position ?? "screen";
+  // The option types are string unions; check them for untyped callers.
+  if (!KINDS.includes(opts.kind))
+    throw new TypeError(`unknown alert kind "${String(opts.kind)}"`);
+  if (!MODALITIES.includes(modality))
+    throw new TypeError(`unknown alert modality "${String(modality)}"`);
+  if (!POSITIONS.includes(position))
+    throw new TypeError(`unknown alert position "${String(position)}"`);
   const titles: Record<AlertButton, string | undefined> = {
     ok: opts.buttons?.ok ?? "OK",
     cancel: opts.buttons?.cancel,
@@ -491,6 +503,9 @@ export function showAlert(opts: AlertOptions): OsmiumAlert {
       return;
     }
     if (e.key === "Escape" || (e.metaKey && e.key === ".")) {
+      // An open help balloon took this Escape to close itself
+      // (balloon.ts); the next one cancels.
+      if (e.key === "Escape" && e.defaultPrevented) return;
       // With no cancel button the key does nothing, as on the Mac.
       e.preventDefault();
       if (!e.repeat && cancelButton !== "none") press(cancelButton);

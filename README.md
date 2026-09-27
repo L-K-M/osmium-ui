@@ -108,9 +108,8 @@ You can drag the windows, click to bring them to the front, close them
 and windowshade them, and zoom and resize the Finder window.
 Choose Show Balloons from the Help menu, then rest the pointer on a
 control, a window's title bar or a desktop icon to see its help balloon.
-and windowshade them, and zoom and resize the Finder window. The Alerts
-window (open it from its desktop icon) and Special > Empty Trash…
-bring up alerts.
+The Alerts window (open it from its desktop icon) and Special > Empty
+Trash… bring up alerts.
 
 On a Mac with the Xcode command line tools, the same pages run as
 native windows:
@@ -374,6 +373,7 @@ What differs from Mac OS 8, on purpose or for want of a measurement:
 The balloon's shape, its eight tails and the text layout were compared
 pixel for pixel with 13 Mac OS 8.0 balloons captured in an emulator,
 covering all eight tails: 0 differing pixels, text included.
+
 ### Alerts
 
 `showAlert` puts up a Mac OS 8 alert box, laid out with the metrics of
@@ -536,7 +536,7 @@ ResizeObserver and CSS `border-image`.
 
 ## Not included yet
 
-Radio buttons, and keyboard equivalents shown in menus.
+Radio buttons and keyboard equivalents shown in menus.
 
 ## Development
 

@@ -800,4 +800,30 @@ describe("keyboard", () => {
     expect(esc().defaultPrevented).toBe(false);
     expect(b.open).toBe(false);
   });
+
+  it("keeps Escape in a one-line edit text from cancelling the dialog", () => {
+    const cancel = document.createElement("button");
+    cancel.getClientRects = () => [{}] as unknown as DOMRectList;
+    document.body.append(cancel);
+    let cancelled = 0;
+    const unbind = bindDialogKeys(null, cancel,
+                                  { cancel: () => { cancelled++; } });
+    const field = document.createElement("input");
+    field.className = "osm-edit";
+    document.body.append(field);
+    const t = target();
+    const b = attach(t, { content: "Copy", trigger: "hover", delay: 100 });
+    arrive(t);
+    vi.advanceTimersByTime(100);
+    expect(b.open).toBe(true);
+    const e = new KeyboardEvent("keydown", {
+      key: "Escape", bubbles: true, cancelable: true,
+    });
+    field.dispatchEvent(e);
+    vi.advanceTimersByTime(1000);
+    expect(b.open).toBe(false);
+    expect(e.defaultPrevented).toBe(true);
+    expect(cancelled).toBe(0);
+    unbind();
+  });
 });

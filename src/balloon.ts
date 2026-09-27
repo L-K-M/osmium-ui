@@ -840,18 +840,22 @@ function onOpenMove(e: PointerEvent): void {
 const TEXT_ENTRY = "input:not([type=checkbox]):not([type=range]), " +
   "textarea, [contenteditable]";
 
-/** Escape closes the balloon. Only preventDefault: bindDialogKeys and
- * hostWindow leave a prevented Escape alone, so the same press doesn't
- * also cancel the dialog or close the window, while other listeners
- * (an open menu) still see it. Typed in a text field other than the
+/** Escape closes the balloon. Only preventDefault: bindDialogKeys,
+ * hostWindow and an alert's keys leave a prevented Escape alone, so the
+ * same press doesn't also cancel the dialog or alert or close the
+ * window, while other listeners (an open menu) still see it. It listens
+ * on window in the capture phase so it runs before an alert's key
+ * routing (modal.ts, on document). Typed in a text field other than the
  * target, Escape closes the balloon but keeps its default (a search
- * field clears), which nothing else acts on. An IME composition keeps
- * its Escape. */
+ * field clears), unless the field is a one-line edit text, whose Escape
+ * bindDialogKeys would take for Cancel. An IME composition keeps its
+ * Escape. */
 function onOpenKey(e: KeyboardEvent): void {
   if (e.key !== "Escape" || e.isComposing || !current) return;
   const t = e.target instanceof Element ? e.target : null;
   const field = t?.closest(TEXT_ENTRY);
-  const own = !field || current.att.target.contains(field);
+  const own = !field || field.matches("input.osm-edit") ||
+    current.att.target.contains(field);
   dismissed = current.att;
   close();
   if (own) e.preventDefault();
@@ -869,7 +873,7 @@ function onOpenScroll(e: Event): void {
 function addOpenListeners(): void {
   document.addEventListener("pointermove", onOpenMove,
                             { capture: true, passive: true });
-  document.addEventListener("keydown", onOpenKey, true);
+  window.addEventListener("keydown", onOpenKey, true);
   document.addEventListener("scroll", onOpenScroll,
                             { capture: true, passive: true });
   window.addEventListener("resize", close);
@@ -878,7 +882,7 @@ function addOpenListeners(): void {
 
 function removeOpenListeners(): void {
   document.removeEventListener("pointermove", onOpenMove, true);
-  document.removeEventListener("keydown", onOpenKey, true);
+  window.removeEventListener("keydown", onOpenKey, true);
   document.removeEventListener("scroll", onOpenScroll, true);
   window.removeEventListener("resize", close);
   window.removeEventListener("blur", close);

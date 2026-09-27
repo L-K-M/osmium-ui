@@ -242,6 +242,28 @@ describe("showAlert", () => {
     expect(await b.result).toBe("cancel");
   });
 
+  it("leaves an Escape a help balloon took to the balloon", async () => {
+    const a = show({ buttons: { cancel: "Cancel" } });
+    await revealed();
+    // balloon.ts closes an open balloon on window capture and prevents
+    // the key's default; the alert then leaves that Escape alone.
+    const claim = (e: KeyboardEvent) => e.preventDefault();
+    window.addEventListener("keydown", claim, true);
+    key(a.element, "Escape");
+    window.removeEventListener("keydown", claim, true);
+    await wait(FLASH);
+    expect(a.element.isConnected).toBe(true);
+    key(a.element, "Escape");
+    expect(await a.result).toBe("cancel");
+  });
+
+  it("rejects unknown kinds, modalities and positions", () => {
+    const untyped = (o: object) => () => show(o as Partial<AlertOptions>);
+    expect(untyped({ kind: "error" })).toThrow(TypeError);
+    expect(untyped({ modality: "modeless" })).toThrow(TypeError);
+    expect(untyped({ position: "center" })).toThrow(TypeError);
+  });
+
   it("swallows Escape when it has no cancel button", async () => {
     const a = show();
     await revealed();

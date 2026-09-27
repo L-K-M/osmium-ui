@@ -254,7 +254,7 @@ final class AppDelegate: NSObject, NSApplicationDelegate,
                          action: #selector(NSText.selectAll(_:)),
                          keyEquivalent: "a")
 
-        // ⌘1 to ⌘6, in DemoPage order.
+        // ⌘1 to ⌘7, in DemoPage order.
         let demoMenu = submenu("Demo", in: bar)
         for (i, page) in DemoPage.allCases.enumerated() {
             demoMenu.addItem(pageItem(page, key: String(i + 1)))
