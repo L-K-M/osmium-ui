@@ -309,7 +309,8 @@ export interface PopupOptions {
    * for a dividing line. */
   items: readonly (string | PopupItem | MenuSeparator)[];
   /** The current item's index; never a separator's. A dimmed item can
-   * be current: the button shows it and the menu checks it. */
+   * be current: the button shows it and the menu checks it, and in a
+   * menu opened by key the arrow keys step from it. */
   selected: number;
   onChange(index: number): void;
   label?: string;
@@ -321,9 +322,9 @@ export interface Popup {
            selected: number): void;
   setSelected(index: number): void;
   /** Close an open menu, end a press on the button, and remove every
-   * listener and registration the pop-up made, so the button can be
-   * mounted again. The button keeps its title; setItems and
-   * setSelected throw afterwards. */
+   * listener, registration and attribute the pop-up made, so the
+   * button can be mounted again. The button keeps its title; setItems
+   * and setSelected throw afterwards. */
   destroy(): void;
 }
 
@@ -348,6 +349,10 @@ export function mountPopup(btn: HTMLButtonElement,
   let selected = opts.selected;
   let menu: HTMLElement | null = null;
   let hi = -1;
+  // Where the arrow keys and type-select start while nothing is
+  // highlighted: the current item after opening by key (a dimmed one
+  // can't be highlighted), else before the first item.
+  let origin = -1;
   // Where the keyboard goes back to when the menu closes: the button
   // after keyboard use, otherwise whatever had it before (a pop-up
   // used with the mouse never takes the keyboard target).
@@ -457,7 +462,8 @@ export function mountPopup(btn: HTMLButtonElement,
     btn.classList.add("osm-pressed");
     btn.setAttribute("aria-expanded", "true");
     btn.setAttribute("aria-controls", menu.id);
-    highlight(byKey ? selected : -1);
+    origin = byKey ? selected : -1;
+    highlight(origin);
     // The menu takes the keyboard however it opened, so Escape closes
     // the menu rather than reaching the window.
     menu.focus({ preventScroll: true });
@@ -532,11 +538,18 @@ export function mountPopup(btn: HTMLButtonElement,
     }
   }
 
+  /** The item the arrow key in direction `d` goes to; the first one
+   * when nothing is highlighted and there's none that way from origin. */
+  function step(d: 1 | -1): number {
+    if (hi >= 0) return nextItem(hi, d);
+    const i = origin >= 0 ? nextItem(origin, d) : -1;
+    return choosable(i) ? i : nextItem(-1, 1);
+  }
+
   function onMenuKey(e: KeyboardEvent): void {
     const n = items.length;
-    if (e.key === "ArrowDown") highlight(nextItem(hi, 1));
-    else if (e.key === "ArrowUp")
-      highlight(hi < 0 ? nextItem(-1, 1) : nextItem(hi, -1));
+    if (e.key === "ArrowDown") highlight(step(1));
+    else if (e.key === "ArrowUp") highlight(step(-1));
     else if (e.key === "Home") highlight(nextItem(-1, 1));
     else if (e.key === "End") highlight(nextItem(n, -1));
     else if (e.key === "Enter" || e.key === " ") {
@@ -544,7 +557,7 @@ export function mountPopup(btn: HTMLButtonElement,
     } else if (e.key === "Escape" || e.key === "Tab") close();
     else if (e.key.length === 1 && !e.metaKey && !e.ctrlKey) {
       const k = e.key.toLowerCase();
-      const from = hi + 1;
+      const from = (hi >= 0 ? hi : origin) + 1;
       for (let d = 0; d < n; d++) {
         const i = (from + d) % n;
         if (choosable(i) && titleOf(i)!.toLowerCase().startsWith(k)) {
@@ -624,6 +637,7 @@ export function mountPopup(btn: HTMLButtonElement,
       listening.abort();
       btn.removeAttribute("aria-haspopup");
       btn.removeAttribute("aria-expanded");
+      if (opts.label) btn.removeAttribute("aria-label");
     },
   };
 }

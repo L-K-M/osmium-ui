@@ -182,6 +182,31 @@ describe("dimmed items", () => {
     expect(chosen).toEqual([]);
     key(menu(), "Escape");
   });
+
+  it("steps from a dimmed current item opened by key", () => {
+    popup.setItems(["Bay 1", "Bay 2", { title: "Bay 3", disabled: true },
+                    "Bay 4"], 2);
+    key(btn, "ArrowDown");
+    expect(lit()).toBeUndefined();
+    key(menu(), "ArrowDown");
+    expect(lit()).toBe("Bay 4");
+    key(menu(), "Escape");
+    key(btn, "ArrowDown");
+    key(menu(), "ArrowUp");
+    expect(lit()).toBe("Bay 2");
+    key(menu(), "Escape");
+    key(btn, "ArrowDown");
+    key(menu(), "b");
+    expect(lit()).toBe("Bay 4");
+    key(menu(), "Escape");
+    // Nothing that way: the first item, as before.
+    popup.setItems([{ title: "No interfaces found", disabled: true },
+                    "Ethernet"], 0);
+    key(btn, "ArrowDown");
+    key(menu(), "ArrowUp");
+    expect(lit()).toBe("Ethernet");
+    key(menu(), "Escape");
+  });
 });
 
 const captures = (o: unknown) => typeof o === "boolean" ? o
@@ -220,6 +245,16 @@ describe("destroy", () => {
     expect(() => popup.setItems(["One"], 0)).toThrow(/destroyed/);
     expect(popup.selected).toBe(0);
     popup.destroy(); // again: nothing to do
+  });
+
+  it("takes back the accessible name its label gave the button", () => {
+    popup.destroy();
+    const labelled = mountPopup(btn, {
+      items: ["A", "B"], selected: 0, label: "Unit", onChange: () => {},
+    });
+    expect(btn.getAttribute("aria-label")).toBe("Unit A");
+    labelled.destroy();
+    expect(btn.hasAttribute("aria-label")).toBe(false);
   });
 
   it("removes every listener it added to the page, mid-press", () => {

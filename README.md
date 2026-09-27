@@ -918,8 +918,10 @@ knows better which window is active (one whose web view keeps the
 focus while the app is in the background, say) passes
 `activation: "manual"`: the page's focus and blur then leave the window
 alone, and only `hosted.window.setActive()` and alerts with the window
-as `parent` change it. An alert gives the window back the state it
-found, so follow the shell and the alerts together:
+as `parent` change it. An alert draws the window inactive while it is
+up; closing it reactivates the window if it was active when the alert
+opened, and never deactivates it. So follow the shell and the alerts
+together:
 
 ```ts
 import { hostWindow, isModal, onModalChange } from "osmium-ui";
@@ -932,14 +934,19 @@ const sync = () => hosted.window.setActive(key && !isModal());
 const unsubscribe = onModalChange(sync);
 // Where the shell reports its window's key state changing:
 function shellKeyChanged(isKey: boolean) { key = isKey; sync(); }
+// When the component goes away:
+function teardown() { unsubscribe(); hosted.destroy(); }
 ```
 
 `hosted.destroy()` removes every listener and observer `hostWindow`
 and the window added to the page (Escape, resize, a grow in progress,
 focus, blur, the alerts' modal change and the title's resize observer),
 so a component can host a window, take it down and host one again
-without leaks. The chrome stays in the element; remove the element
-yourself. A window from `mountWindow` has the same `destroy()`.
+without leaks. An `onModalChange` subscription is the app's own: call
+its `unsubscribe()` too. The chrome stays in the element but its boxes,
+titlebar and grow box no longer act; remove the element yourself, and
+host the next window on a fresh one. A window from `mountWindow` has
+the same `destroy()`.
 
 In a plain browser tab, the same page fills the tab and does what a tab
 can.

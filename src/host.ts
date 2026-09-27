@@ -70,8 +70,10 @@ export interface HostedWindow {
   close(): void;
   /** Remove every listener and observer hostWindow and the window added
    * to the page (Escape, resize, a grow in progress, and the window's
-   * own, see OsmiumWindow.destroy), so the window can be hosted again
-   * without leaks. The chrome stays; take the element out yourself. */
+   * own, see OsmiumWindow.destroy), so windows can be hosted and
+   * destroyed again and again without leaks. The chrome stays but its
+   * boxes no longer act; take the element out yourself, and host the
+   * next window on a fresh element. */
   destroy(): void;
 }
 

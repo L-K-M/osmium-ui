@@ -137,6 +137,24 @@ describe("hostWindow activation", () => {
     expect(inactive(el)).toBe(true);
   });
 
+  it("runs one grow at a time in a browser tab", () => {
+    const { el } = host({ native: false, grow: { min: { w: 100, h: 50 } } });
+    const listeners = watchListeners();
+    const grip = el.querySelector(".osm-grow")!;
+    for (const pointerId of [1, 2]) {
+      grip.dispatchEvent(new PointerEvent(
+        "pointerdown", { bubbles: true, button: 0, pointerId }));
+    }
+    expect(listeners.left()).toEqual(
+      ["pointermove", "pointerup", "pointercancel"]);
+    window.dispatchEvent(new PointerEvent(
+      "pointermove", { pointerId: 1, clientX: 300, clientY: 200 }));
+    expect(el.style.width).toBe("");
+    window.dispatchEvent(new PointerEvent(
+      "pointermove", { pointerId: 2, clientX: 300, clientY: 200 }));
+    expect(el.style.width).toBe("300px");
+  });
+
   it("follows the app's state across an alert with onModalChange", async () => {
     // The README's pattern for a native window's key state.
     const { el, hosted: h } = host({ activation: "manual" });
@@ -147,7 +165,7 @@ describe("hostWindow activation", () => {
     key = false; // the native window resigns key under the alert
     sync();
     await dismiss(a);
-    // The alert gave back the state it found; sync had the last word.
+    // The alert reactivated it; sync had the last word.
     expect(inactive(el)).toBe(true);
     key = true;
     sync();
@@ -200,6 +218,24 @@ describe("destroy", () => {
       "keydown", { key: "Escape", bubbles: true }));
     await wait();
     expect(ops.some((o) => o.op === "winClose")).toBe(false);
+  });
+
+  it("leaves the boxes, titlebar and grow box inert", () => {
+    const { el, ops, hosted: h } = host({
+      zoom: { standard: { w: 640, h: 480 } }, grow: { min: { w: 100, h: 50 } },
+    });
+    h.destroy();
+    ops.length = 0;
+    for (const box of [".osm-close", ".osm-zoom", ".osm-collapse"]) {
+      el.querySelector(box)!.dispatchEvent(
+        new MouseEvent("click", { detail: 0 }));
+    }
+    for (const part of [".osm-titlebar", ".osm-grow"]) {
+      el.querySelector(part)!.dispatchEvent(new PointerEvent(
+        "pointerdown", { bubbles: true, button: 0, pointerId: 1 }));
+    }
+    expect(ops).toEqual([]);
+    expect(h.shaded).toBe(false);
   });
 
   it("stops following the page's focus and alerts", async () => {

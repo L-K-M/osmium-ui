@@ -42,9 +42,11 @@ export interface OsmiumWindow {
   setActive(on: boolean): void;
   /** Stop following the page: disconnect the title's resize observer
    * and remove the focus, blur and modal-change listeners of "page"
-   * activation, so the window can be mounted again without leaks. The
-   * chrome stays and the methods still draw; take the element out of
-   * the page yourself. */
+   * activation, so windows can be mounted and destroyed again and again
+   * without leaks. The chrome stays and the methods still draw, but the
+   * boxes, titlebar and grow box no longer call their handlers; take
+   * the element out of the page yourself, and mount the next window on
+   * a fresh element. */
   destroy(): void;
 }
 
@@ -79,6 +81,7 @@ export function mountWindow(el: HTMLElement,
     bar, part("div", "osm-stripes osm-stripes-l"), title,
     part("div", "osm-stripes osm-stripes-r"),
   ];
+  let destroyed = false; // see destroy(): the chrome stops acting
   const boxes: [string, string, (() => void) | undefined][] = [
     ["osm-close", "Close", opts.onClose],
     ["osm-zoom", "Zoom", opts.onZoom],
@@ -89,7 +92,7 @@ export function mountWindow(el: HTMLElement,
     const box = part("button", `osm-box ${cls}`);
     box.setAttribute("aria-label", label);
     box.tabIndex = -1; // OS 8 boxes take no keyboard focus
-    trackPress(box, action);
+    trackPress(box, () => { if (!destroyed) action(); });
     chrome.push(box);
   }
   el.classList.toggle("osm-no-zoom", !opts.onZoom);
@@ -98,7 +101,7 @@ export function mountWindow(el: HTMLElement,
   const { onDrag, onGrow } = opts;
   if (onDrag) {
     bar.addEventListener("pointerdown", (e) => {
-      if (e.button === 0) onDrag(e);
+      if (e.button === 0 && !destroyed) onDrag(e);
     });
   }
   if (onGrow) {
@@ -106,7 +109,7 @@ export function mountWindow(el: HTMLElement,
     grow.setAttribute("role", "separator");
     grow.setAttribute("aria-label", "Resize window");
     grow.addEventListener("pointerdown", (e) => {
-      if (e.button === 0) onGrow(e);
+      if (e.button === 0 && !destroyed) onGrow(e);
     });
     el.append(grow);
   }
@@ -121,7 +124,6 @@ export function mountWindow(el: HTMLElement,
   };
   const resize = new ResizeObserver(layout);
   resize.observe(el);
-  let destroyed = false;
   installOsmium()
     .catch((err: unknown) => {
       console.error("Osmium fonts unavailable; using fallbacks", err);

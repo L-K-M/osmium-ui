@@ -5,15 +5,16 @@
 - Hosted windows take `activation`: `"page"` (the default, as before)
   or `"manual"`, where the page's focus and blur leave the window alone
   and only `window.setActive()` and alerts with the window as `parent`
-  change it. An alert still draws its parent inactive and gives it back
-  the state it found. `isModal()` and `onModalChange(listener)` are
-  exported; the listener hears the page turn modal and back, once each
-  time the alert stack goes from empty to not and back, after the
-  parent is redrawn. `HostedWindow.destroy()` and
+  change it. An alert still draws its parent inactive, and reactivates
+  it on closing if it was active before. `isModal()` and
+  `onModalChange(listener)` are exported; the listener hears the page
+  turn modal and back, once each time the alert stack goes from empty
+  to not and back, after the parent is redrawn. `HostedWindow.destroy()` and
   `OsmiumWindow.destroy()` remove every listener and observer they
   added to the page (Escape, resize, a grow in progress, focus, blur,
-  the modal change, the title's resize observer), so a window can be
-  hosted and taken down again and again without leaks.
+  the modal change, the title's resize observer), so windows can be
+  hosted and taken down again and again without leaks; the chrome stays
+  but no longer acts.
 - List views take `setEmptyText` and `setLoadingText`, which update a
   shown placeholder in place. Their `destroy()` now also destroys the
   scroll bars, stops re-centering the placeholder and removes the
