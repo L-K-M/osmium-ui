@@ -54,6 +54,9 @@ describe("mountMenuBar", () => {
     expect(lit()).toBe("Open");
     key(document, "ArrowDown");
     expect(lit()).toBe("Quit");
+    // The focused list names the highlighted item to assistive tech.
+    const id = menu()!.getAttribute("aria-activedescendant");
+    expect(id && document.getElementById(id)?.textContent).toBe("Quit");
     key(document, "ArrowDown");
     expect(lit()).toBe("Open");
     key(document, "ArrowUp");

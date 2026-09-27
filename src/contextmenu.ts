@@ -10,34 +10,43 @@
 //               it, as the Mac OS 8 HIG words it). If the content would
 //               run past the screen's right edge, the menu flips: the
 //               outline's right column lands 1px left of the hot spot.
-//               Either way it is then pushed left and up to leave 3
-//               columns right of and 5 rows below the outline (its
-//               shadow and 2 or 4 more). It never flips upward.
+//               Either way (flipped at hot spot x 638 and 639 too) it
+//               is then pushed left and up to leave 3 columns right of
+//               and 5 rows below the outline (its shadow and 2 or 4
+//               more). It never flips upward.
 //   look        a menu bar menu's: outline, bevel, shadow, 16px items,
 //               6px separators, text 19px in, the widest item plus
 //               29px wide, and the accent highlight, which on the first
 //               and last items takes over the bevel row (osmium.css).
-//   tracking    the menu opens during the press. Released over an item,
-//               the press chooses it (seen with 150 ms or more on the
-//               item; quicker releases mostly left the menu open, which
-//               may be the emulator's input lag: here they choose).
-//               Released anywhere else, it leaves the menu open
-//               ("sticky") if it came within about half a second (open
-//               at 520 ms, closed at 550 ms), and closes it after. A click outside an open
-//               menu only closes it, a menu bar title included; a click
-//               in it chooses the item under the pointer or, on a
-//               separator, closes it.
+//   tracking    the menu opens during the press. Released after about
+//               half a second, the press chooses the item under the
+//               pointer (11 of 11 trials) or, off the items, closes the
+//               menu (closed at 550 ms). Released sooner off the items,
+//               it leaves the menu open, "sticky" (open at 520 ms). A
+//               click outside an open menu only closes it, a menu bar
+//               title included; a click in it chooses the item under
+//               the pointer or, on a separator, closes it.
+//
+// Not settled: a press released over an item within the half second.
+// In 47 emulator trials it chose the item 22 times and left the menu
+// open with the item highlighted 25 times, with no trend in the time on
+// the item or since the press, even when the menu was seen up with the
+// item highlighted before the release. Emulated input arrives late
+// (releases on arrival were taken where the pointer had just been), so
+// Mac OS 8.0's rule is unknown. Here such a release chooses, as the
+// longer presses did.
 //
 // Here the half second runs from the menu's opening, which the press's
 // contextmenu event starts; a right-click whose contextmenu event comes
 // on release (Windows) leaves the menu open. Not Mac OS 8.0 (which
-// takes no keys in an open menu, Escape included): the arrow keys,
-// Return, Space, Escape, Tab and typing an item's first letter work as
-// in Osmium's menu bar menus, for the keyboard and assistive tech. Not
-// measured: placement past the left or top edge, and menus taller than
-// the screen (Mac OS scrolls them with its scroll arrows; here the menu
-// scrolls). Mac OS 8.5 draws the menu 4px wider, its text 2px further
-// in; this is 8.0's.
+// takes no keys in an open menu, Escape included): the menu bar menus'
+// keys work (the arrow keys, Return, Space, Escape, Tab), and so does
+// typing an item's first letter, which only contextual menus take.
+// Focus stays on the list, which names the highlighted item to
+// assistive tech. Not captured, so guessed: a menu that would pass the
+// left or top edge is kept inside the viewport, and one taller than it
+// scrolls with a scroll bar and no shadow. Mac OS 8.5 draws the menu
+// 4px wider, its text 2px further in; this is 8.0's.
 import { swallowClick } from "./controls.js";
 import { openMenuList } from "./menu.js";
 import type { MenuList } from "./menu.js";
@@ -115,13 +124,19 @@ export function showContextMenu(at: MenuPoint,
   el.style.left = "0px";
   el.style.top = "0px";
   const w = el.offsetWidth, h = el.offsetHeight;
-  const vw = window.innerWidth, vh = window.innerHeight;
+  // The fixed-position viewport, without the page's scroll bars.
+  const root = document.documentElement;
+  const vw = root.clientWidth || window.innerWidth;
+  const vh = root.clientHeight || window.innerHeight;
   const pos = placeContextMenu(at, w, h, vw, vh);
   el.style.left = `${pos.x}px`;
   el.style.top = `${pos.y}px`;
-  // Taller than the viewport: scroll (Mac OS draws scroll arrows).
-  if (h > vh - pos.y) {
-    el.style.maxHeight = `${vh - pos.y}px`;
+  // Taller than the viewport (not captured): scroll, keeping the rows
+  // below free. The scroll box clips the shadow, and it mustn't scroll
+  // sideways for it.
+  if (h > vh - EDGE_BOTTOM - pos.y) {
+    el.style.maxHeight = `${Math.max(0, vh - EDGE_BOTTOM - pos.y)}px`;
+    el.style.overflowX = "hidden";
     el.style.overflowY = "auto";
   }
   el.focus({ preventScroll: true });
@@ -181,7 +196,9 @@ export function showContextMenu(at: MenuPoint,
     if (el.contains(e.target as Node)) return;
     close(false);
     swallowClick();
-    swallowContextMenu();
+    // Only a right-click or Control-click has a contextmenu event to
+    // come; armed for any other, it would eat the menu key's next one.
+    if (e.button === 2 || e.ctrlKey) swallowContextMenu();
   }
 
   function onUp(e: PointerEvent): void {
@@ -197,9 +214,12 @@ export function showContextMenu(at: MenuPoint,
     close(false);
   }
 
-  // Right-clicks on the menu don't bring up the browser's own menu.
+  // Right-clicks on the menu bring up neither the browser's own menu
+  // nor, through the page's listeners, a new contextual menu.
   function onContextMenu(e: Event): void {
-    if (el.contains(e.target as Node)) e.preventDefault();
+    if (!el.contains(e.target as Node)) return;
+    e.preventDefault();
+    e.stopPropagation();
   }
 
   // Keys, as in menu bar menus, plus an item's first letter.

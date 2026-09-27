@@ -21,10 +21,11 @@ const key = (el: EventTarget, k: string, init: KeyboardEventInit = {}) =>
   }));
 
 function pointer(type: string, x: number, y: number,
-                 target: EventTarget = document.body): PointerEvent {
+                 target: EventTarget = document.body,
+                 init: PointerEventInit = {}): PointerEvent {
   const e = new PointerEvent(type, {
     clientX: x, clientY: y, bubbles: true, cancelable: true,
-    pointerType: "mouse", pointerId: 1, button: 0,
+    pointerType: "mouse", pointerId: 1, button: 0, ...init,
   });
   target.dispatchEvent(e);
   return e;
@@ -135,6 +136,9 @@ describe("placeContextMenu", () => {
     ["desktop, pushed left most", 422, 30, 219, 132, 418, 30],
     ["desktop, flipped", 423, 30, 219, 132, 204, 30],
     ["desktop, right edge", 630, 30, 219, 132, 411, 30],
+    ["desktop, flipped, last unmoved", 637, 30, 219, 132, 418, 30],
+    ["desktop, flipped and pushed left", 638, 30, 219, 132, 418, 30],
+    ["desktop, flipped and pushed left most", 639, 30, 219, 132, 418, 30],
     ["window space, pushed left", 518, 113, 121, 165, 516, 113],
     ["icon, pushed left", 523, 113, 118, 142, 519, 113],
     ["icon, flipped", 524, 113, 118, 142, 406, 113],
@@ -196,8 +200,22 @@ describe("showContextMenu", () => {
     Object.defineProperty(window, "innerHeight", { value: 100 });
     show(10, 10);
     expect(el()!.style.top).toBe("0px");
-    expect(el()!.style.maxHeight).toBe("100px");
+    expect(el()!.style.maxHeight).toBe(`${100 - EDGE_BOTTOM}px`);
     expect(el()!.style.overflowY).toBe("auto");
+    expect(el()!.style.overflowX).toBe("hidden");
+  });
+
+  it("fits the viewport without the page's scroll bar", () => {
+    Object.defineProperty(document.documentElement, "clientWidth",
+                          { value: 625, configurable: true });
+    try {
+      // At 640 it would stay at 506; within 625 it is pushed back.
+      show(506, 10);
+      expect(el()!.style.left).toBe(`${625 - EDGE_RIGHT - MENU_W}px`);
+    } finally {
+      delete (document.documentElement as { clientWidth?: number })
+        .clientWidth;
+    }
   });
 
   it("stays open after a click, and chooses with the next", async () => {
@@ -227,6 +245,9 @@ describe("showContextMenu", () => {
     expect(closes).toEqual([false]);
   });
 
+  // Mac OS 8.0 chose in 11 of 11 releases over an item after the half
+  // second, and in 22 of 47 sooner ones (the rest left the menu open);
+  // Osmium always chooses.
   it("chooses where a press-drag-release ends, however quick", async () => {
     show();
     pointer("pointermove", 300, rowY(282, 5));
@@ -268,7 +289,7 @@ describe("showContextMenu", () => {
     document.addEventListener("contextmenu", () => native++);
     show();
     pointer("pointerup", 270, 282);
-    const down = pointer("pointerdown", 10, 10, under);
+    const down = pointer("pointerdown", 10, 10, under, { button: 2 });
     expect(down.defaultPrevented).toBe(true);
     const ctx = new MouseEvent("contextmenu", { bubbles: true, cancelable: true });
     under.dispatchEvent(ctx);
@@ -279,6 +300,32 @@ describe("showContextMenu", () => {
     expect(closes).toEqual([false]);
   });
 
+  it("lets the menu key through after a left click closed it", () => {
+    let native = 0;
+    document.addEventListener("contextmenu", () => native++);
+    show();
+    pointer("pointerup", 270, 282);
+    pointer("pointerdown", 10, 10);
+    pointer("pointerup", 10, 10);
+    expect(el()).toBeNull();
+    // The menu key (or Shift-F10), with no press in between.
+    const ctx = new MouseEvent("contextmenu", { bubbles: true, cancelable: true });
+    document.body.dispatchEvent(ctx);
+    expect(native).toBe(1);
+    expect(ctx.defaultPrevented).toBe(false);
+  });
+
+  it("keeps right-clicks on it from the page", () => {
+    let native = 0;
+    document.addEventListener("contextmenu", () => native++);
+    show();
+    const ctx = new MouseEvent("contextmenu", { bubbles: true, cancelable: true });
+    el()!.children[2]!.dispatchEvent(ctx);
+    expect(ctx.defaultPrevented).toBe(true);
+    expect(native).toBe(0);
+    expect(el()).not.toBeNull();
+  });
+
   it("works from the keyboard and gives focus back", async () => {
     const row = document.createElement("div");
     row.tabIndex = 0;
@@ -287,8 +334,14 @@ describe("showContextMenu", () => {
     show();
     key(document.activeElement!, "ArrowDown");
     expect(lit()).toBe("Help");
+    const menu = el()!;
+    expect(document.activeElement).toBe(menu);
+    expect(menu.getAttribute("aria-activedescendant"))
+      .toBe(menu.children[0]!.id);
     key(document.activeElement!, "ArrowDown");
     expect(lit()).toBe("Open"); // past the separator
+    expect(document.getElementById(
+      menu.getAttribute("aria-activedescendant")!)?.textContent).toBe("Open");
     key(document.activeElement!, "ArrowDown");
     expect(lit()).toBe("Get Info"); // past Move To Trash, dimmed
     key(document.activeElement!, "ArrowUp");

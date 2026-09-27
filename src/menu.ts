@@ -21,8 +21,8 @@ export type KeyDisplay =
 export interface MenuList {
   /** The ul (.osm-menu.osm-pulldown), appended to <body>. */
   readonly element: HTMLElement;
-  readonly entries: readonly MenuEntry[];
-  /** The highlighted entry, -1 for none. */
+  /** The highlighted entry, -1 for none. Focus stays on the list, which
+   * names it to assistive tech (aria-activedescendant). */
   readonly highlighted: number;
   /** Whether entry `i` is an item that can be chosen. */
   enabled(i: number): boolean;
@@ -46,17 +46,24 @@ export interface MenuList {
  * menu goes. */
 const BLINK_MS = 100;
 
+let listSeq = 0;
+
 /** Build the menu for `entries` as a ul with `classes` (added to
  * .osm-menu), named `label`, and append it to <body>. It isn't
  * placed or focused. */
 export function openMenuList(entries: readonly MenuEntry[], label: string,
                              classes: string, keys: KeyDisplay): MenuList {
+  const id = `osm-menu-${++listSeq}`;
   const list = part("ul", `osm-menu ${classes}`);
+  list.id = id;
   list.setAttribute("role", "menu");
   if (label) list.setAttribute("aria-label", label);
   list.tabIndex = -1;
-  for (const e of entries)
-    list.append(e === MENU_SEPARATOR ? menuSeparator() : itemElement(e, keys));
+  entries.forEach((e, i) => {
+    const li = e === MENU_SEPARATOR ? menuSeparator() : itemElement(e, keys);
+    li.id = `${id}-${i}`;
+    list.append(li);
+  });
   document.body.append(list);
   let hi = -1;
   let gone = false;
@@ -71,11 +78,12 @@ export function openMenuList(entries: readonly MenuEntry[], label: string,
   function highlight(i: number): void {
     hi = enabled(i) ? i : -1;
     itemEls().forEach((li, k) => li.classList.toggle("osm-highlight", k === hi));
+    if (hi >= 0) list.setAttribute("aria-activedescendant", `${id}-${hi}`);
+    else list.removeAttribute("aria-activedescendant");
   }
 
   return {
     element: list,
-    entries,
     get highlighted() { return hi; },
     enabled,
     highlight,
