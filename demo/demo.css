@@ -231,8 +231,9 @@ html.desk { height: 100%; background: #9999cc; }
    labels right-aligned on a shared edge 5px before their field's black
    line, the label box 3px below the field's top so the baselines meet
    (2px beside a 20px field), fields 6px apart, a field and its pop-up
-   4px apart and top-aligned (Mac OS 8.0 Find File), a label 5px above
-   the multi-line field. The dialog buttons sit as in Controls. */
+   4px apart (HIG p. 79; Mac OS 8.0 Find File leaves 6px) and
+   top-aligned as in Find File, a label 5px above the multi-line field.
+   The dialog buttons sit as in Controls. */
 .shr { position: absolute; inset: 0; }
 .shr > * { position: absolute; }
 .shr-identity {

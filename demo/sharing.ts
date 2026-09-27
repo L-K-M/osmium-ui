@@ -1,11 +1,13 @@
 // "File Sharing": edit text the way Mac OS 8 control panels used it,
-// laid out like Mac OS 8.0's File Sharing panel. Labeled one-line
-// fields (one of them a password), a 20px field paired with a pop-up
-// in a checkbox's row, and a multi-line message with a scroll bar.
-// Spacing follows the HIG: labels 5px from their field, fields 6px
-// apart, a field and its pop-up 4px apart. Return in a one-line field
-// presses OK and Escape Cancel, as ModalDialog has it; Return in the
-// message starts a new line. The settings are for show.
+// in a panel styled after File Sharing's Network Identity group. It
+// copies no captured panel, and the idle and message rows are made
+// up. Labeled one-line fields (one of them a password), a 20px field
+// paired with a pop-up in a checkbox's row, and a multi-line message
+// with a scroll bar. Spacing follows the HIG: labels 5px from their
+// field, fields 6px apart, a field and its pop-up 4px apart. Return in
+// a one-line field presses OK and Escape Cancel, as ModalDialog has
+// it; Return in the message starts a new line. The settings are for
+// show.
 import {
   bindDialogKeys, mountPopup, mountTextArea, pushButton, setEnabled,
   trackHighlight,
@@ -109,8 +111,11 @@ export function buildSharing(content: HTMLElement,
       last = t;
   });
   return {
+    // The idle field may have been disabled since it had the keyboard;
+    // the first field then takes it.
     focus: () => {
-      if (!last.disabled) last.focus({ preventScroll: true });
+      const target = last.disabled ? identity.querySelector("input")! : last;
+      target.focus({ preventScroll: true });
     },
   };
 }

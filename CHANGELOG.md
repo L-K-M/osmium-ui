@@ -12,8 +12,11 @@
   the inactive one; the bevel's top-right and bottom-left pixels are
   left open where Find File draws them gray; the caret sits one pixel
   right of TextEdit's; the selection doesn't run on to the field's
-  right edge. Placeholder text is an addition Mac OS 8 didn't have. The
-  demo has a File Sharing window.
+  right edge. A dimmed text area's scroll bar is blank and edged in
+  the frame's gray, not captured either; labels beside fields stay
+  black in an inactive window, where Mac OS 8.0 dims them. Placeholder
+  text is an addition Mac OS 8 didn't have. The demo has a File
+  Sharing window.
 - `setEnabled` takes text fields and text areas.
 - `bindDialogKeys` passes Return, Enter and Escape typed in a one-line
   edit text (`input.osm-edit`) on to the dialog's buttons, as the

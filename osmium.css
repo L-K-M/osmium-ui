@@ -837,15 +837,15 @@
    top-left corner included) and white along the bottom and right (the
    bottom-right corner included); measured in Mac OS 8.0 Find File and
    Mac OS 9.0 Date Formats. The top-right and bottom-left bevel corners
-   differ between sources: open (the background shows) in Mac OS 8.0
-   Date & Time, Mac OS 9.0 Date Formats and HIG figure 3-30, 88 in Mac
-   OS 8.0 Find File, white in HIG p. 48. They are left open here. The
-   Charcoal 12 line starts 3px inside the black line on the left and at
-   the top (2px of white), which puts the baseline on row 14 (Inside
-   Macintosh: Toolbox Essentials: the Dialog Manager frames an edit
-   text 3px outside TextEdit's rectangle). Bevel and ring are box
-   shadows so they work on a bare <input>, which has no pseudo-elements,
-   and leave its box the HIG's. */
+   differ between sources: open (the background shows) in Mac OS 9.0
+   Date Formats, HIG figure 3-30 and the Mac OS 9.0 Monitors list box
+   (the same bevel), 88 in Mac OS 8.0 Find File, white in HIG p. 48.
+   They are left open here. The Charcoal 12 line starts 3px inside the
+   black line on the left and at the top (2px of white), which puts the
+   baseline on row 14 (Inside Macintosh: Toolbox Essentials: the Dialog
+   Manager frames an edit text 3px outside TextEdit's rectangle). Bevel
+   and ring are box shadows so they work on a bare <input>, which has no
+   pseudo-elements, and leave its box the HIG's. */
 .osm-edit, .osm-edit-area {
   --osm-edit-bevel:
     -1px -1px #888, 0 -1px #888, -1px 0 #888,
@@ -943,9 +943,12 @@
 .osm-inactive .osm-edit-area > textarea::placeholder {
   color: #888; -webkit-text-fill-color: #888;
 }
-/* Disabled (setEnabled, or the disabled attribute). APPROXIMATION, not
-   captured: drawn like the measured inactive field, as
-   DrawThemeEditTextFrame has a single inactive state for both. */
+/* Disabled. APPROXIMATION, not captured: drawn like the measured
+   inactive field, as DrawThemeEditTextFrame has a single inactive state
+   for both. A bare input.osm-edit dims through :disabled; a text area's
+   frame and scroll bar key on .osm-disabled, which setEnabled puts on
+   its .osm-edit-area (:has() would need Safari 15.4, see the
+   checkboxes), so the disabled attribute alone dims only its text. */
 .osm-edit:disabled, .osm-edit-area.osm-disabled { border-color: #888; }
 .osm-edit:disabled, .osm-edit-area > textarea:disabled {
   color: #888; -webkit-text-fill-color: #888; opacity: 1;
@@ -995,17 +998,15 @@
   color: #666; -webkit-text-fill-color: #666; opacity: 1;
 }
 .osm-edit-area.osm-has-scrollbar > textarea { right: 15px; }
-/* A disabled text area's scroll bar is drawn dimmed, as when there is
-   nothing to scroll, and takes no presses. */
+/* A dimmed text area's scroll bar, in an inactive window or disabled,
+   is blank like an inactive window's bar, but edged in the frame's 88
+   rather than 55: its edges lie on the frame's line, which then reads
+   as one gray line all round. APPROXIMATION: no dimmed scrolling edit
+   text was captured. A disabled one's bar takes no presses. */
+.osm-inactive .osm-edit-area > .osm-scrollbar,
 .osm-edit-area.osm-disabled > .osm-scrollbar {
   background: #eee;
-  box-shadow: inset 1px 0 #000, inset -1px 0 #000;
-  pointer-events: none;
+  box-shadow: inset 0 0 0 1px #888;
 }
-.osm-edit-area.osm-disabled .osm-sb-thumb { display: none; }
-.osm-edit-area.osm-disabled .osm-sb-up {
-  background-image: var(--osm-sprite-scroll-up-dimmed);
-}
-.osm-edit-area.osm-disabled .osm-sb-down {
-  background-image: var(--osm-sprite-scroll-down-dimmed);
-}
+.osm-edit-area.osm-disabled > .osm-scrollbar { pointer-events: none; }
+.osm-edit-area.osm-disabled > .osm-scrollbar > * { visibility: hidden; }

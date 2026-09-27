@@ -227,8 +227,10 @@ For several lines, put a `<textarea>` in an `osm-edit-area`. On its own
 it is the Dialog Manager's multi-line edit text: the text wraps and is
 clipped, and it scrolls with the caret but has no scroll bar.
 `mountTextArea` adds an Osmium scroll bar that follows typing; call its
-`update()` after setting the text from a script. Give the area a
-height of 16px per line plus 6px, so 54px for three lines:
+`update()` after setting the text from a script. Disable a text area
+with `setEnabled`: the `disabled` attribute alone dims only its text,
+not its frame or scroll bar. Give the area a height of 16px per line
+plus 6px, so 54px for three lines:
 
 ```html
 <div id="notes" class="osm-edit-area" style="width: 200px; height: 54px">
@@ -240,8 +242,7 @@ height of 16px per line plus 6px, so 54px for three lines:
 import { mountTextArea } from "osmium-ui";
 
 const notes = mountTextArea(document.getElementById("notes")!);
-notes.textarea.value = "Three lines,
-or more.";
+notes.textarea.value = "Three lines,\nor more.";
 notes.update();
 ```
 
@@ -261,6 +262,13 @@ matches Mac OS 9.0 Date Formats. Some details differ:
 
 - A disabled field wasn't captured. It is drawn like a field in an
   inactive window, which was.
+- No dimmed scrolling text area was captured. In an inactive window or
+  disabled, its scroll bar is blank like an inactive window's, but
+  edged in the frame's gray (888888) rather than 555555, so the frame
+  stays one gray line where the bar overlaps it.
+- Mac OS 8.0 dims a window's static text in an inactive window, labels
+  beside fields included. Osmium's plain labels stay black; dim them
+  yourself if you want that.
 - The top-right and bottom-left bevel pixels are left open. Mac OS 8.0
   Find File draws them gray, while other sources leave them open.
 - The browser draws the caret one pixel right of where TextEdit does,
