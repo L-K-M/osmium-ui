@@ -1205,7 +1205,7 @@
    above the 15px bottom strip, whose black top line runs from the left
    edge to the scroll bar, leaving the corner to the window's grow box.
    The font follows data-font; the text area clips like TextEdit's view
-   rectangle, and the outline and mirror share its box. */
+   rectangle, and the highlight layer and mirror share its box. */
 .osm-textview {
   position: relative;
   box-sizing: border-box;
@@ -1218,7 +1218,7 @@
 .osm-textview[data-font="geneva-10"] { font: var(--osm-font-small); }
 .osm-textview[data-font="geneva-9"] { font: var(--osm-font-caption); }
 .osm-textview[data-font="charcoal-12"] { font: var(--osm-font-system); }
-.osm-textview > textarea, .osm-textview-outline, .osm-textview-mirror {
+.osm-textview > textarea, .osm-textview-highlight, .osm-textview-mirror {
   position: absolute; left: 4px; top: 4px; right: 19px; bottom: 19px;
   box-sizing: border-box;
 }
@@ -1250,8 +1250,18 @@
   color: var(--osm-highlight-text);
 }
 .osm-textview-mirror { visibility: hidden; overflow: hidden; }
-.osm-textview-outline { overflow: hidden; pointer-events: none; }
-.osm-textview-outline > div { position: absolute; background: #000; }
+.osm-textview-highlight { overflow: hidden; pointer-events: none; }
+.osm-textview-highlight > div { position: absolute; background: #000; }
+/* The fill while the keyboard is elsewhere, blended over the text: the
+   Highlight Color multiplied (black text stays black), or white
+   differenced for Black & White (the text inverts). */
+.osm-textview { isolation: isolate; }
+.osm-textview-highlight > .osm-textview-fill {
+  background: var(--osm-highlight); mix-blend-mode: multiply;
+}
+.osm-textview-highlight > .osm-textview-invert {
+  background: #fff; mix-blend-mode: difference;
+}
 .osm-textview > .osm-scrollbar { bottom: 14px; }
 .osm-textview-strip {
   position: absolute; left: 0; right: 15px; bottom: 0;

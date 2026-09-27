@@ -19,13 +19,18 @@
 //                    bar is blank (white inside its 55 edges) and a
 //                    selection is framed in a 1px black outline
 //                    (TextEdit's outline highlighting)
+//   selection        rows of whole lines, from the text rectangle's left
+//                    edge at a line's start and on to its right edge
+//                    where the selection goes past a line's end
 //
 // The text is a native <textarea>, so typing, input methods, spelling
 // services, the clipboard shortcuts and assistive technology work as in
 // any text field. Beyond it this module adds TextEdit's single-level
 // undo, the read-only mode SimpleText gives a ttro document, a length
-// limit, the inactive outline, and double-click word selection without
-// the trailing space. See the README for what differs from TextEdit.
+// limit, TextEdit's highlight where the browser draws none (the
+// inactive outline, and the selection while a menu has the keyboard),
+// and double-click word selection without the trailing space. See the
+// README for what differs from TextEdit.
 import { attachScrollbar, part } from "./controls.js";
 import { installOsmium } from "./install.js";
 
@@ -111,7 +116,7 @@ export interface OsmiumTextView {
   selectAll(): void;
   /** Give the text the keyboard. */
   focus(): void;
-  /** Re-read the text's extent and redraw the inactive outline (after
+  /** Re-read the text's extent and redraw the highlight it draws (after
    * changing `textarea` from script, say). Edits, scrolling, resizing and
    * window activation are followed by themselves. */
   update(): void;
@@ -229,12 +234,12 @@ export function mountTextView(host: HTMLElement,
   // Mac OS 8 had no spelling checker underlining words as you type.
   textarea.spellcheck = false;
   textarea.value = opts.text ?? "";
-  const outline = part("div", "osm-textview-outline");
-  outline.setAttribute("aria-hidden", "true");
+  const layer = part("div", "osm-textview-highlight");
+  layer.setAttribute("aria-hidden", "true");
   const mirror = part("div", "osm-textview-mirror");
   mirror.setAttribute("aria-hidden", "true");
   const strip = part("div", "osm-textview-strip");
-  host.append(mirror, textarea, outline, strip);
+  host.append(mirror, textarea, layer, strip);
   const sb = attachScrollbar(host, textarea, () => LINE_H[font]);
 
   function applyMode(): void {
@@ -467,12 +472,16 @@ export function mountTextView(host: HTMLElement,
     replaceSelection(text);
   }
 
-  // ---- the inactive outline -----------------------------------------------
-  // TextEdit frames the selection's highlight region while its window
-  // is inactive. The browser draws no selection in a text area without
-  // the keyboard, so this draws the frame from a copy of the text laid
-  // out the same way (the mirror), whenever the text area isn't focused
-  // or its window is inactive.
+  // ---- the highlight the browser doesn't draw ------------------------------
+  // The browser draws no selection in a text area without the keyboard,
+  // so this draws TextEdit's from a copy of the text laid out the same
+  // way (the mirror): the selection's highlight region framed while the
+  // window is inactive (TEDeactivate's outline), and filled while the
+  // window is active but the keyboard is elsewhere, in one of its menus,
+  // say. The fill is blended over the text, so the text under it takes
+  // the highlight's text color as the browser's own selection would:
+  // multiplied by the Highlight Color (black text stays black), or
+  // inverted for Black & White.
 
   function lineHeight(): number { return LINE_H[font]; }
 
@@ -501,14 +510,13 @@ export function mountTextView(host: HTMLElement,
   }
 
   function redraw(): void {
-    outline.textContent = "";
+    layer.textContent = "";
     const { selectionStart: s, selectionEnd: t } = textarea;
-    const shown = s < t && (document.activeElement !== textarea ||
-                            host.closest(".osm-inactive") !== null);
-    if (!shown) return;
+    const inactive = host.closest(".osm-inactive") !== null;
+    if (s >= t || (document.activeElement === textarea && !inactive)) return;
     const node = syncMirror();
     const lh = lineHeight();
-    const width = outline.clientWidth;
+    const width = layer.clientWidth;
     const start = measure(node, s, false);
     // The text's first pixel column, 1px inside the text rectangle: a
     // selection starting there starts at the rectangle's edge.
@@ -518,12 +526,23 @@ export function mountTextView(host: HTMLElement,
     const toEdge = textarea.value[t - 1] === "\n" || t === textarea.value.length;
     const bands = highlightBands(start, end, toEdge, width, lh);
     const dy = -textarea.scrollTop;
-    for (const r of outlineRects(bands)) {
-      const d = part("div", "");
+    const rects = inactive ? outlineRects(bands)
+      : bands.map((b) => ({ x: b.x0, y: b.top, w: b.x1 - b.x0,
+                            h: b.bottom - b.top }));
+    const cls = inactive ? "" : invertsText() ? "osm-textview-invert"
+                                              : "osm-textview-fill";
+    for (const r of rects) {
+      const d = part("div", cls);
       d.style.cssText = `left:${r.x}px;top:${r.y + dy}px;` +
         `width:${r.w}px;height:${r.h}px`;
-      outline.append(d);
+      layer.append(d);
     }
+  }
+
+  /** Whether the Highlight Color inverts (Black & White: white text). */
+  function invertsText(): boolean {
+    const c = getComputedStyle(host).getPropertyValue("--osm-highlight-text");
+    return ["#fff", "#ffffff", "white"].includes(c.trim().toLowerCase());
   }
 
   /** Scroll the text so position `i` is in view. */
