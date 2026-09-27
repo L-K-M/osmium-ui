@@ -563,9 +563,21 @@
   line-height: 16px;
   white-space: nowrap;
 }
-.osm-menu-item[aria-selected="true"]::before {
+.osm-menu-item[aria-selected="true"]::before,
+.osm-menu-item[aria-checked="true"]::before {
   content: "\2713"; position: absolute; left: 3px;
 }
+/* A keyboard equivalent (menubar.ts), as SimpleText 1.4's menus draw it
+   in Mac OS 8.0: the command key symbol's ink 31px left of the menu's
+   right black line, the key letter's pen 21px left of it (the symbol's
+   10px advance puts it there), and an item with a key 32px wider than
+   one without (its text plus 61px, outline included). */
+.osm-menu-item.osm-has-key { padding-right: 41px; }
+/* A menu bar menu's items without a key end 9px before the right black
+   line, 3px sooner than a pop-up menu's: SimpleText's File menu is its
+   widest item ("Print One Copy") plus 29px. */
+.osm-pulldown > .osm-menu-item:not(.osm-has-key) { padding-right: 9px; }
+.osm-menu-key { position: absolute; top: 0; left: calc(100% - 31px); }
 .osm-menu-item.osm-highlight {
   background:
     linear-gradient(var(--osm-accent-3), var(--osm-accent-3))
@@ -1387,3 +1399,8 @@
 /* While an alert is up (html.osm-modal) the menu bar's titles dim, 88
    as in Mac OS 8.0's Finder. Icon titles keep their colors. */
 .osm-modal .osm-menubar-title { color: #888; }
+/* An inert menu bar (under an app's own modal dialog) dims the same way
+   and takes no keyboard equivalents. */
+.osm-menubar[inert] .osm-menubar-title, [inert] .osm-menubar-title {
+  color: #888;
+}

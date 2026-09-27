@@ -36,7 +36,10 @@ export type {
   SortOrderButton,
 } from "./listview.js";
 export { mountMenuBar } from "./menubar.js";
-export type { Menu, MenuEntry, MenuItem } from "./menubar.js";
+export type {
+  CommandKey, KeyDispatch, Menu, MenuBarOptions, MenuEntry, MenuItem,
+  OsmiumMenuBar,
+} from "./menubar.js";
 export { mountTabs } from "./tabs.js";
 export type { OsmiumTabs, TabsOptions } from "./tabs.js";
 export { mountTextArea } from "./edittext.js";
