@@ -29,6 +29,13 @@
   get elements, which brings 4096 rows to 2 to 5 ms per insert and
   about 30 ms per reorder in Chromium, WebKit and Firefox, at the cost
   of find-in-page (`rendering: "all"` keeps every row).
+- Unsorted list-view column headers (`.osm-colhead`) now end in the
+  bevel Mac OS draws at their right edge, a column of 88 and a column
+  of 33, which Osmium left out; titles stop 2px short of it. Measured
+  from Mac OS 9.0's Finder and identical in Mac OS 7.6's Extensions
+  Manager (Apple TN1091, figure 1); no Mac OS 8.x list view capture was
+  found. The demo's Finder window changes by exactly those two columns
+  at each unsorted header's right end. Sorted headers already matched.
 - The demo's Finder window runs on `mountListView`, with the sort order
   button and column dividers to drag. Otherwise it draws as before,
   pixel for pixel, except that the selected name takes the highlight

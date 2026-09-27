@@ -763,21 +763,28 @@
 
 /* Finder list-view column headers, 21px: raised cc cells; the sorted
    column's cell is sunk (88 face), and its cells shade dd while the
-   others stay ee, with a white rule under every row. */
+   others stay ee, with a white rule under every row. A raised cell
+   ends in a column of 88 (6 and c at the top, 3 at the bottom) and a
+   column of 33 (5 at the top), as Mac OS 9.0's Finder and Mac OS 7.6's
+   Extensions Manager draw it; the title stops short of that end. */
 /* A list's header option scrolls the headers sideways with its rows. */
 .osm-colheads { display: flex; height: 21px; overflow: hidden; }
 .osm-colhead {
   position: relative;
   box-sizing: border-box;
-  height: 21px; margin: 0; padding: 4px 0 4px 4px; border: 0;
+  height: 21px; margin: 0; padding: 4px 2px 4px 4px; border: 0;
   color: #000; text-align: left;
   appearance: none; -webkit-appearance: none;
   outline: none;
   background:
     linear-gradient(#555, #555) 0 100% / 1px 1px no-repeat,
+    linear-gradient(#555, #555) 100% 0 / 1px 1px no-repeat,
+    linear-gradient(#333, #333) 100% 100% / 1px calc(100% - 1px) no-repeat,
+    linear-gradient(#888, #888) calc(100% - 1px) 2px / 1px calc(100% - 3px)
+      no-repeat,
     linear-gradient(#666, #666) 0 0 / 100% 1px no-repeat,
     linear-gradient(#666, #666) 0 0 / 1px 100% no-repeat,
-    linear-gradient(#fff, #fff) 1px 1px / 100% 1px no-repeat,
+    linear-gradient(#fff, #fff) 1px 1px / calc(100% - 3px) 1px no-repeat,
     linear-gradient(#fff, #fff) 1px 1px / 1px calc(100% - 3px) no-repeat,
     linear-gradient(#333, #333) 0 100% / 100% 1px no-repeat,
     linear-gradient(#888, #888) 2px calc(100% - 1px) / 100% 1px no-repeat,

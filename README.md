@@ -525,11 +525,12 @@ leaves the button out, as in Finder 8.0. The selection uses
 What differs from Mac OS 8:
 
 - No Mac OS 8.x list view capture was found, so the sort order button
-  was measured from Mac OS 9.0, where the Finder and Sherlock 2 draw it
-  alike. The reversed button was never captured: its pyramid is drawn
-  upside down from the captured one's steps and shading. Pressed
-  headers and a pressed sort order button weren't captured either, so
-  they don't look pressed.
+  and the unsorted header's right end were measured from Mac OS 9.0
+  (Finder and Sherlock 2), and the header end also from Mac OS 7.6's
+  Extensions Manager. The reversed button was never captured: its
+  pyramid is drawn upside down from the captured one's steps and
+  shading. Pressed headers and a pressed sort order button weren't
+  captured either, so they don't look pressed.
 - The divider's hit zone (7px), its cursor (the browser's `col-resize`)
   and the 24px narrowest column are guesses. Mac OS 8.5's theme cursor
   wasn't captured.
