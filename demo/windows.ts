@@ -2,16 +2,19 @@
 // from a WindowSpec, so the same code fills a window on the desktop
 // page (index.html, desktop.ts) and its one-window page for the native
 // demo app (controls.html and friends, page.ts).
-import type { Size } from "../src/index.js";
+import type { BalloonTrigger, OsmiumWindow, Size } from "../src/index.js";
 import { buildAbout } from "./about.js";
+import { buildAlerts } from "./alerts.js";
 import { buildAppearance } from "./appearance.js";
 import { buildControls } from "./controls.js";
 import { buildFinder } from "./finder.js";
 import { buildPanel } from "./panel.js";
+import { buildSharing } from "./sharing.js";
 import type { Pattern } from "./patterns.js";
 
 export type WindowId =
-  "controls" | "finder" | "panel" | "appearance" | "about";
+  "controls" | "finder" | "panel" | "appearance" | "about" | "sharing"
+  | "alerts";
 
 /** What the window's host (the desktop or a one-window page) offers
  * its content. */
@@ -26,6 +29,13 @@ export interface WindowEnv {
   open?(id: WindowId): void;
   /** Paint the desktop; absent where there is no desktop. */
   setDesktop?(pattern: Pattern): void;
+  /** When the window's help balloons open: with Balloon Help, on the
+   * desktop, whose Help menu turns it on; on hover in a one-window page,
+   * which has no Help menu. */
+  readonly balloons: BalloonTrigger;
+  /** The drawn window, for alerts to name as their parent (undefined
+   * until a one-window page has mounted it). */
+  window(): OsmiumWindow | undefined;
 }
 
 export interface WindowContent {
@@ -68,6 +78,10 @@ export const WINDOWS: readonly WindowSpec[] = [
     build: buildAppearance },
   { id: "about", title: "About Osmium UI", size: { w: 341, h: 221 },
     info: true, build: buildAbout },
+  { id: "sharing", title: "File Sharing", size: { w: 381, h: 331 },
+    build: buildSharing },
+  { id: "alerts", title: "Alerts", size: { w: 441, h: 241 },
+    build: buildAlerts },
 ];
 
 export function windowSpec(id: string): WindowSpec | undefined {

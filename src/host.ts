@@ -17,6 +17,7 @@
 // the window (unless the page takes the key or the focus is in a text
 // field), the way Finsical's panels close; pass escape: "ignore" for a
 // document window that shouldn't.
+import { isModal } from "./modal.js";
 import { mountWindow } from "./window.js";
 import type { OsmiumWindow } from "./window.js";
 
@@ -148,11 +149,14 @@ export function hostWindow(el: HTMLElement,
 
   // Escape closes, unless something inside (a menu, a dialog key
   // handler) took the key: checked after the event has been through
-  // every listener, whichever order they were added in. Text fields
-  // keep their own Escape (a search field clears).
+  // every listener, whichever order they were added in. Escape typed
+  // in a text field never closes the window: the field keeps it (a
+  // search field clears), or a dialog's bindDialogKeys takes it from a
+  // single-line edit text to press Cancel. While an alert is up
+  // (showAlert), Escape is the alert's.
   if ((opts.escape ?? "close") === "close") {
     window.addEventListener("keydown", (e) => {
-      if (e.key !== "Escape" || e.repeat) return;
+      if (e.key !== "Escape" || e.repeat || isModal()) return;
       const t = e.target instanceof Element ? e.target : null;
       if (t?.closest("input:not([type=checkbox]):not([type=range]), " +
                      "textarea, [contenteditable]")) return;

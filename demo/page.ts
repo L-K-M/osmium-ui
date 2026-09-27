@@ -1,11 +1,11 @@
 // One demo window per page, for the native demo app: each of
-// controls.html, finder.html, panel.html, appearance.html and
-// about.html holds one .osm-page-window naming its window in
-// data-window. hostWindow sends the window's gestures to the native
-// shell (the "osmium" message handler OsmiumWindowHost registers); in
-// a browser tab the window fills the tab. The native demo app also
-// listens on a "demo" handler for the Finder's requests to open other
-// windows.
+// controls.html, finder.html, panel.html, appearance.html, about.html,
+// sharing.html and alerts.html holds one .osm-page-window naming its
+// window in data-window. hostWindow sends the window's gestures to the
+// native shell (the "osmium" message handler OsmiumWindowHost
+// registers); in a browser tab the window fills the tab. The native
+// demo app also listens on a "demo" handler for the Finder's requests
+// to open other windows.
 import { hostWindow } from "../src/index.js";
 import type { HostedWindow } from "../src/index.js";
 import { registerDemoSprites } from "./icons.js";
@@ -31,6 +31,8 @@ const built = spec.build(content, {
   close: () => hosted?.close(),
   // The page is the window, so keys only arrive while it is active.
   isActive: () => true,
+  balloons: "hover",
+  window: () => hosted?.window,
   ...(demoApp ? { open: (id: string) => demoApp.postMessage({ op: "open", id }) }
               : {}),
 });

@@ -5,11 +5,16 @@
 // forward (a press in its content only activates it, as in Mac OS 8,
 // while a titlebar press activates and drags in one gesture); close
 // boxes hide windows, which the menu bar and the desktop icons reopen;
-// collapse boxes windowshade; the Finder window zooms and grows.
+// collapse boxes windowshade; the Finder window zooms and grows. The
+// Help menu turns Balloon Help on and off for every window, the window
+// frames and the desktop icons included. Special > Empty Trash… brings
+// up a caution alert over the front window.
 import {
-  MENU_SEPARATOR, installOsmium, mountMenuBar, mountWindow,
+  MENU_SEPARATOR, attachBalloon, balloonMenuItem, installOsmium,
+  mountMenuBar, mountWindow, showAlert,
 } from "../src/index.js";
-import type { OsmiumWindow, Size } from "../src/index.js";
+import type { OsmiumBalloon, OsmiumWindow, Size } from "../src/index.js";
+import { beep } from "./controls.js";
 import { el, swallowClick } from "./dom.js";
 import { registerDemoSprites, sprite } from "./icons.js";
 import type { SpriteName } from "./icons.js";
@@ -26,6 +31,8 @@ const MARGIN = 8;
 const KEEP_VISIBLE = 40;
 /** Desktop icon cell width (the label may overhang it). */
 const ICON_CELL_W = 76;
+/** Where the Help menu's last item leads. */
+const README_URL = "https://github.com/L-K-M/osmium-ui#readme";
 
 interface Frame { x: number; y: number; w: number; h: number }
 
@@ -36,6 +43,8 @@ const START: readonly {
   id: WindowId; x: number; y: number; closed?: boolean;
 }[] = [
   { id: "appearance", x: 280, y: 200, closed: true },
+  { id: "sharing", x: 120, y: 120, closed: true },
+  { id: "alerts", x: 300, y: 120, closed: true },
   { id: "about", x: 24, y: 40 },
   { id: "panel", x: 16, y: 300 },
   { id: "finder", x: 344, y: 44 },
@@ -48,6 +57,8 @@ const ICONS: readonly { id: WindowId; label: string; icon: SpriteName }[] = [
   { id: "panel", label: "Control Panel", icon: "icon-panel" },
   { id: "appearance", label: "Appearance", icon: "icon-panel" },
   { id: "about", label: "About Osmium UI", icon: "icon-readme" },
+  { id: "sharing", label: "File Sharing", icon: "icon-panel" },
+  { id: "alerts", label: "Alerts", icon: "icon-app" },
 ];
 
 interface DeskWindow {
@@ -229,7 +240,10 @@ for (const spec of WINDOWS) {
     isActive: () => front() === w,
     open,
     setDesktop,
+    balloons: "balloon-help",
+    window: () => win,
   });
+  frameBalloons(w);
 
   // A press in a window behind brings it forward. In its content the
   // press does nothing else (Mac OS 8 spends that click on activation);
@@ -246,6 +260,45 @@ for (const spec of WINDOWS) {
   node.addEventListener("focusin", () => {
     if (front() !== w) activate(w);
   });
+}
+
+/** Help balloons for a window's frame, their tips where the pointer
+ * rests, as the Finder points at title bars.
+ *
+ * A demo deviation: Mac OS 8 gives an inactive window one balloon for
+ * the whole window, tip fixed near its top-left (e_winTL_b). Here only
+ * the frame's parts switch to the inactive-window message; the
+ * controls inside an inactive window keep their own balloons, though
+ * there the first click only activates the window. */
+function frameBalloons(w: DeskWindow): void {
+  const inactive = () => w.el.classList.contains("osm-inactive");
+  const parts: { balloon: OsmiumBalloon; content: () => string }[] = [];
+  const part = (sel: string, text: string) => {
+    const e = w.el.querySelector<HTMLElement>(sel);
+    if (!e) return;
+    const content = () => inactive()
+      ? "This window is behind another one. To bring it to the front, " +
+        "click anywhere in it."
+      : text;
+    parts.push({ balloon: attachBalloon(e, { tip: "pointer", content }),
+                 content });
+  };
+  part(".osm-titlebar", "Title bar\n\nShows the window's name. To " +
+    "move the window, drag it by its title bar.");
+  part(".osm-close", "Close box\n\nClick here to put this window away. " +
+    "Its desktop icon opens it again.");
+  part(".osm-zoom", "Zoom box\n\nClick here to switch between the size " +
+    "you gave the window and the size that shows all of it.");
+  part(".osm-collapse", "Collapse box\n\nClick here to fold the window " +
+    "up to its title bar, and again to unfold it.");
+  // The activation state lives on the window, not on the parts, so
+  // their descriptions are refreshed when it changes.
+  let wasInactive = inactive();
+  new MutationObserver(() => {
+    if (inactive() === wasInactive) return;
+    wasInactive = inactive();
+    for (const p of parts) p.balloon.setContent(p.content);
+  }).observe(w.el, { attributes: true, attributeFilter: ["class"] });
 }
 
 /** Put every window back where it started (Special > Clean Up),
@@ -292,6 +345,10 @@ for (const d of ICONS) {
     if (e.button === 0) selectIcon({ el: icon, id: d.id });
   });
   icon.addEventListener("dblclick", () => open(d.id));
+  // Code 6, the variant the Finder uses for most of its balloons.
+  attachBalloon(icon, { variant: "bottom-left", content:
+    `${d.label} icon\n\nDouble-click to open the ${
+      windows.get(d.id)!.spec.title} window.` });
   icon.addEventListener("keydown", (e) => {
     if (e.key !== "Enter" || e.repeat) return;
     e.preventDefault();
@@ -325,8 +382,10 @@ mountMenuBar(menubar, [
     MENU_SEPARATOR,
     openable("panel"),
     openable("appearance"),
+    openable("alerts"),
     openable("controls"),
     openable("finder"),
+    openable("sharing"),
   ] },
   { title: "File", items: () => {
     const icon = selectedIcon;
@@ -343,11 +402,35 @@ mountMenuBar(menubar, [
   ] },
   { title: "Special", items: () => [
     { title: "Clean Up", action: cleanUp },
-    { title: "Empty Trash…" },
+    { title: "Empty Trash…", action: emptyTrash },
     MENU_SEPARATOR,
     { title: "Restart", action: () => location.reload() },
   ] },
+  // Laid out like Mac OS 8.0's Finder Help menu.
+  { title: "Help", items: () => [
+    { title: "About Osmium UI…", action: () => open("about") },
+    MENU_SEPARATOR,
+    balloonMenuItem(),
+    MENU_SEPARATOR,
+    { title: "Osmium UI Help", action: () => {
+      window.open(README_URL, "_blank", "noopener");
+    } },
+  ] },
 ]);
+
+/** The Finder's Empty Trash confirmation, over the front window. The
+ * demo has no Trash to empty, so OK changes nothing. */
+function emptyTrash(): void {
+  const parent = front()?.win;
+  showAlert({
+    kind: "caution",
+    message: "The Trash holds 24 items, which take up 3.1 MB of disk " +
+      "space. Do you want to remove them for good?",
+    buttons: { cancel: "Cancel" },
+    ...(parent ? { parent } : {}),
+    onBeep: () => beep(0.5),
+  });
+}
 
 // The clock at the menu bar's right end.
 const clock = el("div", "dsk-clock");

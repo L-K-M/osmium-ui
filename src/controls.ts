@@ -5,6 +5,7 @@
 // inputs) are used wherever one exists so focus, keyboard and
 // assistive tech keep working.
 import { installOsmium } from "./install.js";
+import { closeWhenModal, isModal } from "./modal.js";
 
 // part, inside, textWidth and swallowClick are also menubar.ts's.
 
@@ -134,6 +135,8 @@ const MIN_BUTTON = 59;
 const RING = 3;
 /** How long Return or Escape shows a button pressed: 8 ticks. */
 const FLASH_MS = 133;
+/** KeyboardEvent.keyCode of a keydown an input method is handling. */
+const IME_KEY_CODE = 229;
 
 /** Size a push button and place its title where the Control Manager
  * draws it: floor((width - title) / 2) from the button's left, on a
@@ -151,11 +154,26 @@ export function fitButton(b: HTMLElement): void {
   b.style.paddingRight = "0";
 }
 
-/** Enable or disable a checkbox or slider input, dimming its whole
- * control (osmium.css reads .osm-disabled on the wrapper). */
-export function setEnabled(input: HTMLInputElement, on: boolean): void {
+/** Show `b` pressed for 8 ticks, then run `action` unless the button
+ * was disabled meanwhile: the Dialog Manager's highlight for a button
+ * pressed from the keyboard. (bindDialogKeys and alert.ts share it.) */
+export function flashButton(b: HTMLButtonElement, action: () => void): void {
+  b.classList.add("osm-pressed");
+  setTimeout(() => {
+    b.classList.remove("osm-pressed");
+    if (!b.disabled) action();
+  }, FLASH_MS);
+}
+
+/** Enable or disable a checkbox, slider or edit text, dimming its
+ * whole control: osmium.css reads :disabled on a bare input.osm-edit
+ * and .osm-disabled on the wrapper of the others (.osm-checkbox,
+ * .osm-slider, and a text area's .osm-edit-area). A field's label is
+ * ordinary text; dim it yourself. */
+export function setEnabled(input: HTMLInputElement | HTMLTextAreaElement,
+                           on: boolean): void {
   input.disabled = !on;
-  input.closest(".osm-checkbox, .osm-slider")
+  input.closest(".osm-checkbox, .osm-slider, .osm-edit-area")
     ?.classList.toggle("osm-disabled", !on);
 }
 
@@ -175,21 +193,33 @@ export function setButtonTitle(b: HTMLElement, text: string): void {
 
 /** Return and Enter press `ok`, Escape (and Command-period) press
  * `cancel`, each flashing the button the way the Dialog Manager does.
- * Keys typed into text fields, menus and focused buttons (which have
- * their own Return handling) are left alone. With several windows in
- * one page, `active` says whether the buttons' window is the one the
- * keys are for. */
+ * ModalDialog's standard filter sees these keys before TextEdit does,
+ * so they work while a single-line edit text (input.osm-edit) has the
+ * keyboard, unless the field's own keydown handler calls
+ * preventDefault (to save on Return, say). Other text fields, text
+ * areas, menus and focused buttons (which have their own Return
+ * handling) keep their keys, and so does the Return that ends an input
+ * method's composition. With several windows in one page, `active`
+ * says whether the buttons' window is the one the keys are for. While
+ * an alert is up (showAlert) the keys are the alert's, and these do
+ * nothing. Returns a function that removes the key handling. */
 export function bindDialogKeys(ok: HTMLButtonElement | null,
                                cancel: HTMLButtonElement | null,
                                actions: { ok?: () => void;
                                           cancel?: () => void;
-                                          active?: () => boolean }): void {
-  window.addEventListener("keydown", (e) => {
-    if (e.defaultPrevented || e.repeat) return;
+                                          active?: () => boolean }
+                               ): () => void {
+  const onKey = (e: KeyboardEvent) => {
+    if (e.defaultPrevented || e.repeat || isModal()) return;
+    // Safari reports the composition's last keydown as keyCode 229
+    // with isComposing false.
+    if (e.isComposing || e.keyCode === IME_KEY_CODE) return;
     const t = e.target as HTMLElement | null;
-    if (t?.closest("input:not([type=checkbox]):not([type=range]), " +
-                   "textarea, [contenteditable], button, .osm-menu"))
-      return;
+    const field = t?.closest(
+      "input:not([type=checkbox]):not([type=range]), textarea, " +
+      "[contenteditable]");
+    if (field && !field.matches("input.osm-edit")) return;
+    if (t?.closest("button, .osm-menu")) return;
     const isOk = e.key === "Enter";
     const isCancel = e.key === "Escape" || (e.metaKey && e.key === ".");
     const b = isOk ? ok : isCancel ? cancel : null;
@@ -199,12 +229,10 @@ export function bindDialogKeys(ok: HTMLButtonElement | null,
         b.getClientRects().length === 0) return;
     if (actions.active && !actions.active()) return;
     e.preventDefault();
-    b.classList.add("osm-pressed");
-    setTimeout(() => {
-      b.classList.remove("osm-pressed");
-      if (!b.disabled) act();
-    }, FLASH_MS);
-  });
+    flashButton(b, act);
+  };
+  window.addEventListener("keydown", onKey);
+  return () => window.removeEventListener("keydown", onKey);
 }
 
 // ---- pop-up menus -----------------------------------------------------
@@ -301,6 +329,8 @@ export function mountPopup(btn: HTMLButtonElement,
   // after keyboard use, otherwise whatever had it before (a pop-up
   // used with the mouse never takes the keyboard target).
   let returnFocus: HTMLElement | null = null;
+  // Unregisters close from the alerts' menu closing (modal.ts).
+  let unwatchModal: (() => void) | null = null;
   const id = `osm-popup-${++popupSeq}`;
   btn.setAttribute("aria-haspopup", "listbox");
   btn.setAttribute("aria-expanded", "false");
@@ -410,10 +440,13 @@ export function mountPopup(btn: HTMLButtonElement,
     });
     document.addEventListener("pointerdown", onOutside, true);
     window.addEventListener("blur", close);
+    unwatchModal = closeWhenModal(close);
   }
 
   function close(): void {
     if (!menu) return;
+    unwatchModal?.();
+    unwatchModal = null;
     const hadFocus = menu.contains(document.activeElement);
     menu.remove();
     menu = null;

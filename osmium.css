@@ -808,7 +808,9 @@
 /* Keyboard focus, only while the keyboard is driving (install.ts sets
    .osm-kbd on the root; scripts focus lists and pop-ups on mouse presses
    too, which :focus-visible alone would ring). Mac OS 8.0 control
-   panels draw no focus at all; this keeps them usable without a mouse. */
+   panels draw no focus at all; this keeps them usable without a mouse.
+   Edit text is the exception: its ring shows however it got the focus
+   (see edit text below), because it marks where typing goes. */
 .osm-kbd .osm-button:focus-visible, .osm-kbd .osm-popup:focus-visible,
 .osm-kbd .osm-bevel:focus-visible, .osm-kbd .osm-checkbox input:focus-visible,
 .osm-kbd .osm-slider input:focus-visible, .osm-kbd .osm-list:focus-visible,
@@ -826,3 +828,393 @@
   height: 15px;
   outline: 2px solid #6666cc;
 }
+
+/* ---- edit text ------------------------------------------------------- */
+/* <input class="osm-edit">, any text type, drawn completely here (the
+   multi-line kind is src/edittext.ts). The element's box is the black
+   line, the way the HIG measures a field: 22px tall (HIG p. 82). A 1px
+   engraved bevel sits outside it, 88 along the top and left (the
+   top-left corner included) and white along the bottom and right (the
+   bottom-right corner included); measured in Mac OS 8.0 Find File and
+   Mac OS 9.0 Date Formats. The top-right and bottom-left bevel corners
+   differ between sources: open (the background shows) in Mac OS 9.0
+   Date Formats, HIG figure 3-30 and the Mac OS 9.0 Monitors list box
+   (the same bevel), 88 in Mac OS 8.0 Find File, white in HIG p. 48.
+   They are left open here. The Charcoal 12 line starts 3px inside the
+   black line on the left and at the top (2px of white), which puts the
+   baseline on row 14 (Inside Macintosh: Toolbox Essentials: the Dialog
+   Manager frames an edit text 3px outside TextEdit's rectangle). Bevel
+   and ring are box shadows so they work on a bare <input>, which has no
+   pseudo-elements, and leave its box the HIG's. */
+.osm-edit, .osm-edit-area {
+  --osm-edit-bevel:
+    -1px -1px #888, 0 -1px #888, -1px 0 #888,
+    1px 1px #fff, 0 1px #fff, 1px 0 #fff;
+  /* DrawThemeFocusRect: 2px of the accent hugging the black line, over
+     the bevel, the four outermost corner pixels left open (Mac OS 9.0
+     Date Formats, Sherlock 2 and Help Center; HIG pp. 48 and 66). The
+     union of these spread shadows is exactly that ring. */
+  --osm-edit-ring:
+    0 0 0 1px #6666cc, 0 -1px 0 1px #6666cc, 0 1px 0 1px #6666cc,
+    -1px 0 0 1px #6666cc, 1px 0 0 1px #6666cc;
+}
+.osm-edit {
+  box-sizing: border-box;
+  height: 22px;
+  margin: 0; padding: 2px;
+  border: 1px solid #000; border-radius: 0;
+  background: #fff;
+  box-shadow: var(--osm-edit-bevel);
+  color: #000;
+  font: var(--osm-font-system);
+  font-synthesis: none;
+  -webkit-font-smoothing: none;
+  letter-spacing: normal; word-spacing: normal;
+  text-indent: 0; text-transform: none; text-shadow: none;
+  caret-color: #000;
+  /* The I-beam over text (.osm-window sets the arrow). */
+  cursor: text;
+  /* .osm-window turns selection off, and Safari then won't select in or
+     place the caret in a field that inherits that. */
+  user-select: text; -webkit-user-select: text;
+  appearance: none; -webkit-appearance: none;
+  outline: none;
+}
+/* 20px, one row of white above and below the line, for a field in a row
+   of 20px buttons and pop-ups (HIG p. 82). Mac OS 8.0 Find File's field
+   is this kind: its text starts 3px in, baseline on row 13, the caret
+   16 rows from row 2 (Infinite Mac, Mac OS 8.0, black line at
+   397..532 x 151..170 of the 640 x 480 screen). */
+.osm-edit.osm-compact { height: 20px; padding-top: 1px; padding-bottom: 1px; }
+/* Mac OS 8 had no placeholder text; this is an addition, in a gray that
+   keeps WCAG AA contrast on white (88 would not). */
+.osm-edit::placeholder {
+  color: #666; -webkit-text-fill-color: #666; opacity: 1;
+}
+/* Mac OS 8 had no search field: type="search" looks like any field, with
+   no magnifier or cancel button, and numbers get no spin buttons. */
+.osm-edit::-webkit-search-decoration,
+.osm-edit::-webkit-search-cancel-button,
+.osm-edit::-webkit-search-results-button,
+.osm-edit::-webkit-search-results-decoration {
+  -webkit-appearance: none; display: none;
+}
+.osm-edit::-webkit-inner-spin-button,
+.osm-edit::-webkit-outer-spin-button { -webkit-appearance: none; margin: 0; }
+.osm-edit[type="number"] { -moz-appearance: textfield; appearance: textfield; }
+
+/* Selected text in the Highlight Color, Black & White by default in
+   Mac OS 8.0 and 8.1: white on black. WebKit lightens an opaque
+   selection color (black comes out 333333); a hair of transparency opts
+   out of that (010101 in every engine). */
+.osm-edit::selection, .osm-edit-area > textarea::selection {
+  background: #000;
+  background: color-mix(in srgb, #000 99.6%, transparent);
+  color: #fff;
+}
+
+/* The field with the keyboard has the ring however the focus got
+   there, a click or Tab: it shows where typing goes. The transparent
+   outline is for forced-colors modes, which drop box shadows but paint
+   outlines in a system color. */
+.osm-edit:focus, .osm-edit-area:focus-within {
+  box-shadow: var(--osm-edit-ring);
+  outline: 2px solid transparent;
+}
+
+/* An inactive window's fields, as Mac OS 8.0 Find File draws them
+   behind another application's window (the same Infinite Mac capture;
+   a window in front covered the field's right end): the black line and
+   the text turn 88, the bevel stays, and the ring, the caret and the
+   selection highlight go (TEDeactivate). */
+/* The :focus selectors outrank the ring rule by specificity, not only
+   by order: a field keeps DOM focus when its window deactivates. */
+.osm-inactive .osm-edit, .osm-inactive .osm-edit-area,
+.osm-inactive .osm-edit:focus, .osm-inactive .osm-edit-area:focus-within {
+  border-color: #888;
+  box-shadow: var(--osm-edit-bevel);
+}
+.osm-inactive .osm-edit, .osm-inactive .osm-edit-area > textarea {
+  color: #888; -webkit-text-fill-color: #888;
+  caret-color: transparent;
+}
+.osm-inactive .osm-edit::selection,
+.osm-inactive .osm-edit-area > textarea::selection {
+  background: transparent; color: #888;
+}
+.osm-inactive .osm-edit::placeholder,
+.osm-inactive .osm-edit-area > textarea::placeholder {
+  color: #888; -webkit-text-fill-color: #888;
+}
+/* Disabled. APPROXIMATION, not captured: drawn like the measured
+   inactive field, as DrawThemeEditTextFrame has a single inactive state
+   for both. A bare input.osm-edit dims through :disabled; a text area's
+   frame and scroll bar key on .osm-disabled, which setEnabled puts on
+   its .osm-edit-area (:has() would need Safari 15.4, see the
+   checkboxes), so the disabled attribute alone dims only its text. */
+.osm-edit:disabled, .osm-edit-area.osm-disabled { border-color: #888; }
+.osm-edit:disabled, .osm-edit-area > textarea:disabled {
+  color: #888; -webkit-text-fill-color: #888; opacity: 1;
+  cursor: default;
+}
+.osm-edit:disabled::placeholder,
+.osm-edit-area > textarea:disabled::placeholder {
+  color: #888; -webkit-text-fill-color: #888;
+}
+
+/* Multi-line edit text: <div class="osm-edit-area"> around a
+   <textarea>, in the same frame, the text keeping 2px of white. On its
+   own it is the Dialog Manager's multi-line edit text: the text wraps
+   and is clipped, scrolling with the caret but with no scroll bar.
+   mountTextArea adds a scroll bar, its black edges over the frame's
+   black line as in a list box. Height for n lines: 16n + 6 (the line,
+   2px of white and the black line at the top and bottom). */
+.osm-edit-area {
+  position: relative;
+  box-sizing: border-box;
+  border: 1px solid #000;
+  background: #fff;
+  box-shadow: var(--osm-edit-bevel);
+}
+.osm-edit-area > textarea {
+  position: absolute; inset: 0;
+  box-sizing: border-box;
+  width: auto; height: auto;
+  margin: 0; padding: 2px;
+  border: 0; border-radius: 0;
+  background: transparent;
+  color: #000;
+  font: var(--osm-font-system);
+  font-synthesis: none;
+  -webkit-font-smoothing: none;
+  caret-color: #000;
+  cursor: text;
+  user-select: text; -webkit-user-select: text;
+  resize: none;
+  overflow-x: hidden; overflow-y: auto;
+  scrollbar-width: none;
+  appearance: none; -webkit-appearance: none;
+  outline: none;
+}
+.osm-edit-area > textarea::-webkit-scrollbar { display: none; }
+.osm-edit-area > textarea::placeholder {
+  color: #666; -webkit-text-fill-color: #666; opacity: 1;
+}
+.osm-edit-area.osm-has-scrollbar > textarea { right: 15px; }
+/* A dimmed text area's scroll bar, in an inactive window or disabled,
+   is blank like an inactive window's bar, but edged in the frame's 88
+   rather than 55: its edges lie on the frame's line, which then reads
+   as one gray line all round. APPROXIMATION: no dimmed scrolling edit
+   text was captured. A disabled one's bar takes no presses. */
+.osm-inactive .osm-edit-area > .osm-scrollbar,
+.osm-edit-area.osm-disabled > .osm-scrollbar {
+  background: #eee;
+  box-shadow: inset 0 0 0 1px #888;
+}
+.osm-edit-area.osm-disabled > .osm-scrollbar { pointer-events: none; }
+.osm-edit-area.osm-disabled > .osm-scrollbar > * { visibility: hidden; }
+
+/* ---- Balloon Help ---------------------------------------------------- */
+/* A help balloon (balloon.ts): the body is a 9-slice of the Mac OS 8.0
+   balloon (1px black outline, 1px black shadow right and below, white
+   inside), and ::before overlays the variant's tail at its measured
+   offset. balloon.ts sets the width (text box + 25), left and top; the
+   height follows the text. The text box starts 12px right of the
+   outline and its first line box 11px below it (baseline row 20), in
+   Geneva 9 on 12px lines. The content box is one pixel narrower than
+   the text box, which is TextEdit's rule that a line must be at most
+   the box width less one. */
+.osm-balloon {
+  /* Over .osm-menu (1000) and over alerts (modal.ts stacks them from
+     2000), so a balloon on an alert's button isn't hidden under it. */
+  position: fixed; z-index: 3000;
+  box-sizing: border-box;
+  margin: 0; padding: 5px 7px 7px 6px;
+  border: solid transparent; border-width: 6px 7px 7px 6px;
+  border-image: var(--osm-sprite-balloon) 6 7 7 6 fill / 6px 7px 7px 6px;
+  color: #000; font: var(--osm-font-caption);
+  text-align: left; letter-spacing: normal; text-transform: none;
+  font-synthesis: none; -webkit-font-smoothing: none;
+  pointer-events: none; cursor: default;
+  user-select: none; -webkit-user-select: none;
+}
+.osm-balloon[hidden] { display: none; }
+.osm-balloon-text { overflow: hidden; } /* max-height only when clipped */
+/* Plain text holds the lines balloon.ts broke, drawn as they are. */
+.osm-balloon-plain { white-space: pre; }
+.osm-balloon::before {
+  content: ""; position: absolute;
+  background-repeat: no-repeat;
+}
+/* Tail overlays, from the padding box's edges. */
+.osm-balloon-left-top::before {
+  left: -22px; top: -5px; width: 17px; height: 16px;
+  background-image: var(--osm-sprite-balloon-left-top);
+}
+.osm-balloon-top-left::before {
+  left: -5px; top: -23px; width: 17px; height: 18px;
+  background-image: var(--osm-sprite-balloon-top-left);
+}
+.osm-balloon-top-right::before {
+  right: -6px; top: -22px; width: 16px; height: 17px;
+  background-image: var(--osm-sprite-balloon-top-right);
+}
+.osm-balloon-right-top::before {
+  right: -24px; top: -5px; width: 19px; height: 17px;
+  background-image: var(--osm-sprite-balloon-right-top);
+}
+.osm-balloon-right-bottom::before {
+  right: -25px; bottom: -7px; width: 20px; height: 18px;
+  background-image: var(--osm-sprite-balloon-right-bottom);
+}
+.osm-balloon-bottom-right::before {
+  right: -7px; bottom: -24px; width: 17px; height: 19px;
+  background-image: var(--osm-sprite-balloon-bottom-right);
+}
+.osm-balloon-bottom-left::before {
+  left: -6px; bottom: -25px; width: 18px; height: 20px;
+  background-image: var(--osm-sprite-balloon-bottom-left);
+}
+.osm-balloon-left-bottom::before {
+  left: -23px; bottom: -7px; width: 18px; height: 17px;
+  background-image: var(--osm-sprite-balloon-left-bottom);
+}
+/* Rich content (a Node), not measured: Mac-style approximations.
+   Paragraphs and lists one blank line apart, bullets hung on a Geneva 9
+   bullet, bold in synthesized Geneva 9 bold, and code, italics and
+   links as plain Geneva 9 (no Monaco or italic strike; balloons can't
+   be clicked). */
+.osm-balloon :is(p, ul, ol) { margin: 0; padding: 0; }
+.osm-balloon :is(p, ul, ol) + :is(p, ul, ol) { margin-top: 12px; }
+.osm-balloon ul { list-style: none; padding-left: 9px; } /* bullet 6 + space 3 */
+.osm-balloon ol { padding-left: 15px; }
+.osm-balloon li { position: relative; }
+.osm-balloon ul > li::before {
+  content: "\2022"; position: absolute; left: -9px;
+}
+.osm-balloon :is(strong, b) { font-weight: 700; }
+.osm-balloon :is(code, em, i, a) {
+  font: inherit; color: inherit; text-decoration: none;
+}
+.osm-balloon img { display: block; max-width: 100%; }
+
+/* ---- alerts ---------------------------------------------------------- */
+/* An alert box (alert.ts). W x H is the black outline box; the port,
+   where the icon, text and buttons go, is [3, W-4] x [3, H-4]. The
+   frame is the one Mac OS 8.0's Finder, Stickies, AppleCD Audio
+   Player and Process Manager alerts draw (presumably kWindowAlertProc;
+   which window definition an app used can't be read from pixels): black
+   outline; ff9999 outer bevel on the top and left, ff6666 on the right
+   and bottom; white inner bevel on the top and left, 99 on the right
+   and bottom, ff9999 at the two corners where they meet; a dd face;
+   and the document window's 1px shadow. A movable alert (.osm-movable)
+   has a title bar above the same frame: --osm-alert-top moves the frame
+   down 21px, its top outline becoming the bar's separator. */
+.osm-alert {
+  --osm-alert-top: 0px;
+  position: fixed;
+  box-sizing: border-box;
+  background:
+    linear-gradient(#f99, #f99) right 2px top calc(var(--osm-alert-top) + 2px)
+      / 1px 1px no-repeat,
+    linear-gradient(#f99, #f99) left 2px bottom 2px / 1px 1px no-repeat,
+    linear-gradient(#fff, #fff) 2px calc(var(--osm-alert-top) + 2px)
+      / calc(100% - 5px) 1px no-repeat,
+    linear-gradient(#fff, #fff) 2px calc(var(--osm-alert-top) + 2px)
+      / 1px calc(100% - 5px - var(--osm-alert-top)) no-repeat,
+    linear-gradient(#999, #999) right 2px top calc(var(--osm-alert-top) + 3px)
+      / 1px calc(100% - 5px - var(--osm-alert-top)) no-repeat,
+    linear-gradient(#999, #999) left 3px bottom 2px / calc(100% - 5px) 1px
+      no-repeat,
+    linear-gradient(#f99, #f99) 1px calc(var(--osm-alert-top) + 1px)
+      / calc(100% - 2px) 1px no-repeat,
+    linear-gradient(#f99, #f99) 1px calc(var(--osm-alert-top) + 1px)
+      / 1px calc(100% - 2px - var(--osm-alert-top)) no-repeat,
+    linear-gradient(#f66, #f66) right 1px top calc(var(--osm-alert-top) + 2px)
+      / 1px calc(100% - 3px - var(--osm-alert-top)) no-repeat,
+    linear-gradient(#f66, #f66) left 2px bottom 1px / calc(100% - 3px) 1px
+      no-repeat,
+    linear-gradient(#000, #000) 0 var(--osm-alert-top) / 100% 1px no-repeat,
+    #ddd;
+  box-shadow: inset 0 0 0 1px #000; /* the outline */
+  color: #000;
+  font: var(--osm-font-system);
+  font-synthesis: none;
+  -webkit-font-smoothing: none;
+  outline: none; /* the box takes the focus but draws no ring */
+  cursor: default;
+  user-select: none;
+  -webkit-user-select: none;
+}
+.osm-alert::before, .osm-alert::after {
+  content: ""; position: absolute; background: #000;
+}
+.osm-alert::before { top: 2px; right: -1px; bottom: -1px; width: 1px; }
+.osm-alert::after { left: 2px; right: -1px; bottom: -1px; height: 1px; }
+.osm-alert.osm-movable { --osm-alert-top: 21px; }
+.osm-alert-port {
+  position: absolute; left: 3px; top: calc(var(--osm-alert-top) + 3px);
+  right: 3px; bottom: 3px;
+}
+/* alert.ts places the parts: the icon at (20, 10), the message's first
+   baseline on row 18, the buttons 10px from the right and bottom. */
+.osm-alert-icon {
+  position: absolute; width: 32px; height: 32px;
+  background: var(--osm-icon, none) 0 0 / 32px 32px no-repeat;
+}
+/* The message in plain Charcoal 12, the explanation in Geneva 10. */
+.osm-alert-message, .osm-alert-explanation {
+  position: absolute; margin: 0;
+  white-space: pre-line; overflow-wrap: anywhere;
+}
+.osm-alert-message { font: var(--osm-font-system); }
+.osm-alert-explanation { font: var(--osm-font-small); }
+.osm-alert .osm-button { position: absolute; }
+
+/* A movable alert's title bar (kWindowMovableAlertProc), from the Mac
+   OS 8 HIG's figures (1997), not from a running system: rows 0..20, an
+   ffcccc face with white on its top and left and ff9999 on its right
+   and bottom, and six white/ff6666 pinstripe pairs on rows 4..15, from
+   5px in to 5px short of the right edge. Row 21 is the black
+   separator. The figures have no title; a title parts the stripes as
+   in a document window. */
+.osm-alert-titlebar {
+  position: absolute; left: 0; top: 0; right: 0; height: 21px;
+  background:
+    linear-gradient(#fff, #fff) 1px 1px / calc(100% - 3px) 1px no-repeat,
+    linear-gradient(#fff, #fff) 1px 1px / 1px 19px no-repeat,
+    linear-gradient(#f99, #f99) right 1px top 2px / 1px 19px no-repeat,
+    linear-gradient(#f99, #f99) 2px 20px / calc(100% - 3px) 1px no-repeat,
+    linear-gradient(#fcc, #fcc) 1px 1px / calc(100% - 2px) 20px no-repeat;
+  touch-action: none;
+}
+.osm-alert-titlebar .osm-stripes::after {
+  background-image: var(--osm-sprite-stripe-alert-lo);
+}
+.osm-alert-titlebar .osm-stripes-all { left: 5px; right: 5px; }
+.osm-alert-titlebar .osm-stripes-l {
+  left: 5px; width: calc(var(--osm-title-x, 0px) - 8px);
+}
+.osm-alert-titlebar .osm-stripes-r {
+  left: calc(var(--osm-title-x, 0px) + var(--osm-title-w, 0px) + 3px);
+  right: 5px;
+}
+
+/* Forced colors (Windows High Contrast) drop the inset box-shadow
+   outline and the gradient bevels: draw the outline, the title bar's
+   separator and the shadow in system colors so the alert keeps its
+   edge against the windows under it. */
+@media (forced-colors: active) {
+  .osm-alert { outline: 1px solid CanvasText; outline-offset: -1px; }
+  .osm-alert::before, .osm-alert::after { background: CanvasText; }
+  .osm-alert-titlebar {
+    box-sizing: content-box; border-bottom: 1px solid CanvasText;
+  }
+}
+
+/* Under each alert, a transparent layer over the whole page, menu bar
+   included, takes every press outside the alert. */
+.osm-modal-layer { position: fixed; inset: 0; touch-action: none; }
+/* While an alert is up (html.osm-modal) the menu bar's titles dim, 88
+   as in Mac OS 8.0's Finder. Icon titles keep their colors. */
+.osm-modal .osm-menubar-title { color: #888; }

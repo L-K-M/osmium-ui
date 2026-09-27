@@ -2,6 +2,7 @@ import { describe, expect, it } from "vitest";
 import { SPRITES, allSprites, spriteCss, spriteSvg } from "./sprites.js";
 import { titleLeft } from "./window.js";
 import { CONTROL_SPRITES } from "./controlsprites.js";
+import { ALERT_SPRITES } from "./alertsprites.js";
 
 // Box pixels as Mac OS 8.0 draws them, gray level per hex digit: the
 // Finder's zoom and collapse boxes, and the zoom box held down.
@@ -81,6 +82,28 @@ describe("sprites", () => {
     const track = CONTROL_SPRITES["scroll-htrack-left"]!.map((r, y) =>
       r + CONTROL_SPRITES["scroll-htrack"]![y]);
     expect(track).toEqual(TRACK_START);
+  });
+
+  it("draw the alert icons as measured", () => {
+    // Mac OS 8.0's Finder alerts (stop, caution) and the Mac OS 8 HIG's
+    // figure 3-6 (note): first and last rows, and the caution icon's
+    // base.
+    const stop = ALERT_SPRITES["alert-stop"]!;
+    expect(stop[0]).toBe("........RRRRRRRRRRRRRRRR........");
+    expect(stop[31]).toBe(".......fMNNNNNNNNNNNNNNNf.......");
+    expect(ALERT_SPRITES["alert-caution"]![29])
+      .toBe("00kkkkkkkkkkkkkkkkkkkkkkkkkkkk00");
+    expect(ALERT_SPRITES["alert-note"]![1])
+      .toBe("2fffffffK44444444444444444444442");
+    for (const rows of Object.values(ALERT_SPRITES)) {
+      expect(rows.length).toBe(32);
+      expect(rows.every((r) => r.length === 32)).toBe(true);
+    }
+    const css = spriteCss();
+    for (const name of ["alert-stop", "alert-caution", "alert-note",
+                        "stripe-alert-lo"])
+      expect(css).toContain(`--osm-sprite-${name}: url("data:image/svg+xml,`);
+    expect(spriteSvg(SPRITES.stripeAlertLo)).toContain('fill="#ff6666"');
   });
 
   it("reject palette keys that can't be told from grays", () => {

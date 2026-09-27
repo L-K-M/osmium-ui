@@ -8,6 +8,7 @@
 // callbacks — because only the native shell can close or move a window.
 import { trackPress } from "./controls.js";
 import { installOsmium } from "./install.js";
+import { MODAL_CHANGE, isModal } from "./modal.js";
 
 /** What makes a window active (drawn with its boxes and stripes). */
 export type Activation =
@@ -35,7 +36,9 @@ export interface OsmiumWindow {
   readonly content: HTMLElement;
   setTitle(text: string): void;
   setShaded(on: boolean): void;
-  /** Draw the window active or inactive (with "manual" activation). */
+  /** Draw the window active or inactive (with "manual" activation).
+   * Deactivating hides a focused edit text's caret and ring but leaves
+   * it the DOM focus: blur it, or typing still reaches it. */
   setActive(on: boolean): void;
 }
 
@@ -135,10 +138,13 @@ export function mountWindow(el: HTMLElement,
   };
   if ((opts.activation ?? "page") === "page") {
     // Active while the page has focus: the native shell gives every
-    // Osmium window its own page, so page focus is window focus.
-    const syncFocus = () => setActive(document.hasFocus());
+    // Osmium window its own page, so page focus is window focus. An
+    // alert (showAlert) is the front window while it's up, so the
+    // window draws inactive behind it.
+    const syncFocus = () => setActive(document.hasFocus() && !isModal());
     window.addEventListener("focus", syncFocus);
     window.addEventListener("blur", syncFocus);
+    window.addEventListener(MODAL_CHANGE, syncFocus);
     syncFocus();
   }
 

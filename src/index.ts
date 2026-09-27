@@ -24,3 +24,18 @@ export { mountMenuBar } from "./menubar.js";
 export type { Menu, MenuEntry, MenuItem } from "./menubar.js";
 export { mountTabs } from "./tabs.js";
 export type { OsmiumTabs, TabsOptions } from "./tabs.js";
+export { mountTextArea } from "./edittext.js";
+export type { OsmiumTextArea } from "./edittext.js";
+export {
+  attachBalloon, balloonHelp, balloonMenuItem, onBalloonHelpChange,
+  setBalloonHelp,
+} from "./balloon.js";
+export type {
+  BalloonContent, BalloonHelpState, BalloonOptions, BalloonTip,
+  BalloonTrigger, BalloonVariant, OsmiumBalloon,
+} from "./balloon.js";
+export { showAlert } from "./alert.js";
+export type {
+  AlertButton, AlertButtons, AlertKind, AlertModality, AlertOptions,
+  AlertPosition, AlertResult, OsmiumAlert,
+} from "./alert.js";
