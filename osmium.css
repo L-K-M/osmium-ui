@@ -1010,3 +1010,85 @@
 }
 .osm-edit-area.osm-disabled > .osm-scrollbar { pointer-events: none; }
 .osm-edit-area.osm-disabled > .osm-scrollbar > * { visibility: hidden; }
+
+/* ---- Balloon Help ---------------------------------------------------- */
+/* A help balloon (balloon.ts): the body is a 9-slice of the Mac OS 8.0
+   balloon (1px black outline, 1px black shadow right and below, white
+   inside), and ::before overlays the variant's tail at its measured
+   offset. balloon.ts sets the width (text box + 25), left and top; the
+   height follows the text. The text box starts 12px right of the
+   outline and its first line box 11px below it (baseline row 20), in
+   Geneva 9 on 12px lines. The content box is one pixel narrower than
+   the text box, which is TextEdit's rule that a line must be at most
+   the box width less one. */
+.osm-balloon {
+  position: fixed; z-index: 1100; /* over .osm-menu */
+  box-sizing: border-box;
+  margin: 0; padding: 5px 7px 7px 6px;
+  border: solid transparent; border-width: 6px 7px 7px 6px;
+  border-image: var(--osm-sprite-balloon) 6 7 7 6 fill / 6px 7px 7px 6px;
+  color: #000; font: var(--osm-font-caption);
+  text-align: left; letter-spacing: normal; text-transform: none;
+  font-synthesis: none; -webkit-font-smoothing: none;
+  pointer-events: none; cursor: default;
+  user-select: none; -webkit-user-select: none;
+}
+.osm-balloon[hidden] { display: none; }
+.osm-balloon-text { overflow: hidden; } /* max-height only when clipped */
+/* Plain text holds the lines balloon.ts broke, drawn as they are. */
+.osm-balloon-plain { white-space: pre; }
+.osm-balloon::before {
+  content: ""; position: absolute;
+  background-repeat: no-repeat;
+}
+/* Tail overlays, from the padding box's edges. */
+.osm-balloon-left-top::before {
+  left: -22px; top: -5px; width: 17px; height: 16px;
+  background-image: var(--osm-sprite-balloon-left-top);
+}
+.osm-balloon-top-left::before {
+  left: -5px; top: -23px; width: 17px; height: 18px;
+  background-image: var(--osm-sprite-balloon-top-left);
+}
+.osm-balloon-top-right::before {
+  right: -6px; top: -22px; width: 16px; height: 17px;
+  background-image: var(--osm-sprite-balloon-top-right);
+}
+.osm-balloon-right-top::before {
+  right: -24px; top: -5px; width: 19px; height: 17px;
+  background-image: var(--osm-sprite-balloon-right-top);
+}
+.osm-balloon-right-bottom::before {
+  right: -25px; bottom: -7px; width: 20px; height: 18px;
+  background-image: var(--osm-sprite-balloon-right-bottom);
+}
+.osm-balloon-bottom-right::before {
+  right: -7px; bottom: -24px; width: 17px; height: 19px;
+  background-image: var(--osm-sprite-balloon-bottom-right);
+}
+.osm-balloon-bottom-left::before {
+  left: -6px; bottom: -25px; width: 18px; height: 20px;
+  background-image: var(--osm-sprite-balloon-bottom-left);
+}
+.osm-balloon-left-bottom::before {
+  left: -23px; bottom: -7px; width: 18px; height: 17px;
+  background-image: var(--osm-sprite-balloon-left-bottom);
+}
+/* Rich content (a Node), not measured: Mac-style approximations.
+   Paragraphs and lists one blank line apart, bullets hung on a Geneva 9
+   bullet, bold in synthesized Geneva 9 bold, and code, italics and
+   links as plain Geneva 9 (no Monaco or italic strike; balloons can't
+   be clicked). */
+.osm-balloon :is(p, ul, ol) { margin: 0; padding: 0; }
+.osm-balloon :is(p, ul, ol) + :is(p, ul, ol) { margin-top: 12px; }
+.osm-balloon ul { list-style: none; padding-left: 9px; } /* bullet 6 + space 3 */
+.osm-balloon ol { padding-left: 15px; }
+.osm-balloon li { position: relative; }
+.osm-balloon ul > li::before {
+  content: "\2022"; position: absolute; left: -9px;
+}
+.osm-balloon :is(strong, b) { font-weight: 700; }
+.osm-balloon :is(code, em, i, a) {
+  font: inherit; color: inherit; text-decoration: none;
+}
+.osm-balloon img { display: block; max-width: 100%; }

@@ -12,9 +12,9 @@ import { buildPixelFont } from "./ttf.js";
 
 let installed: Promise<void> | null = null;
 
-/** Add the sprite custom properties and the font faces (Charcoal 12
- * and Geneva 10, each with QuickDraw-synthesized bold, and Geneva 9
- * for captions). Idempotent.
+/** Add the sprite custom properties and the font faces (Charcoal 12,
+ * Geneva 10 and Geneva 9, each with QuickDraw-synthesized bold).
+ * Idempotent.
  * Resolves once the fonts can be measured; rejects if the browser
  * refuses a face — text then falls back to the next family in
  * osmium.css, so callers should report the error and carry on. */
@@ -28,9 +28,11 @@ export function installOsmium(): Promise<void> {
     style.textContent = `:root {\n${spriteCss()}\n}`;
     document.head.appendChild(style);
     trackInputModality();
-    const faces = [CHARCOAL_12, GENEVA_10]
+    // Geneva 9 bold is for <strong> in Balloon Help messages. No bold
+    // Geneva 9 was captured from Mac OS 8; it is synthesized the way
+    // QuickDraw emboldens the other strikes.
+    const faces = [CHARCOAL_12, GENEVA_10, GENEVA_9]
       .flatMap((s) => [face(s, false), face(s, true)]);
-    faces.push(face(GENEVA_9, false));
     // FontFaceSet's setlike add() is typed only in lib.dom.iterable,
     // which this project doesn't load.
     const set = document.fonts as unknown as { add(f: FontFace): void };

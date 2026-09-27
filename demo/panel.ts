@@ -8,8 +8,8 @@
 //   Monitor   color depth and resolution lists, a gamma pop-up
 //   Picture   sliders in group boxes adjusting a test card; Defaults
 import {
-  MENU_SEPARATOR, centerText, mountList, mountPopup, pushButton,
-  setButtonTitle, trackPress,
+  MENU_SEPARATOR, attachBalloon, centerText, mountList, mountPopup,
+  pushButton, setButtonTitle, trackPress,
 } from "../src/index.js";
 import { button, el, group, slider } from "./dom.js";
 import { sprite } from "./icons.js";
@@ -259,6 +259,10 @@ export function buildPanel(content: HTMLElement,
     strip.append(item);
     panesEl.append(p.el);
     centerText(cap, true);
+    // On the tab, whose description it becomes (its caption below isn't
+    // part of the balloon's target).
+    attachBalloon(tab, { trigger: env.balloons, content:
+      `${p.label} button\n\nTo show the ${p.label} settings, click here.` });
     // Pane buttons select on press, like radio buttons; the keyboard
     // moves to the new pane (the old one's list just hid).
     trackPress(tab, () => { showPane(p.id); focusPane(); });

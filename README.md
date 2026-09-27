@@ -37,6 +37,8 @@ information window (class `osm-info`, whose text dims when inactive).
 - Finder list-view headers and placards.
 - Progress bars, separators, wells, and label/value rows.
 - Edit text fields, one-line and multi-line.
+- Balloon Help: help balloons measured from Mac OS 8.0, with the Help
+  menu's Show Balloons / Hide Balloons command.
 
 **Fonts.** Charcoal 12, Geneva 10 and Geneva 9 as bitmap strikes. They
 are compiled into TrueType fonts in the browser at startup, with
@@ -100,6 +102,8 @@ Appearance window and a File Sharing window full of edit text (open
 them from their desktop icons), and an About window.
 You can drag the windows, click to bring them to the front, close them
 and windowshade them, and zoom and resize the Finder window.
+Choose Show Balloons from the Help menu, then rest the pointer on a
+control, a window's title bar or a desktop icon to see its help balloon.
 
 On a Mac with the Xcode command line tools, the same pages run as
 native windows:
@@ -189,6 +193,7 @@ window.
 | Label/value rows | `<div class="osm-fields">` of `.osm-label` and value pairs | none |
 | Separator, well | `<div class="osm-separator">`, `<div class="osm-well">` | none |
 | Edit text | `<input class="osm-edit">` (22px), add `osm-compact` for 20px; `<div class="osm-edit-area"><textarea></textarea></div>` for several lines | native input; `mountTextArea(el)` adds a scroll bar to a multi-line field; `setEnabled(field, on)` |
+| Help balloon | none: attach it to any element | `attachBalloon(el, { content })`, and `balloonMenuItem()` in a Help menu; see [Balloon Help](#balloon-help) |
 
 Disable a checkbox, slider or edit text with `setEnabled(input, false)`
 so the whole control dims. The fonts are available as `osm-system` (Charcoal
@@ -277,6 +282,90 @@ matches Mac OS 9.0 Date Formats. Some details differ:
   text.
 - Selected text is white on 010101 rather than black: WebKit lightens
   an opaque black selection to 333333.
+
+### Balloon Help
+
+Give any element a help balloon, and put the Show Balloons command in
+a Help menu:
+
+```ts
+import {
+  MENU_SEPARATOR, attachBalloon, balloonMenuItem, mountMenuBar,
+} from "osmium-ui";
+
+mountMenuBar(bar, [
+  // … your other menus
+  { title: "Help", items: () => [
+    { title: "About MyApp…", action: about }, MENU_SEPARATOR,
+    balloonMenuItem(), // "Show Balloons" or "Hide Balloons"
+  ] },
+]);
+attachBalloon(okButton, {
+  content: "OK button\n\nTo save your changes, click here.",
+});
+// A message that follows the control's state:
+attachBalloon(wake, {
+  content: () => wake.disabled ? "Wake\n\nNot available during a scan."
+                               : "Wake\n\nSends a wake-up packet.",
+});
+```
+
+A `content` function runs again whenever the target's attributes change
+(`disabled` above), it fires `input` or `change` (a checkbox's checked
+state), or it gets focus, so the message stays current whether or not
+the balloon is open. State kept anywhere else needs
+`balloon.setContent(fn)` to refresh it.
+
+As in Mac OS 8, balloons open only while Balloon Help is on
+(`setBalloonHelp("shown")`, or the menu command), once the pointer has
+rested on the target for a tenth of a second, and close the moment it
+leaves. One balloon is open at a time. An app without a Help menu can
+pass `trigger: "hover"`: that balloon also opens while Balloon Help is
+off, after `delay` ms (500 by default). Mac OS had no such mode.
+
+The balloon picks its own width with the Help Manager's golden-ratio
+search and wraps plain text the way Mac OS 8.0 did (`"\n"` starts a new
+line; `"\n\n"` leaves a blank line). It prefers the `variant` you give
+(`"left-top"` by default, tail on the left near the top) and flips to
+another side near the screen's edges and away from a menu bar. The tip
+points 10px in from the target's right and bottom edges, the Help
+Manager's default for dialog items; `tip: "pointer"` points it where the
+pointer rests instead. `content` can also be a DOM node, for bold text
+(`<strong>`) or a list; it is copied each time the balloon opens.
+
+The balloon is the target's `aria-describedby` description, so screen
+readers read it whether or not Balloon Help is on. Attach it to the
+focusable control itself (a checkbox's `<input>`, not the `<label>`
+around it), because a description on a wrapper reaches no screen
+reader; pointing at the control's `<label>` opens the balloon too. It
+also opens when a control gets keyboard focus while the keyboard is
+driving, and Escape closes it without cancelling the dialog around it.
+Call `detach()` when you remove the target: until then its balloon
+element stays in the page. Drop the target's `title` attribute, or the
+browser shows its own tooltip too.
+
+What differs from Mac OS 8, on purpose or for want of a measurement:
+
+- Keyboard focus and Escape are additions. Touch has no long-press;
+  touch readers get the description instead.
+- Balloons ignore the pointer and close when it leaves the target, as
+  in Mac OS, so they are not "hoverable" as WCAG 1.4.13 asks.
+- Balloons close when the page, or anything scrolling around the
+  target, scrolls, and when the window resizes or loses focus.
+- The size search reproduces all 11 fully read Mac OS 8.0 balloons, but
+  not Hide Balloons' own "Turns Balloon help off." balloon (58 wide,
+  where the search gives 38). Other widths are the model's.
+- The order in which variants are tried was not measured, only that
+  balloons flip. `tip: "pointer"` rests on the Finder's title-bar
+  balloons alone.
+- Rich content is styled by approximation: bold Geneva 9 is
+  synthesized (it was never captured), lists and paragraph spacing are
+  a guess, and code, italics and links draw as plain Geneva 9. Its
+  lines break where the browser breaks them.
+
+The balloon's shape, its eight tails and the text layout were compared
+pixel for pixel with 13 Mac OS 8.0 balloons captured in an emulator,
+covering all eight tails: 0 differing pixels, text included.
 
 ### Your own icons
 

@@ -25,6 +25,18 @@
   fields and text areas keep their keys, as before.
 - Edit text shows its focus ring on any focus, not only while you use
   the keyboard: the ring marks where typing goes.
+- Add Balloon Help (`attachBalloon`, `setBalloonHelp`, `balloonHelp`,
+  `onBalloonHelpChange` and `balloonMenuItem` for a Help menu's Show
+  Balloons / Hide Balloons). The balloon's body, its eight tails, its
+  Geneva 9 text layout and its golden-ratio sizing are measured from
+  Mac OS 8.0 in an emulator; rendered balloons match 13 captures with 0
+  differing pixels. Not Mac OS: a `"hover"` trigger for apps without a
+  Help menu, keyboard-focus balloons and Escape. Approximations: the
+  order variants are tried in, the `"pointer"` tip, and the styling of
+  rich (Node) content, including its synthesized bold Geneva 9, which
+  `installOsmium` now registers. The sizing doesn't reproduce the Hide
+  Balloons item's own balloon. The demo desktop has a Help menu and
+  balloons on its controls, windows and icons.
 - The native window host clips each window to its outline and drop
   shadow, so WebKit's white backdrop no longer shows as a stray pixel
   beside the shadow's ends (top right and bottom left).
