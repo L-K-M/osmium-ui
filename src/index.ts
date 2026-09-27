@@ -28,6 +28,13 @@ export type {
   ListOptions, ListScroll, ListScrollbars, MenuSeparator, OsmiumList, Popup,
   PopupOptions, ScrollAxis, Scrollbar, SetRowsOptions,
 } from "./controls.js";
+export { mountListView } from "./listview.js";
+export type {
+  ColumnAlign, ColumnResize, ListLoadState, ListRowIcon, ListViewColumn,
+  ListViewOptions, ListViewScroll, ListViewSort, OsmiumListView, RowHighlight,
+  RowRendering, SelectMode, SetListViewRowsOptions, SortDirection, SortOrder,
+  SortOrderButton,
+} from "./listview.js";
 export { mountMenuBar } from "./menubar.js";
 export type { Menu, MenuEntry, MenuItem } from "./menubar.js";
 export { mountTabs } from "./tabs.js";

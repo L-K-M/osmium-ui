@@ -1,17 +1,17 @@
-// "Osmium HD": a Finder window in list view. A header placard, column
-// headers that sort (the sorted column's header sinks and its cells
-// shade), rows with small icons, and from mountList both scroll bars
-// and keyboard navigation. The columns keep their widths, so a narrow
-// window scrolls sideways, headers and all. Double-clicking one of the
-// demo's own items opens its window.
-import { attachBalloon, centerText, mountList } from "../src/index.js";
-import type { Size } from "../src/index.js";
+// "Osmium HD": a Finder window in list view, on mountListView. A header
+// placard, column headers that pick the sort column (the sorted
+// column's header sinks and its cells shade), the sort order button
+// that reverses the order (Finder 8.1), column dividers to drag (Finder
+// 8.5), rows with small icons, both scroll bars and keyboard
+// navigation. The columns keep their widths, so a narrow window scrolls
+// sideways, headers and all. Double-clicking one of the demo's own
+// items opens its window.
+import { attachBalloon, centerText, mountListView } from "../src/index.js";
+import type { ListViewColumn, ListViewSort, Size } from "../src/index.js";
 import { el } from "./dom.js";
 import { sprite } from "./icons.js";
 import type { SpriteName } from "./icons.js";
 import type { WindowContent, WindowEnv, WindowId } from "./windows.js";
-
-type Column = "name" | "size" | "kind";
 
 interface Item {
   readonly name: string;
@@ -55,14 +55,15 @@ const ITEMS: readonly Item[] = [
   { name: "window.ts", size: 8, kind: "text document", icon: "small-text" },
 ];
 
-const COLUMNS: readonly { id: Column; title: string }[] = [
-  { id: "name", title: "Name" },
-  { id: "size", title: "Size" },
-  { id: "kind", title: "Kind" },
+/** Name widens with the window; below the columns' total width
+ * (120 + 64 + 150) the rows and headers scroll sideways. */
+const COLUMNS: readonly (ListViewColumn & { readonly title: string })[] = [
+  { id: "name", title: "Name", width: 120, minWidth: 120, grow: 1,
+    sort: "ascending" },
+  { id: "size", title: "Size", width: 64, sort: "descending" },
+  { id: "kind", title: "Kind", width: 150, sort: "ascending" },
 ];
 
-/** Row pitch: 18px rows and a white rule, as in Mac OS 8 list views. */
-const ROW_H = 19;
 /** Heights of the placard, the column headers and the horizontal
  * scroll bar's strip, which with the rows fill the content area. */
 const PLACARD_H = 21;
@@ -74,33 +75,21 @@ const FRAME_H = 28;
 const byName = (a: Item, b: Item) =>
   a.name.localeCompare(b.name, "en", { sensitivity: "base" });
 
-/** The Finder's orders: names A to Z, the largest size first, kinds A
- * to Z; ties by name. */
-function sortItems(items: readonly Item[], by: Column): Item[] {
-  const order: Record<Column, (a: Item, b: Item) => number> = {
+/** The Finder's normal orders: names A to Z, the largest size first,
+ * kinds A to Z; ties by name. Reversed, the whole list turns over. */
+function sortItems(items: readonly Item[], sort: ListViewSort): Item[] {
+  const order: Record<string, (a: Item, b: Item) => number> = {
     name: byName,
     size: (a, b) => b.size - a.size || byName(a, b),
     kind: (a, b) => a.kind.localeCompare(b.kind) || byName(a, b),
   };
-  return [...items].sort(order[by]);
+  const compare = order[sort.column] ?? byName;
+  const sign = sort.order === "reversed" ? -1 : 1;
+  return [...items].sort((a, b) => sign * compare(a, b));
 }
 
 function sizeLabel(k: number): string {
   return k >= 1024 ? `${(k / 1024).toFixed(1)} MB` : `${k}K`;
-}
-
-function row(it: Item): HTMLElement {
-  const r = el("div", "fnd-row");
-  r.dataset.name = it.name;
-  const name = el("span", "fnd-cell fnd-name");
-  const icon = el("span", "fnd-icon");
-  icon.style.backgroundImage = sprite(it.icon);
-  name.append(icon, el("span", "fnd-label", it.name));
-  r.append(name, el("span", "fnd-cell fnd-size", sizeLabel(it.size)),
-           el("span", "fnd-cell fnd-kind", it.kind));
-  r.setAttribute("aria-label",
-                 `${it.name}, ${sizeLabel(it.size)}, ${it.kind}`);
-  return r;
 }
 
 export function buildFinder(content: HTMLElement,
@@ -108,67 +97,58 @@ export function buildFinder(content: HTMLElement,
   const root = el("div", "fnd");
   const placard = el("div", "osm-placard fnd-placard",
                      `${ITEMS.length} items, 312.4 MB available`);
-  const heads = el("div", "osm-colheads fnd-heads");
   const listEl = el("div", "fnd-list");
-  root.append(placard, heads, listEl);
+  root.append(placard, listEl);
   content.append(root);
   centerText(placard);
   attachBalloon(placard, { trigger: env.balloons, content: "Information " +
     "placard\n\nHow many items this window holds, and how much room is " +
     "left on the disk." });
 
-  let items: Item[] = [];
-  const list = mountList(listEl, {
-    rowHeight: ROW_H,
+  const list = mountListView<Item>(listEl, {
     label: "Osmium HD",
-    scrollbars: "both",
-    header: heads,
-    onOpen(i) {
-      const target = items[i]?.opens;
+    columns: COLUMNS,
+    key: (it) => it.name,
+    cell: (it, col) => col.id === "size" ? sizeLabel(it.size)
+      : col.id === "kind" ? it.kind : it.name,
+    icon: (it) => ({ image: sprite(it.icon), label: it.kind }),
+    highlight: "label",
+    sort: { column: "name", order: "normal" },
+    resize: "drag",
+    // A new order keeps the selected item selected and in view.
+    onSort: (s) => list.setRows(sortItems(ITEMS, s), { scroll: "top" }),
+    onOpen(name) {
+      const target = ITEMS.find((it) => it.name === name)?.opens;
       if (target) env.open?.(target);
     },
   });
+  list.setRows(sortItems(ITEMS, { column: "name", order: "normal" }));
 
-  const headEls = COLUMNS.map((c) => {
-    const h = el("button", `osm-colhead fnd-h-${c.id}`, c.title);
-    h.type = "button";
-    h.setAttribute("aria-label", `Sort by ${c.title}`);
-    h.addEventListener("click", (e) => {
-      sort(c.id);
-      // A mouse sort leaves the keyboard with the list, as in the Finder
-      // (a pressed button would take it in Chromium and Firefox).
-      if (e.detail > 0) listEl.focus({ preventScroll: true });
-    });
-    heads.append(h);
+  for (const c of COLUMNS) {
+    const h = listEl.querySelector<HTMLElement>(
+      `[data-column="${c.id}"] > .osm-colhead`);
+    if (!h) continue;
     attachBalloon(h, { trigger: env.balloons, content: () =>
       h.classList.contains("osm-sorted")
         ? `${c.title} column\n\nThe items are sorted by ${
           c.title.toLowerCase()}.`
         : `${c.title} column\n\nTo sort the items by ${
           c.title.toLowerCase()}, click here.` });
-    return h;
-  });
-
-  // A new order keeps the selected item selected and in view.
-  function sort(by: Column): void {
-    COLUMNS.forEach((c, i) => {
-      headEls[i]!.classList.toggle("osm-sorted", c.id === by);
-      headEls[i]!.setAttribute("aria-pressed", String(c.id === by));
-    });
-    listEl.dataset.sort = by;
-    const kept = items[list.selected];
-    items = sortItems(ITEMS, by);
-    list.setRows(items.map(row), { keep: kept ? items.indexOf(kept) : -1 });
   }
-  sort("name");
+  const sortOrder = listEl.querySelector<HTMLElement>(".osm-lv-sortdir");
+  if (sortOrder) {
+    attachBalloon(sortOrder, { trigger: env.balloons, content:
+      "Sort order button\n\nTo reverse the order of the items, click " +
+      "here." });
+  }
 
   return {
-    focus: () => listEl.focus({ preventScroll: true }),
+    focus: () => list.focus(),
     // Zoomed, the window keeps its width and shows every item.
     standardSize(current: Size): Size {
       return {
         w: current.w,
-        h: PLACARD_H + HEADS_H + items.length * ROW_H + HBAR_H + FRAME_H,
+        h: PLACARD_H + HEADS_H + list.contentHeight + HBAR_H + FRAME_H,
       };
     },
   };

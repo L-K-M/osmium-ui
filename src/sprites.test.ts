@@ -44,6 +44,18 @@ const TRACK_START = [
   "78a", "78a", "78a", "7bb", "ccc", "000",
 ];
 
+// The list view sort order button in the list's normal order, Mac OS
+// 9.0 Sherlock 2 (x=464..479 y=119..139) and Finder captures.
+const SORTDIR = [
+  "6666666666666665", "6fffffffffffffc3", "6fcccccccccccc83",
+  "6fcccccccccccc83", "6fcccccccccccc83", "6fcccccccccccc83",
+  "6fccccc45ccccc83", "6fcccccbbccccc83", "6fcccc4220cccc83",
+  "6fccccbbbbcccc83", "6fccc421110ccc83", "6fcccbbbbbbccc83",
+  "6fcc42111110cc83", "6fcccccccccccc83", "6fcccccccccccc83",
+  "6fcccccccccccc83", "6fcccccccccccc83", "6fcccccccccccc83",
+  "6fcccccccccccc83", "6c88888888888883", "5333333333333333",
+];
+
 describe("sprites", () => {
   it("are rectangular grids of known palette keys", () => {
     for (const [name, rows] of allSprites()) {
@@ -82,6 +94,21 @@ describe("sprites", () => {
     const track = CONTROL_SPRITES["scroll-htrack-left"]!.map((r, y) =>
       r + CONTROL_SPRITES["scroll-htrack"]![y]);
     expect(track).toEqual(TRACK_START);
+  });
+
+  it("draw the sort order button as measured", () => {
+    expect(CONTROL_SPRITES["sortdir"]).toEqual(SORTDIR);
+    // The reversed state (not captured) keeps the frame and stacks the
+    // same dark steps widest first, each over a shade line as wide.
+    const rev = CONTROL_SPRITES["sortdir-reversed"]!;
+    expect(rev.slice(0, 6)).toEqual(SORTDIR.slice(0, 6));
+    expect(rev.slice(13)).toEqual(SORTDIR.slice(13));
+    expect([rev[6], rev[8], rev[10], rev[12]])
+      .toEqual([SORTDIR[12], SORTDIR[10], SORTDIR[8], SORTDIR[6]]);
+    for (const y of [7, 9, 11]) {
+      expect(rev[y]!.slice(2, 14))
+        .toBe(rev[y - 1]!.slice(2, 14).replace(/[0-5]/g, "b"));
+    }
   });
 
   it("draw the alert icons as measured", () => {

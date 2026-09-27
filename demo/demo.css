@@ -90,53 +90,14 @@ html.desk { height: 100%; background: #9999cc; }
 .ctl-cancel { right: 89px; top: 268px; }
 
 /* ---- Finder list view (finder.ts) --------------------------------------- */
-/* Placard, column headers and the list: rows 18px plus a white rule,
-   the sorted column shaded dd, the others ee, and both scroll bars,
-   which end at the grow box. The last header runs over the vertical
-   scroll bar. Name widens with the window; below the columns' total
-   width (120 + 64 + 150) the rows and headers scroll sideways. */
+/* The placard, then the kit's list view (osmium.css "list views") edge
+   to edge: the window's content edge is its frame. */
 .fnd { position: absolute; inset: 0; display: flex; flex-direction: column; }
-.fnd-placard, .fnd-heads { flex: none; }
-.fnd-h-name { flex: 1; min-width: 120px; padding-left: 48px; }
-.fnd-h-size { flex: none; width: 64px; }
-.fnd-h-kind { flex: none; width: 165px; }
-.fnd-list {
-  flex: 1; min-height: 0;
-  border: 0;
-  background: #eee;
-}
+.fnd-placard { flex: none; }
+.fnd-list { flex: 1; min-height: 0; border: 0; }
 /* Edge to edge, a focus ring would only show top and bottom; the
    selection already marks the keyboard's place. */
-.fnd-list:focus-visible, .osm-kbd .fnd-list:focus-visible { outline: none; }
-.fnd-row {
-  display: flex; min-width: 334px;
-  background: #fff; color: #000; font: var(--osm-font-small);
-}
-.fnd-cell {
-  box-sizing: border-box; height: 18px; padding: 2px 4px 0;
-  background: #eee;
-  white-space: nowrap; overflow: hidden; text-overflow: ellipsis;
-}
-.fnd-name { position: relative; flex: 1; min-width: 120px; padding-left: 48px; }
-.fnd-size { flex: none; width: 64px; }
-.fnd-kind { flex: none; width: 150px; }
-.fnd-list[data-sort="name"] .fnd-name, .fnd-list[data-sort="size"] .fnd-size,
-.fnd-list[data-sort="kind"] .fnd-kind { background: #ddd; }
-.fnd-icon { position: absolute; left: 26px; top: 1px; width: 16px; height: 16px; }
-/* The name truncates itself, so a selected name's ellipsis stays white
-   on the highlight. */
-.fnd-label {
-  display: inline-block; max-width: 100%; vertical-align: top;
-  overflow: hidden; text-overflow: ellipsis;
-}
-/* Selected, the Finder way: the name inverts, the icon darkens, in an
-   inactive window too (the kit clears a plain list's selection). */
-.fnd-list .fnd-row.osm-selected { background: #fff; color: #000; }
-.osm-selected .fnd-label {
-  background: #000; color: #fff;
-  box-shadow: 1px 0 #000, -1px 0 #000;
-}
-.osm-selected .fnd-icon { filter: brightness(0.5); }
+.osm-kbd .fnd-list .osm-lv-grid:focus-visible { outline: none; }
 
 /* ---- Control Panel (panel.ts) ------------------------------------------ */
 /* A 508 x 352 content area: pane buttons down an 80px strip, parted

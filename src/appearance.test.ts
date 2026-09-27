@@ -171,9 +171,11 @@ describe("the default appearance", () => {
 
   it("draws every built-in sprite byte for byte as before", () => {
     // SHA-256 of every built-in sprite's SVG, captured on main before
-    // the accent keys w and h replaced gray e and white f.
-    const all = allSprites().map(([n, r]) => n + "\n" + spriteSvg(r))
-      .join("\n");
+    // the accent keys w and h replaced gray e and white f. Sprites added
+    // since (the list view's sort order button) are left out.
+    const added = new Set(["sortdir", "sortdir-reversed"]);
+    const all = allSprites().filter(([n]) => !added.has(n))
+      .map(([n, r]) => n + "\n" + spriteSvg(r)).join("\n");
     expect(createHash("sha256").update(all).digest("hex")).toBe(
       "f84e839f62a575f967f7f46f180e7418df7895d21b02d7bb0beb2bd8c0aadf21");
   });

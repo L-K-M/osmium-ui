@@ -944,6 +944,57 @@ const BUTTON_DEFAULT_DISABLED = BUTTON_DEFAULT.map((row, y) =>
       dimRing(row.slice(12))
     : dimRing(row));
 
+// ---- list view sort order button (Finder 8.1), 16 x 21 --------------
+// The "pyramid" button over a Finder list's vertical scroll bar, in the
+// list's normal order. No Mac OS 8.x capture was found; this is Mac OS
+// 9.0, 1:1 Platinum: Sherlock 2 (guidebookgallery search/macos90-1-2,
+// x=464..479 y=119..139, all 16 columns) and the Finder (filemanager/
+// macos90-1-4, x=539..553 y=43..63, where the 16th column is under the
+// window content's black edge) agree pixel for pixel. osmium.css shows
+// the first 15 columns, the Finder's layering.
+const SORTDIR = [
+  "6666666666666665",
+  "6fffffffffffffc3",
+  "6fcccccccccccc83",
+  "6fcccccccccccc83",
+  "6fcccccccccccc83",
+  "6fcccccccccccc83",
+  "6fccccc45ccccc83",
+  "6fcccccbbccccc83",
+  "6fcccc4220cccc83",
+  "6fccccbbbbcccc83",
+  "6fccc421110ccc83",
+  "6fcccbbbbbbccc83",
+  "6fcc42111110cc83",
+  "6fcccccccccccc83",
+  "6fcccccccccccc83",
+  "6fcccccccccccc83",
+  "6fcccccccccccc83",
+  "6fcccccccccccc83",
+  "6fcccccccccccc83",
+  "6c88888888888883",
+  "5333333333333333",
+];
+
+// Reversed order: APPROXIMATION, never captured. Mac Secrets (5th ed.,
+// 1999, p. 31) says a click "flips the pyramid indicator upside-down".
+// The glyph is four steps, each a dark line (4, 2, 1s, 0 from left to
+// right) over a bb shade line of the same width; the base has no shade.
+// Mirroring the rows would put every shade line above its step and so
+// reverse the lighting. This stacks the same steps widest first, each
+// still over its own shade, down to the tip (rows 6 to 12).
+const SORTDIR_REVERSED = [
+  ...SORTDIR.slice(0, 6),
+  "6fcc42111110cc83",
+  "6fccbbbbbbbbcc83",
+  "6fccc421110ccc83",
+  "6fcccbbbbbbccc83",
+  "6fcccc4220cccc83",
+  "6fccccbbbbcccc83",
+  "6fccccc45ccccc83",
+  ...SORTDIR.slice(13),
+];
+
 /** Name → grid, published as --osm-sprite-<name> by spriteCss(). */
 export const CONTROL_SPRITES: Record<string, readonly string[]> = {
   button: BUTTON,
@@ -1003,4 +1054,6 @@ export const CONTROL_SPRITES: Record<string, readonly string[]> = {
   "balloon-bottom-right": BALLOON_BOTTOM_RIGHT,
   "balloon-bottom-left": BALLOON_BOTTOM_LEFT,
   "balloon-left-bottom": BALLOON_LEFT_BOTTOM,
+  sortdir: SORTDIR,
+  "sortdir-reversed": SORTDIR_REVERSED,
 };
