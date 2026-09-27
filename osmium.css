@@ -1092,3 +1092,124 @@
   font: inherit; color: inherit; text-decoration: none;
 }
 .osm-balloon img { display: block; max-width: 100%; }
+
+/* ---- alerts ---------------------------------------------------------- */
+/* An alert box (alert.ts). W x H is the black outline box; the port,
+   where the icon, text and buttons go, is [3, W-4] x [3, H-4]. The
+   frame is the one Mac OS 8.0's Finder, Stickies, AppleCD Audio
+   Player and Process Manager alerts draw (presumably kWindowAlertProc;
+   which window definition an app used can't be read from pixels): black
+   outline; ff9999 outer bevel on the top and left, ff6666 on the right
+   and bottom; white inner bevel on the top and left, 99 on the right
+   and bottom, ff9999 at the two corners where they meet; a dd face;
+   and the document window's 1px shadow. A movable alert (.osm-movable)
+   has a title bar above the same frame: --osm-alert-top moves the frame
+   down 21px, its top outline becoming the bar's separator. */
+.osm-alert {
+  --osm-alert-top: 0px;
+  position: fixed;
+  box-sizing: border-box;
+  background:
+    linear-gradient(#f99, #f99) right 2px top calc(var(--osm-alert-top) + 2px)
+      / 1px 1px no-repeat,
+    linear-gradient(#f99, #f99) left 2px bottom 2px / 1px 1px no-repeat,
+    linear-gradient(#fff, #fff) 2px calc(var(--osm-alert-top) + 2px)
+      / calc(100% - 5px) 1px no-repeat,
+    linear-gradient(#fff, #fff) 2px calc(var(--osm-alert-top) + 2px)
+      / 1px calc(100% - 5px - var(--osm-alert-top)) no-repeat,
+    linear-gradient(#999, #999) right 2px top calc(var(--osm-alert-top) + 3px)
+      / 1px calc(100% - 5px - var(--osm-alert-top)) no-repeat,
+    linear-gradient(#999, #999) left 3px bottom 2px / calc(100% - 5px) 1px
+      no-repeat,
+    linear-gradient(#f99, #f99) 1px calc(var(--osm-alert-top) + 1px)
+      / calc(100% - 2px) 1px no-repeat,
+    linear-gradient(#f99, #f99) 1px calc(var(--osm-alert-top) + 1px)
+      / 1px calc(100% - 2px - var(--osm-alert-top)) no-repeat,
+    linear-gradient(#f66, #f66) right 1px top calc(var(--osm-alert-top) + 2px)
+      / 1px calc(100% - 3px - var(--osm-alert-top)) no-repeat,
+    linear-gradient(#f66, #f66) left 2px bottom 1px / calc(100% - 3px) 1px
+      no-repeat,
+    linear-gradient(#000, #000) 0 var(--osm-alert-top) / 100% 1px no-repeat,
+    #ddd;
+  box-shadow: inset 0 0 0 1px #000; /* the outline */
+  color: #000;
+  font: var(--osm-font-system);
+  font-synthesis: none;
+  -webkit-font-smoothing: none;
+  outline: none; /* the box takes the focus but draws no ring */
+  cursor: default;
+  user-select: none;
+  -webkit-user-select: none;
+}
+.osm-alert::before, .osm-alert::after {
+  content: ""; position: absolute; background: #000;
+}
+.osm-alert::before { top: 2px; right: -1px; bottom: -1px; width: 1px; }
+.osm-alert::after { left: 2px; right: -1px; bottom: -1px; height: 1px; }
+.osm-alert.osm-movable { --osm-alert-top: 21px; }
+.osm-alert-port {
+  position: absolute; left: 3px; top: calc(var(--osm-alert-top) + 3px);
+  right: 3px; bottom: 3px;
+}
+/* alert.ts places the parts: the icon at (20, 10), the message's first
+   baseline on row 18, the buttons 10px from the right and bottom. */
+.osm-alert-icon {
+  position: absolute; width: 32px; height: 32px;
+  background: var(--osm-icon, none) 0 0 / 32px 32px no-repeat;
+}
+/* The message in plain Charcoal 12, the explanation in Geneva 10. */
+.osm-alert-message, .osm-alert-explanation {
+  position: absolute; margin: 0;
+  white-space: pre-line; overflow-wrap: anywhere;
+}
+.osm-alert-message { font: var(--osm-font-system); }
+.osm-alert-explanation { font: var(--osm-font-small); }
+.osm-alert .osm-button { position: absolute; }
+
+/* A movable alert's title bar (kWindowMovableAlertProc), from the Mac
+   OS 8 HIG's figures (1997), not from a running system: rows 0..20, an
+   ffcccc face with white on its top and left and ff9999 on its right
+   and bottom, and six white/ff6666 pinstripe pairs on rows 4..15, from
+   5px in to 5px short of the right edge. Row 21 is the black
+   separator. The figures have no title; a title parts the stripes as
+   in a document window. */
+.osm-alert-titlebar {
+  position: absolute; left: 0; top: 0; right: 0; height: 21px;
+  background:
+    linear-gradient(#fff, #fff) 1px 1px / calc(100% - 3px) 1px no-repeat,
+    linear-gradient(#fff, #fff) 1px 1px / 1px 19px no-repeat,
+    linear-gradient(#f99, #f99) right 1px top 2px / 1px 19px no-repeat,
+    linear-gradient(#f99, #f99) 2px 20px / calc(100% - 3px) 1px no-repeat,
+    linear-gradient(#fcc, #fcc) 1px 1px / calc(100% - 2px) 20px no-repeat;
+  touch-action: none;
+}
+.osm-alert-titlebar .osm-stripes::after {
+  background-image: var(--osm-sprite-stripe-alert-lo);
+}
+.osm-alert-titlebar .osm-stripes-all { left: 5px; right: 5px; }
+.osm-alert-titlebar .osm-stripes-l {
+  left: 5px; width: calc(var(--osm-title-x, 0px) - 8px);
+}
+.osm-alert-titlebar .osm-stripes-r {
+  left: calc(var(--osm-title-x, 0px) + var(--osm-title-w, 0px) + 3px);
+  right: 5px;
+}
+
+/* Forced colors (Windows High Contrast) drop the inset box-shadow
+   outline and the gradient bevels: draw the outline, the title bar's
+   separator and the shadow in system colors so the alert keeps its
+   edge against the windows under it. */
+@media (forced-colors: active) {
+  .osm-alert { outline: 1px solid CanvasText; outline-offset: -1px; }
+  .osm-alert::before, .osm-alert::after { background: CanvasText; }
+  .osm-alert-titlebar {
+    box-sizing: content-box; border-bottom: 1px solid CanvasText;
+  }
+}
+
+/* Under each alert, a transparent layer over the whole page, menu bar
+   included, takes every press outside the alert. */
+.osm-modal-layer { position: fixed; inset: 0; touch-action: none; }
+/* While an alert is up (html.osm-modal) the menu bar's titles dim, 88
+   as in Mac OS 8.0's Finder. Icon titles keep their colors. */
+.osm-modal .osm-menubar-title { color: #888; }

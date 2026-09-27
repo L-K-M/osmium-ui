@@ -16,6 +16,7 @@ import {
 } from "./controls.js";
 import type { MenuSeparator } from "./controls.js";
 import { installOsmium } from "./install.js";
+import { closeWhenModal } from "./modal.js";
 
 export interface MenuItem {
   readonly title: string;
@@ -95,6 +96,8 @@ export function mountMenuBar(bar: HTMLElement, menus: readonly Menu[]): void {
   let hi = -1;
   // Where the keyboard goes back to when the menu closes.
   let returnFocus: Element | null = null;
+  // Unregisters close from the alerts' menu closing (modal.ts).
+  let unwatchModal: (() => void) | null = null;
 
   function itemEls(): HTMLElement[] {
     return list ? Array.from(list.children) as HTMLElement[] : [];
@@ -159,6 +162,8 @@ export function mountMenuBar(bar: HTMLElement, menus: readonly Menu[]): void {
     hide();
     document.removeEventListener("pointerdown", onOutside, true);
     window.removeEventListener("blur", close);
+    unwatchModal?.();
+    unwatchModal = null;
     if (hadFocus && returnFocus instanceof HTMLElement) returnFocus.focus();
     else if (hadFocus) (document.activeElement as HTMLElement | null)?.blur();
     returnFocus = null;
@@ -169,6 +174,7 @@ export function mountMenuBar(bar: HTMLElement, menus: readonly Menu[]): void {
     show(i);
     document.addEventListener("pointerdown", onOutside, true);
     window.addEventListener("blur", close);
+    unwatchModal ??= closeWhenModal(close);
   }
 
   /** Blink the chosen item once, close the menu, then act. */

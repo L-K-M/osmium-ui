@@ -12,6 +12,7 @@
 // Control bitmaps live in controlsprites.ts; apps add their own (icons,
 // say) with registerSprites (install.ts), naming extra colors in a
 // palette of their own.
+import { ALERT_SPRITES } from "./alertsprites.js";
 import { CONTROL_SPRITES } from "./controlsprites.js";
 
 /** Extra palette keys for a sprite: one character (a letter from g to
@@ -22,6 +23,11 @@ export type Palette = Readonly<Record<string, string>>;
 const COLORS: Palette = {
   // Lavender accent — the default Mac OS 8 highlight ramp, dark to light.
   n: "#000055", l: "#333399", m: "#6666cc", p: "#9999ff", q: "#ccccff",
+  // Alerts (alertsprites.ts): the stop icon's reds and hand, the
+  // caution icon's yellow, the note icon's face, and the movable alert
+  // title bar's red pinstripe.
+  R: "#dd0000", P: "#ff66cc", M: "#990066", N: "#333366", Y: "#ffffcc",
+  K: "#ffcc99", k: "#cc9966", y: "#ffff00", s: "#ff6666",
 };
 
 /** Resolve one palette key to a CSS color, or null for transparent. */
@@ -184,6 +190,9 @@ const GROW_INACTIVE = [
 // pixel right of the white one, the way Mac OS 8 staggers the ends.
 const STRIPE_HI = ["f", "."];
 const STRIPE_LO = [".", "7"];
+// A movable alert's title bar pairs the white line with ff6666 (Mac OS
+// 8 HIG figures 3-6 and 3-8; not captured from a running system).
+const STRIPE_ALERT_LO = [".", "s"];
 
 // Progress-bar fill (10 rows tall): the lavender tube, a lighter left
 // cap and a darker, rounding-off right end.
@@ -204,6 +213,7 @@ export const SPRITES = {
   growInactive: GROW_INACTIVE,
   stripeHi: STRIPE_HI,
   stripeLo: STRIPE_LO,
+  stripeAlertLo: STRIPE_ALERT_LO,
   fill: FILL,
   fillLeft: FILL_LEFT,
   fillRight: FILL_RIGHT,
@@ -217,6 +227,7 @@ export function allSprites(): [string, readonly string[]][] {
     ...Object.entries(SPRITES).map(([name, rows]): [string, readonly string[]] =>
       [name.replace(/[A-Z]/g, (c) => "-" + c.toLowerCase()), rows]),
     ...Object.entries(CONTROL_SPRITES),
+    ...Object.entries(ALERT_SPRITES),
   ];
 }
 

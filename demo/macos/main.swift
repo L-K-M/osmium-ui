@@ -12,7 +12,7 @@ import WebKit
 
 /// One of the demo's windows.
 enum DemoPage: Int, CaseIterable {
-    case controls, finder, controlPanel, appearance, about, sharing
+    case controls, finder, controlPanel, appearance, about, sharing, alerts
 
     /// The page's window id (demo/windows.ts), as the Finder page names
     /// the window it wants opened.
@@ -24,6 +24,7 @@ enum DemoPage: Int, CaseIterable {
         case .appearance: return "appearance"
         case .about: return "about"
         case .sharing: return "sharing"
+        case .alerts: return "alerts"
         }
     }
 
@@ -36,6 +37,7 @@ enum DemoPage: Int, CaseIterable {
         case .appearance: return "appearance.html"
         case .about: return "about.html"
         case .sharing: return "sharing.html"
+        case .alerts: return "alerts.html"
         }
     }
 
@@ -49,6 +51,7 @@ enum DemoPage: Int, CaseIterable {
         case .appearance: return "Appearance"
         case .about: return "About Osmium UI"
         case .sharing: return "File Sharing"
+        case .alerts: return "Alerts"
         }
     }
 
@@ -61,6 +64,7 @@ enum DemoPage: Int, CaseIterable {
         case .appearance: return "Appearance"
         case .about: return "About"
         case .sharing: return "Sharing"
+        case .alerts: return "Alerts"
         }
     }
 
@@ -76,6 +80,7 @@ enum DemoPage: Int, CaseIterable {
         case .appearance: return NSSize(width: 461, height: 221)
         case .about: return NSSize(width: 341, height: 221)
         case .sharing: return NSSize(width: 381, height: 331)
+        case .alerts: return NSSize(width: 441, height: 241)
         }
     }
 

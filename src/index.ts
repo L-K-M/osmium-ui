@@ -34,3 +34,8 @@ export type {
   BalloonContent, BalloonHelpState, BalloonOptions, BalloonTip,
   BalloonTrigger, BalloonVariant, OsmiumBalloon,
 } from "./balloon.js";
+export { showAlert } from "./alert.js";
+export type {
+  AlertButton, AlertButtons, AlertKind, AlertModality, AlertOptions,
+  AlertPosition, AlertResult, OsmiumAlert,
+} from "./alert.js";

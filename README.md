@@ -39,6 +39,10 @@ information window (class `osm-info`, whose text dims when inactive).
 - Edit text fields, one-line and multi-line.
 - Balloon Help: help balloons measured from Mac OS 8.0, with the Help
   menu's Show Balloons / Hide Balloons command.
+- Alert boxes: stop, caution and note alerts, modal or movable. The
+  modal frame, the stop and caution icons and the layout are measured
+  from Mac OS 8.0's Finder; the movable title bar and the note icon
+  come from the Mac OS 8 HIG's figures.
 
 **Fonts.** Charcoal 12, Geneva 10 and Geneva 9 as bitmap strikes. They
 are compiled into TrueType fonts in the browser at startup, with
@@ -104,6 +108,9 @@ You can drag the windows, click to bring them to the front, close them
 and windowshade them, and zoom and resize the Finder window.
 Choose Show Balloons from the Help menu, then rest the pointer on a
 control, a window's title bar or a desktop icon to see its help balloon.
+and windowshade them, and zoom and resize the Finder window. The Alerts
+window (open it from its desktop icon) and Special > Empty Trash…
+bring up alerts.
 
 On a Mac with the Xcode command line tools, the same pages run as
 native windows:
@@ -194,6 +201,7 @@ window.
 | Separator, well | `<div class="osm-separator">`, `<div class="osm-well">` | none |
 | Edit text | `<input class="osm-edit">` (22px), add `osm-compact` for 20px; `<div class="osm-edit-area"><textarea></textarea></div>` for several lines | native input; `mountTextArea(el)` adds a scroll bar to a multi-line field; `setEnabled(field, on)` |
 | Help balloon | none: attach it to any element | `attachBalloon(el, { content })`, and `balloonMenuItem()` in a Help menu; see [Balloon Help](#balloon-help) |
+| Alert | built for you | `showAlert({ kind, message, explanation, buttons })`, see [Alerts](#alerts) |
 
 Disable a checkbox, slider or edit text with `setEnabled(input, false)`
 so the whole control dims. The fonts are available as `osm-system` (Charcoal
@@ -366,6 +374,42 @@ What differs from Mac OS 8, on purpose or for want of a measurement:
 The balloon's shape, its eight tails and the text layout were compared
 pixel for pixel with 13 Mac OS 8.0 balloons captured in an emulator,
 covering all eight tails: 0 differing pixels, text included.
+### Alerts
+
+`showAlert` puts up a Mac OS 8 alert box, laid out with the metrics of
+Mac OS 8.0's Finder alerts, and blocks the rest of the page until one
+of its buttons is pressed:
+
+```ts
+import { showAlert } from "osmium-ui";
+
+const alert = showAlert({
+  kind: "caution", // "stop", "note", or "plain" (with your own icon)
+  message: "Do you want to save the changes you made to “Report”?",
+  explanation: "If you don’t save them, they will be lost.",
+  buttons: { ok: "Save", cancel: "Cancel", other: "Don’t Save" },
+  parent: win, // drawn inactive while the alert is up
+});
+if (await alert.result === "ok") save();
+```
+
+Return and Enter press the default button (`defaultButton`, OK unless
+you say otherwise), and Escape and Command-period the cancel button
+(`cancelButton`, Cancel when there is one). Pass `modality: "movable"`
+for an alert with a title bar to drag it by, and `position: "parent"`
+to center it on `parent` rather than on the page. Presses outside the
+alert call `onBeep`, where Mac OS plays the alert sound; Osmium plays
+none itself. `close()` takes the alert down from code.
+
+The alert takes the keyboard focus itself, so no button shows a focus
+ring until you press Tab; Tab and Shift-Tab then stay among its
+buttons. While it is up the rest of the page is `inert`, menu bar
+titles dim, `bindDialogKeys` handlers stand down, and a window with
+`"page"` activation draws inactive.
+
+Some of the alert is derived rather than measured (the explanation's
+spacing, the third button's place, how buttons and the alert grow);
+the CHANGELOG lists which parts.
 
 ### Your own icons
 
@@ -477,8 +521,8 @@ If your app already relays page messages, pass
 Give `hostWindow` your own `post` function to match; the page then
 counts as native.
 
-Escape closes a hosted window unless the page handles the key itself
-or the focus is in a text field. Pass `escape: "ignore"` for a window
+Escape closes a hosted window unless the page handles the key itself,
+the focus is in a text field, or an alert is up. Pass `escape: "ignore"` for a window
 that shouldn't close.
 
 In a plain browser tab, the same page fills the tab and does what a tab
@@ -492,8 +536,7 @@ ResizeObserver and CSS `border-image`.
 
 ## Not included yet
 
-Radio buttons, tabs, alert windows, and keyboard equivalents shown in
-menus.
+Radio buttons, and keyboard equivalents shown in menus.
 
 ## Development
 
