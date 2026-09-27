@@ -65,11 +65,15 @@ export interface TextViewOptions {
   readonly font?: TextViewFont;
   /** The longest text, in UTF-16 code units; TextEdit's own limit is
    * 32767. An edit that would pass it is refused and reported to
-   * `onLimit`. Unlimited when omitted. */
+   * `onLimit`. An input method's composition may pass it while it is
+   * composed (as with a native maxlength); if its result does, the
+   * whole composition is taken back when it ends. Unlimited when
+   * omitted. */
   readonly maxLength?: number;
   /** After every edit that changes the text: typing, undo, cut, paste,
-   * clear (not setText). An edit taken back (one past `maxLength`) or
-   * undone to the same text isn't reported. */
+   * clear (not setText), and an input method's composition once, as it
+   * ends. An edit taken back (one past `maxLength`) or undone to the
+   * same text isn't reported. */
   readonly onChange?: () => void;
   /** An edit was refused because the text would pass `maxLength`. */
   readonly onLimit?: () => void;
@@ -146,6 +150,23 @@ interface Snapshot {
   readonly text: string;
   readonly start: number;
   readonly end: number;
+}
+
+/** An input method's composition in progress. */
+interface Composition {
+  /** The text and selection when it began. */
+  readonly before: Snapshot;
+  /** The undo state when it began, before its own group was decided. */
+  readonly undo: UndoState;
+}
+
+/** What decides undo groups (mountTextView's undo section). */
+interface UndoState {
+  readonly saved: Snapshot | null;
+  readonly undone: boolean;
+  readonly typing: boolean;
+  readonly typedTo: readonly [number, number] | null;
+  readonly lastType: string;
 }
 
 /** Where a selection's TextEdit highlight region lies: bands of whole
@@ -260,10 +281,19 @@ export function mountTextView(host: HTMLElement,
   let saved: Snapshot | null = null;
   let undone = false;
   let typing = false;
-  let typedTo: [number, number] | null = null;
+  let typedTo: readonly [number, number] | null = null;
   let lastType = "";
   // The state before the current edit, to go back to if it overflows.
   let before: Snapshot | null = null;
+  // An input method's composition is one edit however many steps it
+  // takes (each replaces the marked text, the selection moving each
+  // time): its undo group is decided as it starts, and it is checked
+  // against maxLength and reported to onChange as it ends. Its steps
+  // are left alone meanwhile, as a native maxlength leaves them:
+  // setting the value mid-composition ends it in Chromium without a
+  // compositionend, and the input method's commit then arrives as
+  // plain typing.
+  let composition: Composition | null = null;
   // An edit this module makes itself has taken its snapshot already.
   let scripted = false;
   // The text onChange last saw (or setText set), so only a change of
@@ -311,12 +341,52 @@ export function mountTextView(host: HTMLElement,
     return (e.data ?? e.dataTransfer?.getData("text/plain") ?? "").length;
   }
 
+  /** Start a new undo group for an edit of `inputType` at the
+   * selection, unless it goes on with the run of typing before it. */
+  function group(inputType: string): void {
+    const { selectionStart: s, selectionEnd: t } = textarea;
+    const isTyping = TYPING.has(inputType);
+    const moved = !typedTo || typedTo[0] !== s || typedTo[1] !== t;
+    const sameDrag = inputType === "insertFromDrop" &&
+      lastType === "deleteByDrag";
+    if (!sameDrag && (!isTyping || !typing || moved)) snapshot();
+    typing = isTyping;
+    lastType = inputType;
+  }
+
+  textarea.addEventListener("compositionstart", () => {
+    const undoState: UndoState = { saved, undone, typing, typedTo, lastType };
+    composition = { before: current(), undo: undoState };
+    // Where an input after compositionend (the commit, in an engine that
+    // sends it last) that overflows goes back to.
+    before = composition.before;
+    group("insertCompositionText");
+  });
+
+  // A composition that passed maxLength goes back whole: the text, the
+  // selection and undo return to what they were before it began.
+  textarea.addEventListener("compositionend", () => {
+    const c = composition;
+    composition = null;
+    if (!c) return;
+    if (textarea.value.length > max) {
+      restore(c.before);
+      ({ saved, undone, typing, typedTo, lastType } = c.undo);
+      opts.onLimit?.();
+    } else {
+      typedTo = [textarea.selectionStart, textarea.selectionEnd];
+    }
+    changed();
+  });
+
   textarea.addEventListener("beforeinput", (e) => {
     if (e.inputType === "historyUndo" || e.inputType === "historyRedo") {
       e.preventDefault();
       if ((e.inputType === "historyUndo") !== undone) undo();
       return;
     }
+    // A composition's steps belong to the group it started.
+    if (composition) return;
     const { selectionStart: s, selectionEnd: t, value } = textarea;
     if (value.length - (t - s) + inserted(e) > max &&
         e.inputType.startsWith("insert") && e.cancelable) {
@@ -325,18 +395,17 @@ export function mountTextView(host: HTMLElement,
       return;
     }
     before = current();
-    if (scripted) return;
-    const isTyping = TYPING.has(e.inputType);
-    const moved = !typedTo || typedTo[0] !== s || typedTo[1] !== t;
-    const sameDrag = e.inputType === "insertFromDrop" &&
-      lastType === "deleteByDrag";
-    if (!sameDrag && (!isTyping || !typing || moved)) snapshot();
-    typing = isTyping;
-    lastType = e.inputType;
+    if (!scripted) group(e.inputType);
   });
 
   textarea.addEventListener("input", () => {
-    // An input method's composition can't be cancelled up front.
+    if (composition) {
+      // Drawn as it goes; checked and reported as it ends.
+      sb.update();
+      redraw();
+      return;
+    }
+    // An edit whose beforeinput couldn't be cancelled.
     if (textarea.value.length > max && before) {
       restore(before);
       opts.onLimit?.();
@@ -612,6 +681,7 @@ export function mountTextView(host: HTMLElement,
     setText(text) {
       textarea.value = text;
       reported = textarea.value;
+      composition = null;
       textarea.setSelectionRange(0, 0);
       textarea.scrollTop = 0;
       saved = null;

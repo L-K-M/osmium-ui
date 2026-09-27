@@ -44,6 +44,33 @@ function backspace(ta: HTMLTextAreaElement): void {
   }));
 }
 
+/** An input method's composition at the selection, as Chromium reports
+ * it: each step replaces the marked text, which the selection covers
+ * when the step's beforeinput (not cancelable) comes; the last step
+ * commits. */
+function compose(ta: HTMLTextAreaElement, steps: readonly string[]): void {
+  const at = ta.selectionStart;
+  let marked = ta.selectionEnd - at;
+  ta.dispatchEvent(new CompositionEvent("compositionstart", { data: "" }));
+  for (const text of steps) {
+    ta.setSelectionRange(at, Math.min(at + marked, ta.value.length));
+    ta.dispatchEvent(new InputEvent("beforeinput", {
+      inputType: "insertCompositionText", data: text, cancelable: false,
+      bubbles: true,
+    }));
+    const s = ta.selectionStart, t = ta.selectionEnd;
+    ta.value = ta.value.slice(0, s) + text + ta.value.slice(t);
+    ta.setSelectionRange(s + text.length, s + text.length);
+    marked = text.length;
+    ta.dispatchEvent(new InputEvent("input", {
+      inputType: "insertCompositionText", data: text, isComposing: true,
+    }));
+  }
+  ta.dispatchEvent(new CompositionEvent("compositionend", {
+    data: steps.at(-1) ?? "",
+  }));
+}
+
 const keydown = (ta: HTMLElement, key: string, init: KeyboardEventInit = {}) => {
   const e = new KeyboardEvent("keydown", {
     key, bubbles: true, cancelable: true, ...init,
@@ -195,6 +222,39 @@ describe("mountTextView", () => {
     }));
     expect(ta.value).toBe("ab");
     expect(onLimit).toHaveBeenCalledTimes(1);
+  });
+
+  it("undoes an input method's composition as one edit", () => {
+    const onChange = vi.fn();
+    const { ta, view } = mount({ text: "abc ", onChange });
+    ta.setSelectionRange(4, 4);
+    compose(ta, ["n", "に", "にh", "にほ", "にほn", "にほん", "日本"]);
+    expect(ta.value).toBe("abc 日本");
+    expect(onChange).toHaveBeenCalledTimes(1);
+    view.undo();
+    expect(ta.value).toBe("abc ");
+    view.undo();
+    expect(ta.value).toBe("abc 日本");
+  });
+
+  it("rejects a composition past maxLength as a whole", () => {
+    const onLimit = vi.fn();
+    const changes: string[] = [];
+    const { ta, view } = mount({
+      text: "ab", maxLength: 4, onLimit,
+      onChange: () => changes.push(ta.value),
+    });
+    ta.setSelectionRange(2, 2);
+    type(ta, "c");
+    compose(ta, ["x", "xy", "xyz", "XYZ"]);
+    // Back to the text before the composition: one onLimit, and no
+    // onChange, since the text is as it was.
+    expect(ta.value).toBe("abc");
+    expect(onLimit).toHaveBeenCalledTimes(1);
+    expect(changes).toEqual(["abc"]);
+    // Undo still takes back the typing before it.
+    view.undo();
+    expect(ta.value).toBe("ab");
   });
 
   it("shows a read-only document without letting it change", () => {
