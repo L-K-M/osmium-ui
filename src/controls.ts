@@ -5,6 +5,7 @@
 // inputs) are used wherever one exists so focus, keyboard and
 // assistive tech keep working.
 import { installOsmium } from "./install.js";
+import { closeWhenModal, isModal } from "./modal.js";
 
 // part, inside, textWidth and swallowClick are also menubar.ts's.
 
@@ -151,6 +152,17 @@ export function fitButton(b: HTMLElement): void {
   b.style.paddingRight = "0";
 }
 
+/** Show `b` pressed for 8 ticks, then run `action` unless the button
+ * was disabled meanwhile: the Dialog Manager's highlight for a button
+ * pressed from the keyboard. (bindDialogKeys and alert.ts share it.) */
+export function flashButton(b: HTMLButtonElement, action: () => void): void {
+  b.classList.add("osm-pressed");
+  setTimeout(() => {
+    b.classList.remove("osm-pressed");
+    if (!b.disabled) action();
+  }, FLASH_MS);
+}
+
 /** Enable or disable a checkbox or slider input, dimming its whole
  * control (osmium.css reads .osm-disabled on the wrapper). */
 export function setEnabled(input: HTMLInputElement, on: boolean): void {
@@ -178,14 +190,17 @@ export function setButtonTitle(b: HTMLElement, text: string): void {
  * Keys typed into text fields, menus and focused buttons (which have
  * their own Return handling) are left alone. With several windows in
  * one page, `active` says whether the buttons' window is the one the
- * keys are for. */
+ * keys are for. While an alert is up (showAlert) the keys are the
+ * alert's, and these do nothing. Returns a function that removes the
+ * key handling. */
 export function bindDialogKeys(ok: HTMLButtonElement | null,
                                cancel: HTMLButtonElement | null,
                                actions: { ok?: () => void;
                                           cancel?: () => void;
-                                          active?: () => boolean }): void {
-  window.addEventListener("keydown", (e) => {
-    if (e.defaultPrevented || e.repeat) return;
+                                          active?: () => boolean }
+                               ): () => void {
+  const onKey = (e: KeyboardEvent) => {
+    if (e.defaultPrevented || e.repeat || isModal()) return;
     const t = e.target as HTMLElement | null;
     if (t?.closest("input:not([type=checkbox]):not([type=range]), " +
                    "textarea, [contenteditable], button, .osm-menu"))
@@ -199,12 +214,10 @@ export function bindDialogKeys(ok: HTMLButtonElement | null,
         b.getClientRects().length === 0) return;
     if (actions.active && !actions.active()) return;
     e.preventDefault();
-    b.classList.add("osm-pressed");
-    setTimeout(() => {
-      b.classList.remove("osm-pressed");
-      if (!b.disabled) act();
-    }, FLASH_MS);
-  });
+    flashButton(b, act);
+  };
+  window.addEventListener("keydown", onKey);
+  return () => window.removeEventListener("keydown", onKey);
 }
 
 // ---- pop-up menus -----------------------------------------------------
@@ -301,6 +314,8 @@ export function mountPopup(btn: HTMLButtonElement,
   // after keyboard use, otherwise whatever had it before (a pop-up
   // used with the mouse never takes the keyboard target).
   let returnFocus: HTMLElement | null = null;
+  // Unregisters close from the alerts' menu closing (modal.ts).
+  let unwatchModal: (() => void) | null = null;
   const id = `osm-popup-${++popupSeq}`;
   btn.setAttribute("aria-haspopup", "listbox");
   btn.setAttribute("aria-expanded", "false");
@@ -410,10 +425,13 @@ export function mountPopup(btn: HTMLButtonElement,
     });
     document.addEventListener("pointerdown", onOutside, true);
     window.addEventListener("blur", close);
+    unwatchModal = closeWhenModal(close);
   }
 
   function close(): void {
     if (!menu) return;
+    unwatchModal?.();
+    unwatchModal = null;
     const hadFocus = menu.contains(document.activeElement);
     menu.remove();
     menu = null;
