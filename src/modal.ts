@@ -210,6 +210,9 @@ const SCROLL_KEYS = new Set([
   "ArrowUp", "ArrowDown", "ArrowLeft", "ArrowRight",
 ]);
 
+/** F1 to F24: the browser's own keys (reload, find), not the page's. */
+const FUNCTION_KEY = /^F\d{1,2}$/;
+
 /** Keys go to the top alert first, then no further: nothing under an
  * alert may act on a key, the page's own document and window listeners
  * included. (A listener on window in the capture phase runs before
@@ -217,14 +220,15 @@ const SCROLL_KEYS = new Set([
  * and Space through their native activation, which is a default action,
  * not a listener. Keys aimed outside the alert (focus on body, say)
  * lose their default too, and so do the scrolling keys aimed at it.
- * Browser shortcuts (with Command, Control or Option) keep their
- * default. keyup and keypress are held back the same way. */
+ * Browser shortcuts (with Command, Control or Option) and the function
+ * keys (FUNCTION_KEY) keep their default. keyup and keypress are held
+ * back the same way. */
 function onKey(e: KeyboardEvent): void {
   const top = stack[stack.length - 1];
   if (!top) return;
   if (e.type === "keydown") top.keys?.(e);
   e.stopPropagation();
-  if (e.metaKey || e.ctrlKey || e.altKey) return;
+  if (e.metaKey || e.ctrlKey || e.altKey || FUNCTION_KEY.test(e.key)) return;
   const t = e.target;
   if (!(t instanceof Node && top.box.contains(t))) {
     e.preventDefault();

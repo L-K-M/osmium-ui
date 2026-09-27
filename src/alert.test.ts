@@ -303,6 +303,31 @@ describe("showAlert", () => {
     expect(document.activeElement).toBe(button(a, "ok"));
   });
 
+  it("brings Tab back in when the focus fell out (to body)", async () => {
+    const a = show({ buttons: { cancel: "Cancel" } });
+    await revealed();
+    (document.activeElement as HTMLElement).blur();
+    expect(document.activeElement).toBe(document.body);
+    key(document.body, "Tab");
+    expect(document.activeElement).toBe(button(a, "cancel"));
+  });
+
+  it("keeps a press's outcome while its button flashes", async () => {
+    const a = show({ buttons: { cancel: "Cancel" } });
+    await revealed();
+    key(a.element, "Enter");
+    a.close();
+    key(a.element, "Escape");
+    expect(await a.result).toBe("ok");
+  });
+
+  it("leaves the function keys to the browser", async () => {
+    show();
+    await revealed();
+    expect(key(document.body, "F5").defaultPrevented).toBe(false);
+    expect(key(document.body, "a").defaultPrevented).toBe(true);
+  });
+
   it("gives the focus back afterwards", async () => {
     const input = document.createElement("input");
     document.body.append(input);

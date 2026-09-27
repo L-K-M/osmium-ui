@@ -84,6 +84,7 @@ export function buildSharing(content: HTMLElement,
   const text = el("textarea");
   text.id = "shr-message";
   text.value = MESSAGE;
+  text.spellcheck = false;
   messageTitle.htmlFor = text.id;
   message.append(text);
 

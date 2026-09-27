@@ -927,7 +927,10 @@
    a window in front covered the field's right end): the black line and
    the text turn 88, the bevel stays, and the ring, the caret and the
    selection highlight go (TEDeactivate). */
-.osm-inactive .osm-edit, .osm-inactive .osm-edit-area {
+/* The :focus selectors outrank the ring rule by specificity, not only
+   by order: a field keeps DOM focus when its window deactivates. */
+.osm-inactive .osm-edit, .osm-inactive .osm-edit-area,
+.osm-inactive .osm-edit:focus, .osm-inactive .osm-edit-area:focus-within {
   border-color: #888;
   box-shadow: var(--osm-edit-bevel);
 }

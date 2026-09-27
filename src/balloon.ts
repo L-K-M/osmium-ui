@@ -382,7 +382,10 @@ export function placeBalloon(w: number, h: number, preferred: BalloonVariant,
     const box = shift(extent(v, w, h), left, top);
     if (within(box, bounds) && !avoid.some((a) => overlaps(box, a)))
       return { variant: v, left, top, clip: 0 };
-    const a = area(box, bounds);
+    // Scored by its area on screen less what it covers of the avoided
+    // rectangles, so the fallback, too, prefers to stay off a menu bar.
+    const a = area(box, bounds) -
+      avoid.reduce((covered, r) => covered + area(box, r), 0);
     if (!best || a > best.area) best = { v, left, top, area: a };
   }
   // Nothing fits: move the best into bounds, keeping its top edge on
@@ -851,7 +854,10 @@ const TEXT_ENTRY = "input:not([type=checkbox]):not([type=range]), " +
  * bindDialogKeys would take for Cancel. An IME composition keeps its
  * Escape. */
 function onOpenKey(e: KeyboardEvent): void {
-  if (e.key !== "Escape" || e.isComposing || !current) return;
+  // Safari reports a composition's last keydown as keyCode 229 with
+  // isComposing false (as bindDialogKeys also checks).
+  if (e.key !== "Escape" || e.isComposing || e.keyCode === 229 ||
+      !current) return;
   const t = e.target instanceof Element ? e.target : null;
   const field = t?.closest(TEXT_ENTRY);
   const own = !field || field.matches("input.osm-edit") ||
@@ -989,7 +995,9 @@ function onFocusIn(e: FocusEvent): void {
   if (dismissed && a !== dismissed) dismissed = null;
   if (!a || !canOpen(a)) return;
   focusTimer = setTimeout(() => {
-    if (a.target.contains(document.activeElement)) open(a, "focus", null);
+    // Not if the help was detached meanwhile, focus still inside.
+    if (attached.get(a.target) === a &&
+        a.target.contains(document.activeElement)) open(a, "focus", null);
   }, restFor(a));
 }
 

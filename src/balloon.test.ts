@@ -155,8 +155,9 @@ describe("balloonTextBox", () => {
 
   // Hide Balloons' own balloon (System 7.5.3, Mac OS 8.5 and 9.0) is 58
   // wide in 3 lines; the search gives 38. Unexplained, so not modeled.
-  it.fails("reproduces the 'Turns Balloon help off.' menu balloon", () => {
-    expect(g9Box("Turns Balloon help off.").width).toBe(58);
+  it("gives the 'Turns Balloon help off.' menu balloon 38, not 58", () => {
+    // Pinned so a change to the model shows up here.
+    expect(g9Box("Turns Balloon help off.").width).toBe(38);
   });
 
   it("uses golden widths, floor(1.618 x 12k), with 232 not 233", () => {
@@ -747,7 +748,8 @@ describe("keyboard", () => {
     document.body.append(cancelBtn);
     rect(cancelBtn, 300, 300, 60, 20);
     let cancelled = 0;
-    bindDialogKeys(null, cancelBtn, { cancel: () => cancelled++ });
+    const unbind = bindDialogKeys(null, cancelBtn,
+                                  { cancel: () => cancelled++ });
     const b = attach(label, { content: "Sound\n\nPlays sounds." });
     let seenByOthers = 0;
     const later = () => seenByOthers++;
@@ -776,6 +778,20 @@ describe("keyboard", () => {
     vi.advanceTimersByTime(200);
     expect(cancelled).toBe(1);
     window.removeEventListener("keydown", later);
+    unbind();
+  });
+
+  it("doesn't open a balloon detached while its focus rest ran", () => {
+    setBalloonHelp("shown");
+    document.documentElement.classList.add("osm-kbd");
+    // Another balloon keeps tracking (and its timers) running.
+    attach(target(), { content: "Other" });
+    const t = target();
+    const b = attachBalloon(t, { content: "Help" });
+    focusOn(t);
+    b.detach();
+    vi.advanceTimersByTime(500);
+    expect(b.open).toBe(false);
   });
 
   it("leaves Escape to a text field elsewhere, and to an IME", () => {

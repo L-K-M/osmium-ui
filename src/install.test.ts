@@ -13,11 +13,14 @@ it("registers Geneva 9 in QuickDraw-synthesized bold too", async () => {
     }
     load() { return Promise.resolve(this); }
   });
+  const fonts = Object.getOwnPropertyDescriptor(document, "fonts");
   Object.defineProperty(document, "fonts", { value: { add() {} },
                                              configurable: true });
   const { installOsmium } = await import("./install.js");
   await installOsmium();
   vi.unstubAllGlobals();
+  if (fonts) Object.defineProperty(document, "fonts", fonts);
+  else delete (document as { fonts?: unknown }).fonts;
 
   const g9 = faces.filter((f) => f.family === GENEVA_9.family);
   expect(g9.map((f) => f.weight)).toEqual(["400", "700"]);

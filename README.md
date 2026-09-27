@@ -390,7 +390,7 @@ const alert = showAlert({
   buttons: { ok: "Save", cancel: "Cancel", other: "Don’t Save" },
   parent: win, // drawn inactive while the alert is up
 });
-if (await alert.result === "ok") save();
+if ((await alert.result) === "ok") save();
 ```
 
 Return and Enter press the default button (`defaultButton`, OK unless

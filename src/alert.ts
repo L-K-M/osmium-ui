@@ -398,10 +398,14 @@ export function showAlert(opts: AlertOptions): OsmiumAlert {
     resolve(r);
   }
 
-  /** A press from the keyboard or close(button): flash, then end. */
+  /** A press from the keyboard or close(button): flash, then end. Once
+   * a press is flashing, the alert's outcome is decided: further
+   * presses and a close() without a button do nothing. */
+  let pressing = false;
   function press(which: AlertButton): void {
     const b = buttons.get(which);
-    if (ended || !b || b.disabled) return;
+    if (ended || pressing || !b || b.disabled) return;
+    pressing = true;
     flashButton(b, () => end(which));
   }
 
@@ -576,7 +580,7 @@ export function showAlert(opts: AlertOptions): OsmiumAlert {
     element: box,
     result,
     close(button) {
-      if (ended) return;
+      if (ended || pressing) return;
       if (button === undefined) { end("dismissed"); return; }
       if (!buttons.has(button))
         throw new Error(`this alert has no "${button}" button`);
