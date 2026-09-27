@@ -158,8 +158,10 @@ function open(id: WindowId, doc?: DocumentId): void {
 }
 
 function show(w: DeskWindow): void {
+  const opening = w.el.hidden;
   w.el.hidden = false;
   activate(w);
+  if (opening) w.content.shown?.();
 }
 
 function close(w: DeskWindow): void {

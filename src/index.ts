@@ -56,6 +56,8 @@ export type {
   BalloonContent, BalloonHelpState, BalloonOptions, BalloonTip,
   BalloonTrigger, BalloonVariant, OsmiumBalloon,
 } from "./balloon.js";
+export { mountChasingArrows } from "./chasingarrows.js";
+export type { OsmiumChasingArrows } from "./chasingarrows.js";
 export { showAlert } from "./alert.js";
 export type {
   AlertButton, AlertButtons, AlertKind, AlertModality, AlertOptions,

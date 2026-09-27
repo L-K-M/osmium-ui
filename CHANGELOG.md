@@ -2,6 +2,23 @@
 
 ## Unreleased
 
+- Add chasing arrows (`mountChasingArrows`, `.osm-arrows`): the
+  Appearance Manager's asynchronous arrows, 16 x 16, with `start()`,
+  `stop()` and `destroy()`. The eight frames are the bitmaps in Mac OS
+  8.0's Appearance Extension (CDEF 7, "Chasing Arrows"), in black, or
+  in 88 in an inactive window, where they keep turning. Captured from
+  Mac OS 8.0's Finder in an emulator (a window header while it expands
+  folders), all eight frames match those bitmaps in both states, and
+  Osmium's renders match the captures with 0 differing pixels over the
+  arrows and a 1px margin. They step every 6 ticks, the Finder's pace
+  in the emulator when it wasn't busy (the CDEF allows 2); not checked
+  on real hardware.
+  Inside a placard they sit where the Finder puts them, 4px in and 2px
+  down. Not Mac OS: stopped arrows draw nothing and are `aria-hidden`,
+  and `prefers-reduced-motion` holds frame 0. The disabled look was
+  not captured and isn't offered.
+- The demo's Finder window turns chasing arrows in its header for two
+  seconds whenever it opens, in place of the header's text.
 - Add text views (`mountTextView`): a document window's text as
   TeachText and SimpleText show it in Mac OS 8, on a native textarea.
   White, wrapped to the width with no horizontal scrolling, a vertical

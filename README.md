@@ -47,6 +47,8 @@ information window (class `osm-info`, whose text dims when inactive).
   highlighting and read-only documents.
 - Balloon Help: help balloons measured from Mac OS 8.0, with the Help
   menu's Show Balloons / Hide Balloons command.
+- Chasing arrows: Mac OS 8.0's own eight frames, turning at the
+  Finder's pace, gray in an inactive window.
 - Alert boxes: stop, caution and note alerts, modal or movable. The
   modal frame, the stop and caution icons and the layout are measured
   from Mac OS 8.0's Finder; the movable title bar and the note icon
@@ -232,6 +234,7 @@ window.
 | Separator, well | `<div class="osm-separator">`, `<div class="osm-well">` | none |
 | Edit text | `<input class="osm-edit">` (22px), add `osm-compact` for 20px; `<div class="osm-edit-area"><textarea></textarea></div>` for several lines | native input; `mountTextArea(el)` adds a scroll bar to a multi-line field; `setEnabled(field, on)` |
 | Text view | a `<div>` filling a document window's content | `mountTextView(el, { label, text, mode, font })`; see [Text view](#text-view) |
+| Chasing arrows | `<span class="osm-arrows" role="img" aria-label="Working">` (16 x 16); inside a placard it sits where the Finder puts it | `mountChasingArrows(el)`, then `start()` and `stop()`; see [Chasing arrows](#chasing-arrows) |
 | Help balloon | none: attach it to any element | `attachBalloon(el, { content })`, and `balloonMenuItem()` in a Help menu; see [Balloon Help](#balloon-help) |
 | Alert | built for you | `showAlert({ kind, message, explanation, buttons })`, see [Alerts](#alerts) |
 
@@ -549,6 +552,49 @@ What differs from Mac OS 8, on purpose or for want of a measurement:
 The balloon's shape, its eight tails and the text layout were compared
 pixel for pixel with 13 Mac OS 8.0 balloons captured in an emulator,
 covering all eight tails: 0 differing pixels, text included.
+
+### Chasing arrows
+
+Chasing arrows say that something of unknown length is under way, as
+in a Finder window's header while the window fills:
+
+```ts
+import { mountChasingArrows } from "osmium-ui";
+
+const arrows = mountChasingArrows(span); // stopped: nothing drawn
+arrows.start(); // frame 0, then one frame every 6 ticks (100 ms)
+// … when the work is done:
+arrows.stop();  // blank again; the Finder puts the header's text back
+```
+
+In a window whose `.osm-inactive` class is set, the arrows keep turning
+in 88 gray instead of black, as they do in Mac OS 8.0. With the reader's
+`prefers-reduced-motion` setting, running arrows hold frame 0 (Mac OS
+had no such setting). A stopped control is `aria-hidden`; a running one
+is an image named "Working" unless you name it. `destroy()` stops the
+arrows and removes the reduced-motion listener.
+
+What was measured and what wasn't:
+
+- The eight frames are the bitmaps in Mac OS 8.0's Appearance
+  Extension (resource CDEF 7, "Chasing Arrows"; Mac OS 8.1's copy is
+  the same). Its code steps 0 to 7 and round, draws in black, or in
+  8888/8888/8888 when the control is inactive or disabled, and steps
+  only when the application idles it, at most once every 2 ticks.
+- Captured from Mac OS 8.0's Finder in an emulator: all eight frames,
+  active and inactive, match these bitmaps with 0 differing pixels, and
+  Osmium's renders match the captures with 0 differing pixels over the
+  arrows and a 1px margin. The arrows kept turning in an inactive
+  window. The Finder stepped every 6 ticks while it wasn't busy; that
+  pace is the emulator's Finder, not checked on real hardware.
+- Inside an `.osm-placard` the arrows sit 4px right of the header's
+  left pixel and 2px below its top one, as in the Finder.
+- Not captured: the disabled look (the CDEF's code draws it like the
+  inactive one; Osmium has no disabled state for arrows).
+
+The same captures show two things `.osm-placard` doesn't do yet: in an
+inactive window the Finder draws its header flat (dd, without the white
+and aa edges), and the header's bottom-left pixel is dd, not aa.
 
 ### Alerts
 

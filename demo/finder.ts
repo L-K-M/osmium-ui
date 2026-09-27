@@ -5,8 +5,12 @@
 // 8.5), rows with small icons, both scroll bars and keyboard
 // navigation. The columns keep their widths, so a narrow window scrolls
 // sideways, headers and all. Double-clicking one of the demo's own
-// items opens its window (the Read Me opens in Foolscap).
-import { attachBalloon, centerText, mountListView } from "../src/index.js";
+// items opens its window (the Read Me opens in Foolscap). While the
+// window opens, chasing arrows turn in the header in place of its text,
+// as Mac OS 8.0's Finder shows them while it reads a folder.
+import {
+  attachBalloon, centerText, mountChasingArrows, mountListView,
+} from "../src/index.js";
 import type { ListViewColumn, ListViewSort, Size } from "../src/index.js";
 import type { DocumentId } from "./documents.js";
 import { el } from "./dom.js";
@@ -78,6 +82,9 @@ const HEADS_H = 21;
 const HBAR_H = 15;
 /** Window height around the content area: titlebar, frame, edges. */
 const FRAME_H = 28;
+/** How long the window "reads the disk" when it opens: far longer than
+ * the Finder takes over 26 items, so the arrows can be seen. */
+const READ_MS = 2000;
 
 const byName = (a: Item, b: Item) =>
   a.name.localeCompare(b.name, "en", { sensitivity: "base" });
@@ -102,12 +109,28 @@ function sizeLabel(k: number): string {
 export function buildFinder(content: HTMLElement,
                             env: WindowEnv): WindowContent {
   const root = el("div", "fnd");
-  const placard = el("div", "osm-placard fnd-placard",
-                     `${ITEMS.length} items, 312.4 MB available`);
+  const placard = el("div", "osm-placard fnd-placard");
+  const arrowsEl = el("span");
+  const status = document.createTextNode("");
+  placard.append(arrowsEl, status);
   const listEl = el("div", "fnd-list");
   root.append(placard, listEl);
   content.append(root);
-  centerText(placard);
+  const arrows = mountChasingArrows(arrowsEl);
+  let reading: ReturnType<typeof setTimeout> | undefined;
+  // The Finder blanks the header and turns the arrows until the folder
+  // is read, then puts the header's text back.
+  const readDisk = () => {
+    clearTimeout(reading);
+    status.data = "";
+    arrows.start();
+    reading = setTimeout(() => {
+      arrows.stop();
+      status.data = `${ITEMS.length} items, 312.4 MB available`;
+      centerText(placard);
+    }, READ_MS);
+  };
+  readDisk();
   attachBalloon(placard, { trigger: env.balloons, content: "Information " +
     "placard\n\nHow many items this window holds, and how much room is " +
     "left on the disk." });
@@ -151,6 +174,7 @@ export function buildFinder(content: HTMLElement,
 
   return {
     focus: () => list.focus(),
+    shown: readDisk,
     // Zoomed, the window keeps its width and shows every item.
     standardSize(current: Size): Size {
       return {
