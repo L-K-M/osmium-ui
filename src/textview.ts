@@ -491,8 +491,22 @@ export function mountTextView(host: HTMLElement,
    * position just before it. */
   function measure(node: Text, i: number,
                    after: boolean): { x: number; line: number } {
+    const data = node.data;
+    const newline = data[i] === "\n";
+    if (newline && (i === 0 || data[i - 1] === "\n")) {
+      // A newline alone on its line (a blank line, or one of several at
+      // the end): Chromium gives the position before it no client rect,
+      // and the all-zero bounding rect would put it above the text. It
+      // starts its line, counted from the first newline of its run:
+      // that one ends a line of text (so it has a rect), or is the
+      // text's first character, alone on line 0. Each newline after it
+      // is alone on the next line.
+      let first = i;
+      while (first > 0 && data[first - 1] === "\n") first--;
+      const line = first === 0 ? 0 : measure(node, first, false).line;
+      return { x: 0, line: line + i - first };
+    }
     const range = document.createRange();
-    const newline = node.data[i] === "\n";
     range.setStart(node, i);
     range.setEnd(node, newline ? i : i + 1);
     const r = range.getClientRects()[0] ?? range.getBoundingClientRect();

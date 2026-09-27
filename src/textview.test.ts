@@ -325,6 +325,104 @@ describe("TextEdit highlight outline", () => {
   });
 });
 
+/** Lay the mirror out the way Chromium does, which happy-dom doesn't:
+ * 7px characters on 16px lines, no wrapping, the mirror's box at
+ * (20, 100). As in Chromium, a collapsed range on an empty line has no
+ * client rect, and a range's bounding rect without one is all zeros.
+ * The view's viewport is 64px (four lines) tall and 300px wide, and
+ * scrollTop clamps at 0 as a browser's does. */
+function fakeLayout(host: HTMLElement, ta: HTMLTextAreaElement): void {
+  const BOX = { left: 20, top: 100 };
+  const LH = 16, CH = 7;
+  const mirror = host.querySelector(".osm-textview-mirror")!;
+  const layer = host.querySelector(".osm-textview-highlight")!;
+  vi.spyOn(mirror, "getBoundingClientRect").mockReturnValue(
+    { left: BOX.left, top: BOX.top, right: BOX.left + 300,
+      bottom: BOX.top + 64, width: 300, height: 64 } as DOMRect);
+  vi.spyOn(Range.prototype, "getClientRects").mockImplementation(
+    function (this: Range) {
+      const text = (this.startContainer as Text).data;
+      const i = this.startOffset;
+      const col = i - (text.lastIndexOf("\n", i - 1) + 1);
+      const line = text.slice(0, i).split("\n").length - 1;
+      if (this.collapsed && text[i] === "\n" && col === 0)
+        return [] as unknown as DOMRectList;
+      const left = BOX.left + 1 + col * CH;
+      const width = this.collapsed ? 0 : CH;
+      const top = BOX.top + line * LH;
+      return [{ left, right: left + width, top, bottom: top + LH, width,
+                height: LH }] as unknown as DOMRectList;
+    });
+  vi.spyOn(Range.prototype, "getBoundingClientRect").mockReturnValue(
+    { left: 0, right: 0, top: 0, bottom: 0, width: 0, height: 0 } as DOMRect);
+  Object.defineProperty(layer, "clientWidth", { value: 300 });
+  Object.defineProperty(ta, "clientHeight", { value: 64 });
+  let scrollTop = 0;
+  Object.defineProperty(ta, "scrollTop", {
+    get: () => scrollTop,
+    set: (v: number) => { scrollTop = Math.max(0, v); },
+  });
+}
+
+describe("measuring empty lines", () => {
+  beforeEach(() => { document.body.textContent = ""; });
+  afterEach(() => vi.restoreAllMocks());
+
+  /** The highlight's rows as [top, height], after `update()`. */
+  const rows = (host: HTMLElement) =>
+    Array.from(host.querySelectorAll<HTMLElement>(
+      ".osm-textview-highlight > div"))
+      .map((d) => [parseInt(d.style.top), parseInt(d.style.height)]);
+
+  it("highlights a selection that starts on a blank line", () => {
+    // The demo's Read Me: its title, a blank line, then "This is ...".
+    const { host, ta, view } = mount({ text: "Title\n\nThis is the text" });
+    fakeLayout(host, ta);
+    ta.setSelectionRange(6, 14);
+    view.update();
+    expect(rows(host)).toEqual([[16, 16], [32, 16]]);
+  });
+
+  it("highlights blank lines at the end of the text", () => {
+    const { host, ta, view } = mount({ text: "ab\n\n\n" });
+    fakeLayout(host, ta);
+    ta.setSelectionRange(3, 4);
+    view.update();
+    expect(rows(host)).toEqual([[16, 16]]);
+    // All of it: "ab" and the two blank lines, each to the right edge.
+    ta.setSelectionRange(0, 5);
+    view.update();
+    expect(rows(host)).toEqual([[0, 16], [16, 16], [32, 16]]);
+  });
+
+  it("keeps the caret in view when undoing an edit on a blank line", () => {
+    const lines = Array.from({ length: 100 },
+                             (_, i) => (i === 80 ? "" : `line ${i}`));
+    const { host, ta, view } = mount({ text: lines.join("\n") });
+    fakeLayout(host, ta);
+    const at = lines.slice(0, 80).join("\n").length + 1;
+    ta.setSelectionRange(at, at);
+    type(ta, "X");
+    ta.scrollTop = 0; // the reader scrolled back to the top
+    view.undo();
+    expect(ta.selectionStart).toBe(at);
+    // Line 80's bottom at the viewport's bottom.
+    expect(ta.scrollTop).toBe(81 * 16 - 64);
+  });
+
+  it("keeps a caret after trailing blank lines in view on undo", () => {
+    const text = "one\ntwo\nthree\nfour\nfive\nsix\n\n\n";
+    const { host, ta, view } = mount({ text });
+    fakeLayout(host, ta);
+    ta.setSelectionRange(text.length, text.length);
+    type(ta, "X");
+    ta.scrollTop = 0;
+    view.undo();
+    // The caret sits on line 8, after the last newline.
+    expect(ta.scrollTop).toBe(9 * 16 - 64);
+  });
+});
+
 // A view reused across documents (the demo's editor) keeps working.
 it("reuses one view for several documents", () => {
   document.body.textContent = "";
