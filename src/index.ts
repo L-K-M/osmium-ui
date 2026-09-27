@@ -5,6 +5,14 @@
 export { installOsmium, registerSprites } from "./install.js";
 export { spriteSvg, spriteUrl } from "./sprites.js";
 export type { Palette } from "./sprites.js";
+export type { SpriteAccent } from "./install.js";
+export {
+  HIGHLIGHTS_85, VARIATIONS_85, getAppearance, nearestAccent, setAppearance,
+} from "./appearance.js";
+export type {
+  Accent80, AccentChoice, Appearance, AppearanceRelease, Highlight80,
+  Highlight85, HighlightChoice, Variation85,
+} from "./appearance.js";
 export { mountWindow } from "./window.js";
 export type { Activation, OsmiumWindow, WindowOptions } from "./window.js";
 export { hostWindow } from "./host.js";

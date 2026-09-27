@@ -12,6 +12,19 @@
 :root {
   --osm-frame: #cccccc;      /* window frame face */
   --osm-dialog: #dddddd;     /* dialog/info content face */
+  /* The Appearance control panel's colors; setAppearance
+     (src/appearance.ts) overrides them inline on <html>. The accent
+     ramp, A0 lightest to A7 black, is Lavender, Mac OS 8.0's default
+     ('clut' -20233 in its Appearance Extension). The Highlight Color is
+     Purple with black text (a Black & White highlight inverts, white
+     on black). The focus ring is A3 unless that is too faint on the
+     dialog face (appearance.ts, focusRing). */
+  --osm-accent-0: #eeeeee; --osm-accent-1: #ccccff;
+  --osm-accent-2: #9999ff; --osm-accent-3: #6666cc;
+  --osm-accent-4: #333399; --osm-accent-5: #000088;
+  --osm-accent-6: #000055; --osm-accent-7: #000000;
+  --osm-highlight: #ccccff; --osm-highlight-text: #000000;
+  --osm-focus-ring: #6666cc;
   --osm-font-system: 12px/16px "Osmium Charcoal", Charcoal, sans-serif;
   --osm-font-small: 10px/13px "Osmium Geneva", Geneva, sans-serif;
   --osm-font-caption: 9px/12px "Osmium Geneva 9", Geneva, sans-serif;
@@ -139,14 +152,18 @@
 .osm-inactive .osm-title { color: #666; }
 .osm-inactive .osm-grow { background-image: var(--osm-sprite-grow-inactive); }
 /* Controls in an inactive window dim: the progress bar loses its rim
-   and shading (55 edge, flat 9999ff fill, flat cc track). Separators
+   and shading (55 edge, flat fill, flat cc track). The flat fill is
+   9999ff, Lavender's A2; that other accents use their A2 is inferred,
+   only Lavender was captured. Separators
    stay as they are. Finder information windows (Get Info; class
    .osm-info) dim their text to 66 as well; control panels keep static
    text black. */
 .osm-inactive.osm-info .osm-content { color: #666; }
 .osm-inactive .osm-progress { background: none; }
 .osm-inactive .osm-progress-track { border-color: #555; background: #ccc; }
-.osm-inactive .osm-progress-fill { background: #9999ff; box-shadow: 1px 0 0 #555; }
+.osm-inactive .osm-progress-fill {
+  background: var(--osm-accent-2); box-shadow: 1px 0 0 #555;
+}
 
 /* A page that is one native window (macos/OsmiumWindows.swift): the
    window fills the web view, 1px short of its right and bottom edges
@@ -191,7 +208,7 @@
 
 /* Progress bar, 14px tall: engraved rim (aa top/left, white
    bottom/right, notched corners), black edge, a sunken 55/88/bb/dd
-   track, and the lavender tube filling from the left with a black
+   track, and the accent's tube filling from the left with a black
    divider where it stops. Set --osm-value (0..1) on the bar; markup is
    .osm-progress > .osm-progress-track > .osm-progress-fill. */
 .osm-progress {
@@ -510,7 +527,8 @@
 /* A pop-up's menu: black outline, white/99 bevel on the dd face, a 22
    drop shadow (one pixel, starting two in), 16px items with the title
    19px in (from the outline) and the check mark 4px in. The highlight is the accent:
-   6666cc and 000088 edges around 333399, white text. */
+   A3 and A5 edges around A4 (6666cc, 000088, 333399 in Lavender), white
+   text, as Apple drew it even where a light variation leaves it faint. */
 .osm-menu {
   position: fixed; z-index: 1000;
   box-sizing: border-box;
@@ -547,9 +565,11 @@
 }
 .osm-menu-item.osm-highlight {
   background:
-    linear-gradient(#6666cc, #6666cc) 0 0 / 1px 100% no-repeat,
-    linear-gradient(#000088, #000088) right 0 top 0 / 1px 100% no-repeat,
-    #333399;
+    linear-gradient(var(--osm-accent-3), var(--osm-accent-3))
+      0 0 / 1px 100% no-repeat,
+    linear-gradient(var(--osm-accent-5), var(--osm-accent-5))
+      right 0 top 0 / 1px 100% no-repeat,
+    var(--osm-accent-4);
   color: #fff;
 }
 .osm-menu-item[aria-disabled="true"] { color: #888; }
@@ -604,9 +624,11 @@
 }
 .osm-menubar-title.osm-open {
   background:
-    linear-gradient(#6666cc, #6666cc) 0 0 / 100% 1px no-repeat,
-    linear-gradient(#000088, #000088) 0 100% / 100% 1px no-repeat,
-    #333399;
+    linear-gradient(var(--osm-accent-3), var(--osm-accent-3))
+      0 0 / 100% 1px no-repeat,
+    linear-gradient(var(--osm-accent-5), var(--osm-accent-5))
+      0 100% / 100% 1px no-repeat,
+    var(--osm-accent-4);
   color: #fff;
 }
 .osm-menubar-icon { display: block; width: 16px; height: 16px; }
@@ -715,8 +737,8 @@
 .osm-has-scrollbar > .osm-hscrollbar { right: 14px; }
 
 /* ---- lists ----------------------------------------------------------- */
-/* List box: white, black edge, Black & White highlight (the default
-   Mac OS 8 highlight color). Rows scroll inside .osm-list-view; with a
+/* List box: white, black edge, rows selected in the Highlight Color
+   (--osm-highlight). Rows scroll inside .osm-list-view; with a
    scroll bar the view leaves it 15px (the bar overlaps the edge). */
 .osm-list {
   position: relative;
@@ -739,7 +761,9 @@
   font: var(--osm-font-small);
   white-space: nowrap; overflow: hidden; text-overflow: ellipsis;
 }
-.osm-row.osm-selected { background: #000; color: #fff; }
+.osm-row.osm-selected {
+  background: var(--osm-highlight); color: var(--osm-highlight-text);
+}
 /* A deactivated List Manager list unhighlights its selection (Monitors
    & Sound, SimpleSound); Finder list views keep theirs. */
 .osm-inactive .osm-row.osm-selected { background: none; color: inherit; }
@@ -815,18 +839,18 @@
 .osm-kbd .osm-bevel:focus-visible, .osm-kbd .osm-checkbox input:focus-visible,
 .osm-kbd .osm-slider input:focus-visible, .osm-kbd .osm-list:focus-visible,
 .osm-kbd .osm-colhead:focus-visible {
-  outline: 2px solid #6666cc; outline-offset: 1px;
+  outline: 2px solid var(--osm-focus-ring); outline-offset: 1px;
 }
 /* Headers run edge to edge under the placard: ring them inside. */
 .osm-kbd .osm-colhead:focus-visible { outline-offset: -3px; }
 .osm-kbd .osm-menubar-title:focus-visible {
-  outline: 2px solid #6666cc; outline-offset: -2px;
+  outline: 2px solid var(--osm-focus-ring); outline-offset: -2px;
 }
 /* A tab's ring goes round its title, inside the slanted ends. */
 .osm-kbd .osm-tab:focus-visible::after {
   content: ""; position: absolute; left: -2px; right: -2px; top: 3px;
   height: 15px;
-  outline: 2px solid #6666cc;
+  outline: 2px solid var(--osm-focus-ring);
 }
 
 /* ---- edit text ------------------------------------------------------- */
@@ -853,10 +877,12 @@
   /* DrawThemeFocusRect: 2px of the accent hugging the black line, over
      the bevel, the four outermost corner pixels left open (Mac OS 9.0
      Date Formats, Sherlock 2 and Help Center; HIG pp. 48 and 66). The
-     union of these spread shadows is exactly that ring. */
+     union of these spread shadows is exactly that ring. Apple draws it
+     in A3; --osm-focus-ring darkens it where A3 would be too faint. */
   --osm-edit-ring:
-    0 0 0 1px #6666cc, 0 -1px 0 1px #6666cc, 0 1px 0 1px #6666cc,
-    -1px 0 0 1px #6666cc, 1px 0 0 1px #6666cc;
+    0 0 0 1px var(--osm-focus-ring), 0 -1px 0 1px var(--osm-focus-ring),
+    0 1px 0 1px var(--osm-focus-ring), -1px 0 0 1px var(--osm-focus-ring),
+    1px 0 0 1px var(--osm-focus-ring);
 }
 .osm-edit {
   box-sizing: border-box;
@@ -903,14 +929,14 @@
 .osm-edit::-webkit-outer-spin-button { -webkit-appearance: none; margin: 0; }
 .osm-edit[type="number"] { -moz-appearance: textfield; appearance: textfield; }
 
-/* Selected text in the Highlight Color, Black & White by default in
-   Mac OS 8.0 and 8.1: white on black. WebKit lightens an opaque
+/* Selected text in the Highlight Color: black on Purple by default,
+   white on black with Black & White. WebKit lightens an opaque
    selection color (black comes out 333333); a hair of transparency opts
-   out of that (010101 in every engine). */
+   out of that (black comes out 010101 in every engine). */
 .osm-edit::selection, .osm-edit-area > textarea::selection {
-  background: #000;
-  background: color-mix(in srgb, #000 99.6%, transparent);
-  color: #fff;
+  background: var(--osm-highlight);
+  background: color-mix(in srgb, var(--osm-highlight) 99.6%, transparent);
+  color: var(--osm-highlight-text);
 }
 
 /* The field with the keyboard has the ring however the focus got

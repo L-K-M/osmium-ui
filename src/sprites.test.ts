@@ -116,6 +116,20 @@ describe("sprites", () => {
     expect(spriteCss([["icon-fish", ["y."]]], { y: "#ffcc00" }))
       .toMatch(/^--osm-sprite-icon-fish: url\("data:image\/svg\+xml,/);
   });
+
+  it("mark the accent's A0 and the progress center with w and h", () => {
+    // Lavender's A0 is the gray it replaced, the center row white.
+    expect(spriteSvg(["wh"])).toContain('fill="#eeeeee"');
+    expect(spriteSvg(["wh"])).toContain('fill="#ffffff"');
+    const at = (name: string, x: number, y: number) =>
+      CONTROL_SPRITES[name]![y]![x];
+    for (const [x, y] of [[1, 1], [4, 4], [4, 6], [4, 8], [4, 10]])
+      expect(at("scroll-thumb", x!, y!)).toBe("w");
+    for (const [x, y] of [[1, 1], [4, 3], [6, 3], [8, 3]])
+      expect(at("slider-thumb", x!, y!)).toBe("w");
+    expect(SPRITES.fill[4]).toBe("h");
+    expect(SPRITES.fillLeft.slice(3, 6)).toEqual(["mh", "mh", "mh"]);
+  });
 });
 
 describe("titleLeft", () => {

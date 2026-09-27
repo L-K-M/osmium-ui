@@ -45,7 +45,9 @@ html.desk { height: 100%; background: #9999cc; }
 }
 .dsk-selected .dsk-img { filter: brightness(0.5); }
 .dsk-selected .dsk-label { background: #000; color: #fff; }
-.osm-kbd .dsk-icon:focus-visible .dsk-label { outline: 2px solid #6666cc; }
+.osm-kbd .dsk-icon:focus-visible .dsk-label {
+  outline: 2px solid var(--osm-focus-ring);
+}
 
 /* ---- Keyboard-style slider units (dom.ts) ------------------------- */
 /* Caption above, ticks under the track, end captions below. */
@@ -268,3 +270,9 @@ html.desk { height: 100%; background: #9999cc; }
 .alr-kinds { left: 12px; }
 .alr-variations { left: 220px; }
 .alr-status { left: 0; right: 0; bottom: 0; }
+/* The Highlight Color's Other… opens this color input, out of sight
+   beside its pop-up. */
+.apr-row > .apr-color {
+  left: 121px; top: 0; width: 1px; height: 1px;
+  padding: 0; border: 0; opacity: 0; pointer-events: none;
+}

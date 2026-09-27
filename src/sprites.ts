@@ -17,12 +17,20 @@ import { CONTROL_SPRITES } from "./controlsprites.js";
 
 /** Extra palette keys for a sprite: one character (a letter from g to
  * z, or uppercase; 0-9 and a-f are grays, '.' transparent) -> CSS
- * color. */
+ * color. The kit's own letters are the accent ramp (w q p m l n, and h
+ * for the progress bar's center row) and the alert icons' colors (R P
+ * M N Y K k y s); a palette may redefine them for its own sprites. */
 export type Palette = Readonly<Record<string, string>>;
 
 const COLORS: Palette = {
   // Lavender accent — the default Mac OS 8 highlight ramp, dark to light.
   n: "#000055", l: "#333399", m: "#6666cc", p: "#9999ff", q: "#ccccff",
+  // Its lightest entry (A0), the gleam on scroll and slider thumbs, and
+  // the progress bar's center row, white in Mac OS 8.0. setAppearance
+  // (appearance.ts) redraws the sprites that use these keys with
+  // another accent; alert-note keeps its lavender, as icons don't
+  // follow the accent.
+  w: "#eeeeee", h: "#ffffff",
   // Alerts (alertsprites.ts): the stop icon's reds and hand, the
   // caution icon's yellow, the note icon's face, and the movable alert
   // title bar's red pinstripe.
@@ -196,8 +204,8 @@ const STRIPE_ALERT_LO = [".", "s"];
 
 // Progress-bar fill (10 rows tall): the lavender tube, a lighter left
 // cap and a darker, rounding-off right end.
-const FILL = ["l", "m", "p", "q", "f", "q", "p", "m", "l", "n"];
-const FILL_LEFT = ["mm", "mp", "mq", "mf", "mf", "mf", "mq", "mp", "mm", "ml"];
+const FILL = ["l", "m", "p", "q", "h", "q", "p", "m", "l", "n"];
+const FILL_LEFT = ["mm", "mp", "mq", "mh", "mh", "mh", "mq", "mp", "mm", "ml"];
 const FILL_RIGHT = [
   "lll", "mmn", "pln", "qln", "qln", "qln", "pln", "mln", "lln", "nnn",
 ];

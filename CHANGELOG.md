@@ -2,9 +2,34 @@
 
 ## Unreleased
 
+- Add accent and highlight colors (`setAppearance`, `getAppearance`,
+  `nearestAccent`): Mac OS 8.0's 18 accent colors and 8.5's 20
+  variations, and both releases' highlight colors, transcribed from
+  Apple's own color tables, plus Black & White and any color (the
+  panel's Other…). An accent recolors menu and menu bar highlights,
+  scroll and slider thumbs, progress bars (the center row white for 8.0
+  tables, the lightest color for 8.5 ones) and focus rings; the
+  highlight colors list selections and selected text. Apps style their
+  own elements with `--osm-accent-0` to `--osm-accent-7`,
+  `--osm-highlight`, `--osm-highlight-text` and `--osm-focus-ring`, and
+  `registerSprites(…, { accent: "follow" })` redraws a sprite in the
+  accent. Not Mac OS: accents derived from any color (Apple offered
+  only its tables), and focus rings that step to a darker accent color
+  where A3 has less than 3:1 contrast on the dialog face. Inferred, not
+  captured: the thumbs' color roles for accents other than Lavender
+  and the inactive progress fill (A2). The Black & White accent is not
+  offered; how Mac OS drew it was not measured. With the default
+  Lavender every accent-colored pixel is unchanged. The demo's
+  Appearance window now sets the variation and highlight color, with a
+  browser color input for Other… (Osmium has no Color Picker).
+- The default highlight is now Purple (black text on #ccccff) instead
+  of Black & White, for list selections and selected text. Mac OS 8.0
+  captures disagree on its default (one machine Black & White, another
+  Purple); Mac OS 8.5's standard theme uses Purple. Call
+  `setAppearance({ highlight: "black-white" })` for the old look.
 - Add edit text: `<input class="osm-edit">` draws the Platinum field
-  (22px, or 20px with `osm-compact`) with its bevel, the lavender focus
-  ring and the Black & White text highlight, and
+  (22px, or 20px with `osm-compact`) with its bevel, the accent focus
+  ring and the Highlight Color text highlight, and
   `<div class="osm-edit-area">` frames a multi-line `<textarea>`, to
   which `mountTextArea` adds a scroll bar. Measured from Mac OS 8.0
   Find File in an emulator (active and inactive) and Mac OS 9.0 Date
