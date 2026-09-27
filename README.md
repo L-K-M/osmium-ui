@@ -446,17 +446,21 @@ bar.setMenus([
 ```
 
 Command and the key (Control where there is no Command key; pass
-`{ commandKey: "meta" }` or `"control"` as the third argument to choose)
-chooses the item and flashes its menu's title. Letters match without
-Shift; another character matches as typed. Only an enabled item takes
+`{ commandKey: "meta" }` or `{ commandKey: "control" }` as the third
+argument to choose) chooses the item and flashes its menu's title. The
+command key symbol is drawn for either modifier; `aria-keyshortcuts`
+names the one that works. Letters match without Shift; another
+character matches as typed. Only an enabled item takes
 its key, so a dimmed item, and any key no item claims, leaves the
 keystroke to the browser and to text fields. Keys a control already
 handled (`preventDefault`), keys typed while an alert is up or a pop-up
 or menu bar menu is open, and keys aimed at a menu bar under your own
 modal dialog (the bar `inert`, or a `<dialog>` opened with
-`showModal()` that the bar isn't in) are left alone too. Browsers keep some keys for themselves and never pass them
-to a page: in Chromium, for one, Control-N, Control-T and Control-W
-(Command on a Mac) open and close windows and tabs.
+`showModal()` that the bar isn't in) are left alone too.
+
+Browsers keep some keys for themselves and never pass them to a page:
+in Chromium, for one, Control-N, Control-T and Control-W (Command on a
+Mac) open and close windows and tabs.
 
 Menu bar menus leave 9px after an item without a key and fit a key
 equivalent in 32px more, as SimpleText's File, Edit and Help menus do;

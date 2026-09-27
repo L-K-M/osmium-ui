@@ -42,7 +42,8 @@ export interface MenuItem {
   /** Omitted: the item is drawn dimmed and can't be chosen. */
   readonly action?: () => void;
   /** A keyboard equivalent: one character, drawn after the command key
-   * symbol at the menu's right edge. Letters match either case, without
+   * symbol at the menu's right edge (also where Control is the
+   * modifier; aria-keyshortcuts names the real one). Letters match either case, without
    * Shift. Only an enabled item takes its key; a dimmed one leaves the
    * keystroke to the browser. */
   readonly key?: string;

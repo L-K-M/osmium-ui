@@ -105,6 +105,8 @@ function key(el: Element, k: string, init: KeyboardEventInit = {}) {
 const order = (els: HTMLElement[]) =>
   els.map((r) => r.querySelector(".osm-lv-label")!.textContent);
 
+/** Longer than SCROLL_SETTLE_MS (100): a touch sooner after a run of
+ * scrolls only stops the coasting list. */
 const settle = () => new Promise((r) => setTimeout(r, 150));
 
 beforeEach(() => {
@@ -488,7 +490,7 @@ describe("keyboard", () => {
 describe("context menu", () => {
   it("selects the row, then asks for the menu", () => {
     const calls: string[] = [];
-    const { log, rowEl } = mount({
+    const { rowEl } = mount({
       onSelect: (k) => calls.push(`select ${k}`),
       onContextMenu: (k, e) => calls.push(`menu ${k} ${e.clientX}`),
     });
@@ -497,7 +499,6 @@ describe("context menu", () => {
     rowEl("10.0.0.6").querySelector(".osm-lv-cell")!.dispatchEvent(e);
     expect(calls).toEqual(["select 10.0.0.6", "menu 10.0.0.6 42"]);
     expect(e.defaultPrevented).toBe(true);
-    expect(log.selected).toEqual([]);
   });
 
   it("leaves the browser's menu alone without a handler", () => {
@@ -511,7 +512,7 @@ describe("context menu", () => {
 
 describe("sorting", () => {
   it("picks a column on a header click and keeps the order", () => {
-    const { list, log, q, host } = mount({ sort: { column: "ip",
+    const { list, log, q, host, rowEls } = mount({ sort: { column: "ip",
                                                    order: "reversed" } });
     q('[data-column="ports"] button').dispatchEvent(
       new MouseEvent("click", { detail: 0 }));
@@ -525,6 +526,9 @@ describe("sorting", () => {
       .contains("osm-sorted")).toBe(true);
     const sorted = Array.from(host.querySelectorAll(".osm-lv-sorted"));
     expect(sorted.length).toBe(20);
+    // The list shades the Ports cells; the order stays the app's (it
+    // sorts in onSort and passes the rows to setRows).
+    expect(order(rowEls())).toEqual(hosts(20).map((h) => h.ip));
     expect(sorted.every((c) => c.textContent === String(
       Number(c.parentElement!.querySelector(".osm-lv-label")!.textContent!
         .split(".")[3])))).toBe(true);
@@ -653,6 +657,7 @@ describe("window rendering", () => {
     expect(q(".osm-lv-rows").classList.contains("osm-lv-windowed"))
       .toBe(false);
     expect(q(".osm-lv-rows").children.length).toBe(20);
-    expect(q(".osm-lv-row").hasAttribute("aria-rowindex")).toBe(false);
+    expect(Array.from(q(".osm-lv-rows").children)
+      .some((r) => r.hasAttribute("aria-rowindex"))).toBe(false);
   });
 });

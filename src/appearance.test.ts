@@ -159,7 +159,8 @@ describe("the default appearance", () => {
 
   it("matches osmium.css's :root", () => {
     const css = readFileSync(join(process.cwd(), "osmium.css"), "utf8");
-    const root = css.slice(css.indexOf(":root {"), css.indexOf("\n}\n"));
+    const start = css.indexOf(":root {");
+    const root = css.slice(start, css.indexOf("\n}\n", start));
     A.setAppearance(A.getAppearance());
     for (const name of [...Array.from({ length: 8 }, (_, i) =>
       `--osm-accent-${i}`), "--osm-highlight", "--osm-highlight-text",

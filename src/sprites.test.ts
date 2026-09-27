@@ -99,7 +99,8 @@ describe("sprites", () => {
   it("draw the sort order button as measured", () => {
     expect(CONTROL_SPRITES["sortdir"]).toEqual(SORTDIR);
     // The reversed state (not captured) keeps the frame and stacks the
-    // same dark steps widest first, each over a shade line as wide.
+    // same dark steps widest first, each but the last over a shade
+    // line as wide.
     const rev = CONTROL_SPRITES["sortdir-reversed"]!;
     expect(rev.slice(0, 6)).toEqual(SORTDIR.slice(0, 6));
     expect(rev.slice(13)).toEqual(SORTDIR.slice(13));
