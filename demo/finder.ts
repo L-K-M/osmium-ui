@@ -4,7 +4,7 @@
 // and keyboard navigation. The columns keep their widths, so a narrow
 // window scrolls sideways, headers and all. Double-clicking one of the
 // demo's own items opens its window.
-import { centerText, mountList } from "../src/index.js";
+import { attachBalloon, centerText, mountList } from "../src/index.js";
 import type { Size } from "../src/index.js";
 import { el } from "./dom.js";
 import { sprite } from "./icons.js";
@@ -113,6 +113,9 @@ export function buildFinder(content: HTMLElement,
   root.append(placard, heads, listEl);
   content.append(root);
   centerText(placard);
+  attachBalloon(placard, { trigger: env.balloons, content: "Information " +
+    "placard\n\nHow many items this window holds, and how much room is " +
+    "left on the disk." });
 
   let items: Item[] = [];
   const list = mountList(listEl, {
@@ -137,6 +140,12 @@ export function buildFinder(content: HTMLElement,
       if (e.detail > 0) listEl.focus({ preventScroll: true });
     });
     heads.append(h);
+    attachBalloon(h, { trigger: env.balloons, content: () =>
+      h.classList.contains("osm-sorted")
+        ? `${c.title} column\n\nThe items are sorted by ${
+          c.title.toLowerCase()}.`
+        : `${c.title} column\n\nTo sort the items by ${
+          c.title.toLowerCase()}, click here.` });
     return h;
   });
 

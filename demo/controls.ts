@@ -3,9 +3,11 @@
 // checkboxes, Keyboard-style sliders (Level drives the progress bar),
 // a titled pop-up choosing the sample text shown in the three bitmap
 // fonts, a separator, and Cancel / OK with the Return and Escape keys.
+// Every control has a help balloon; Beep's opens on hover even while
+// Balloon Help is off, the way an app without a Help menu would use it.
 import {
-  bindDialogKeys, centerText, mountPopup, pushButton, setEnabled,
-  trackHighlight,
+  attachBalloon, bindDialogKeys, centerText, mountPopup, pushButton,
+  setEnabled, trackHighlight,
 } from "../src/index.js";
 import { button, checkbox, el, group, progress, slider } from "./dom.js";
 import type { WindowContent, WindowEnv } from "./windows.js";
@@ -101,6 +103,44 @@ export function buildControls(content: HTMLElement,
   root.append(buttons, boxes, sliders, sampleRow, well,
               el("div", "osm-separator ctl-rule"), cancel, ok);
   content.append(root);
+
+  const trigger = env.balloons;
+  attachBalloon(beepBtn, {
+    trigger: "hover",
+    content: "Beep button\n\nClick to hear a beep at the Volume " +
+      "setting.\n\nThis balloon opens whenever the pointer rests here, " +
+      "even with Balloon Help off.",
+  });
+  attachBalloon(dimBtn, {
+    trigger,
+    content: "Disabled button\n\nThis button is dimmed because it " +
+      "never has anything to do.",
+  });
+  // A checkbox's balloon follows its state, as Apple's did.
+  for (const [box, what] of [[sound, "sound"], [music, "music"]] as const) {
+    const input = box.querySelector("input")!;
+    attachBalloon(box, { trigger, content: () => input.checked
+      ? `${box.textContent} checkbox\n\nChecked. To turn ${what} off, ` +
+        "click here."
+      : `${box.textContent} checkbox\n\nUnchecked. To turn ${what} on, ` +
+        "click here." });
+  }
+  attachBalloon(dim, { trigger, content: "Disabled checkbox\n\nThis " +
+    "checkbox is dimmed, so it can't be changed." });
+  attachBalloon(volume.unit, { trigger, content: "Volume slider\n\nDrag " +
+    "the slider to set how loud the Beep button is." });
+  attachBalloon(level.unit, { trigger, content: "Level slider\n\nDrag " +
+    "the slider to fill the progress bar." });
+  attachBalloon(meter, { trigger, content: () => "Progress bar\n\n" +
+    `Shows the Level slider's setting, now ${level.input.value}%.` });
+  attachBalloon(sampleRow, { trigger, content: "Sample pop-up menu\n\n" +
+    "Choose the text shown below in each of the kit's three fonts." });
+  attachBalloon(cancel, { trigger, variant: "bottom-left",
+    content: "Cancel button\n\nTo close this dialog box, click here or " +
+      "press Esc." });
+  attachBalloon(ok, { trigger, variant: "bottom-left",
+    content: "OK button\n\nTo close this dialog box, click here or " +
+      "press Return." });
   return {};
 }
 

@@ -3,9 +3,11 @@
 // control fills the window; each pane holds a few settings, a titled
 // pop-up or a checkbox with a Geneva 9 caption under it. The settings
 // are for show: choosing one changes nothing else.
-import { mountPopup, mountTabs, trackHighlight } from "../src/index.js";
+import {
+  attachBalloon, mountPopup, mountTabs, trackHighlight,
+} from "../src/index.js";
 import { checkbox, el } from "./dom.js";
-import type { WindowContent } from "./windows.js";
+import type { WindowContent, WindowEnv } from "./windows.js";
 
 type Setting =
   | { kind: "popup"; title: string; items: readonly string[];
@@ -71,12 +73,18 @@ function settingRow(s: Setting, i: number): HTMLElement {
   return row;
 }
 
-export function buildAppearance(content: HTMLElement): WindowContent {
+export function buildAppearance(content: HTMLElement,
+                                env: WindowEnv): WindowContent {
   const root = el("div", "apr");
   const list = el("div", "osm-tablist");
   const pane = el("div", "osm-tab-pane");
   for (const tab of TABS) {
-    list.append(el("button", "osm-tab", tab.title));
+    const t = el("button", "osm-tab", tab.title);
+    list.append(t);
+    attachBalloon(t, { trigger: env.balloons, content: () =>
+      t.getAttribute("aria-selected") === "true"
+        ? `${tab.title} tab\n\nIts settings are the ones showing.`
+        : `${tab.title} tab\n\nTo see its settings, click here.` });
     const panel = el("div", "apr-panel");
     tab.settings.forEach((s, i) => panel.append(settingRow(s, i)));
     pane.append(panel);

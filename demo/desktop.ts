@@ -5,9 +5,12 @@
 // forward (a press in its content only activates it, as in Mac OS 8,
 // while a titlebar press activates and drags in one gesture); close
 // boxes hide windows, which the menu bar and the desktop icons reopen;
-// collapse boxes windowshade; the Finder window zooms and grows.
+// collapse boxes windowshade; the Finder window zooms and grows. The
+// Help menu turns Balloon Help on and off for every window, the window
+// frames and the desktop icons included.
 import {
-  MENU_SEPARATOR, installOsmium, mountMenuBar, mountWindow,
+  MENU_SEPARATOR, attachBalloon, balloonMenuItem, installOsmium,
+  mountMenuBar, mountWindow,
 } from "../src/index.js";
 import type { OsmiumWindow, Size } from "../src/index.js";
 import { el, swallowClick } from "./dom.js";
@@ -26,6 +29,8 @@ const MARGIN = 8;
 const KEEP_VISIBLE = 40;
 /** Desktop icon cell width (the label may overhang it). */
 const ICON_CELL_W = 76;
+/** Where the Help menu's last item leads. */
+const README_URL = "https://github.com/L-K-M/osmium-ui#readme";
 
 interface Frame { x: number; y: number; w: number; h: number }
 
@@ -229,7 +234,9 @@ for (const spec of WINDOWS) {
     isActive: () => front() === w,
     open,
     setDesktop,
+    balloons: "balloon-help",
   });
+  frameBalloons(w);
 
   // A press in a window behind brings it forward. In its content the
   // press does nothing else (Mac OS 8 spends that click on activation);
@@ -246,6 +253,28 @@ for (const spec of WINDOWS) {
   node.addEventListener("focusin", () => {
     if (front() !== w) activate(w);
   });
+}
+
+/** Help balloons for a window's frame, their tips where the pointer
+ * rests, as the Finder points at title bars. */
+function frameBalloons(w: DeskWindow): void {
+  const inactive = () => w.el.classList.contains("osm-inactive");
+  const part = (sel: string, text: string) => {
+    const e = w.el.querySelector<HTMLElement>(sel);
+    if (!e) return;
+    attachBalloon(e, { tip: "pointer", content: () => inactive()
+      ? "This window is behind another one. To bring it to the front, " +
+        "click anywhere in it."
+      : text });
+  };
+  part(".osm-titlebar", "Title bar\n\nShows the window's name. To " +
+    "move the window, drag it by its title bar.");
+  part(".osm-close", "Close box\n\nClick here to put this window away. " +
+    "Its desktop icon opens it again.");
+  part(".osm-zoom", "Zoom box\n\nClick here to switch between the size " +
+    "you gave the window and the size that shows all of it.");
+  part(".osm-collapse", "Collapse box\n\nClick here to fold the window " +
+    "up to its title bar, and again to unfold it.");
 }
 
 /** Put every window back where it started (Special > Clean Up),
@@ -292,6 +321,10 @@ for (const d of ICONS) {
     if (e.button === 0) selectIcon({ el: icon, id: d.id });
   });
   icon.addEventListener("dblclick", () => open(d.id));
+  // Code 6, the variant the Finder uses for most of its balloons.
+  attachBalloon(icon, { variant: "bottom-left", content:
+    `${d.label} icon\n\nDouble-click to open the ${
+      windows.get(d.id)!.spec.title} window.` });
   icon.addEventListener("keydown", (e) => {
     if (e.key !== "Enter" || e.repeat) return;
     e.preventDefault();
@@ -346,6 +379,16 @@ mountMenuBar(menubar, [
     { title: "Empty Trash…" },
     MENU_SEPARATOR,
     { title: "Restart", action: () => location.reload() },
+  ] },
+  // Laid out like Mac OS 8.0's Finder Help menu.
+  { title: "Help", items: () => [
+    { title: "About Osmium UI…", action: () => open("about") },
+    MENU_SEPARATOR,
+    balloonMenuItem(),
+    MENU_SEPARATOR,
+    { title: "Osmium UI Help", action: () => {
+      window.open(README_URL, "_blank", "noopener");
+    } },
   ] },
 ]);
 

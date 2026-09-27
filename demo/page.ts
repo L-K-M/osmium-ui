@@ -31,6 +31,7 @@ const built = spec.build(content, {
   close: () => hosted?.close(),
   // The page is the window, so keys only arrive while it is active.
   isActive: () => true,
+  balloons: "hover",
   ...(demoApp ? { open: (id: string) => demoApp.postMessage({ op: "open", id }) }
               : {}),
 });

@@ -2,7 +2,7 @@
 // from a WindowSpec, so the same code fills a window on the desktop
 // page (index.html, desktop.ts) and its one-window page for the native
 // demo app (controls.html and friends, page.ts).
-import type { Size } from "../src/index.js";
+import type { BalloonTrigger, Size } from "../src/index.js";
 import { buildAbout } from "./about.js";
 import { buildAppearance } from "./appearance.js";
 import { buildControls } from "./controls.js";
@@ -26,6 +26,10 @@ export interface WindowEnv {
   open?(id: WindowId): void;
   /** Paint the desktop; absent where there is no desktop. */
   setDesktop?(pattern: Pattern): void;
+  /** When the window's help balloons open: with Balloon Help, on the
+   * desktop, whose Help menu turns it on; on hover in a one-window page,
+   * which has no Help menu. */
+  readonly balloons: BalloonTrigger;
 }
 
 export interface WindowContent {
