@@ -84,7 +84,10 @@ describe("mountTextView", () => {
     document.body.textContent = "";
     Element.prototype.setPointerCapture ??= () => {};
   });
-  afterEach(() => vi.unstubAllGlobals());
+  afterEach(() => {
+    vi.unstubAllGlobals();
+    vi.restoreAllMocks();
+  });
 
   it("builds the view: text area, strip and a hidden scroll bar", () => {
     const { host, ta, view } = mount({ text: "Hello" });
@@ -157,6 +160,30 @@ describe("mountTextView", () => {
       inputType: "historyRedo", cancelable: true,
     }));
     expect(ta.value).toBe("abc");
+  });
+
+  it("takes Control-Y as redo only where Control is the command key", () => {
+    const platform = vi.spyOn(navigator, "platform", "get");
+    platform.mockReturnValue("Win32");
+    const { ta, view } = mount({ text: "" });
+    type(ta, "abc");
+    // Nothing to redo: the browser keeps the key.
+    expect(keydown(ta, "y", { ctrlKey: true }).defaultPrevented).toBe(false);
+    view.undo();
+    expect(keydown(ta, "y", { ctrlKey: true }).defaultPrevented).toBe(true);
+    expect(ta.value).toBe("abc");
+    view.undo();
+    expect(keydown(ta, "y", { metaKey: true }).defaultPrevented).toBe(false);
+    // On a Mac, Command-Y (Safari's History) and Control-Y are the
+    // browser's.
+    platform.mockReturnValue("MacIntel");
+    expect(keydown(ta, "y", { metaKey: true }).defaultPrevented).toBe(false);
+    expect(keydown(ta, "y", { ctrlKey: true }).defaultPrevented).toBe(false);
+    expect(ta.value).toBe("");
+    // So is it in a read-only view.
+    platform.mockReturnValue("Win32");
+    view.setMode("read-only");
+    expect(keydown(ta, "y", { ctrlKey: true }).defaultPrevented).toBe(false);
   });
 
   it("forgets undo on setText and reports edits to onChange", () => {

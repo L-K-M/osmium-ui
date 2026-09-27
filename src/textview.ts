@@ -33,6 +33,7 @@
 // README for what differs from TextEdit.
 import { attachScrollbar, part } from "./controls.js";
 import { installOsmium } from "./install.js";
+import { commandModifier } from "./menubar.js";
 
 /** Whether the reader may change the text. */
 export type TextViewMode =
@@ -99,7 +100,8 @@ export interface OsmiumTextView {
   /** TextEdit's single-level undo, as a Mac OS 8 application's Undo
    * command offers it: undo the last edit (a run of typing, a cut, a
    * paste, a clear, a drop), and undo again to redo it. Command-Z (or
-   * Control-Z) and the browser's own Undo come here too. */
+   * Control-Z) and the browser's own Undo come here too, and Control-Y
+   * redoes where Control is the command key. */
   undo(): void;
   /** Copy the selection to the clipboard and delete it. Rejects, leaving
    * the text as it was, when the browser refuses the clipboard (a
@@ -424,9 +426,14 @@ export function mountTextView(host: HTMLElement,
       if (mode === "editable" && (!e.shiftKey || undone)) undo();
       return;
     }
-    if (command && k === "y" && !e.shiftKey) {
+    // Control-Y redoes where Control is the command key (Windows and
+    // Linux) and there is something to redo. Command-Y is Safari's
+    // History, and Control-Y a Mac text field's yank: the browser's.
+    if (k === "y" && e.ctrlKey && !e.metaKey && !e.altKey && !e.shiftKey) {
+      if (commandModifier(navigator.platform) !== "control") return;
+      if (mode !== "editable" || !undone) return;
       e.preventDefault();
-      if (mode === "editable" && undone) undo();
+      undo();
       return;
     }
     if (mode !== "read-only" || e.repeat || command) return;
