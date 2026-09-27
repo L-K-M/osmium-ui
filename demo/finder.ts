@@ -5,9 +5,10 @@
 // 8.5), rows with small icons, both scroll bars and keyboard
 // navigation. The columns keep their widths, so a narrow window scrolls
 // sideways, headers and all. Double-clicking one of the demo's own
-// items opens its window.
+// items opens its window (the Read Me opens in Foolscap).
 import { attachBalloon, centerText, mountListView } from "../src/index.js";
 import type { ListViewColumn, ListViewSort, Size } from "../src/index.js";
+import type { DocumentId } from "./documents.js";
 import { el } from "./dom.js";
 import { sprite } from "./icons.js";
 import type { SpriteName } from "./icons.js";
@@ -21,6 +22,8 @@ interface Item {
   readonly icon: SpriteName;
   /** The demo window a double-click opens. */
   readonly opens?: WindowId;
+  /** The document it opens in that window's application. */
+  readonly doc?: DocumentId;
 }
 
 const ITEMS: readonly Item[] = [
@@ -30,6 +33,10 @@ const ITEMS: readonly Item[] = [
     icon: "small-app", opens: "controls" },
   { name: "Control Panel", size: 96, kind: "control panel",
     icon: "small-panel", opens: "panel" },
+  { name: "Foolscap", size: 64, kind: "application program",
+    icon: "small-foolscap", opens: "editor" },
+  { name: "Read Me", size: 8, kind: "Foolscap document", icon: "small-text",
+    opens: "editor", doc: "readme" },
   { name: "Window Host", size: 48, kind: "system extension",
     icon: "small-extension" },
   { name: "Charcoal 12", size: 36, kind: "font", icon: "small-font" },
@@ -118,8 +125,8 @@ export function buildFinder(content: HTMLElement,
     // A new order keeps the selected item selected and in view.
     onSort: (s) => list.setRows(sortItems(ITEMS, s), { scroll: "top" }),
     onOpen(name) {
-      const target = ITEMS.find((it) => it.name === name)?.opens;
-      if (target) env.open?.(target);
+      const item = ITEMS.find((it) => it.name === name);
+      if (item?.opens) env.open?.(item.opens, item.doc);
     },
   });
   list.setRows(sortItems(ITEMS, { column: "name", order: "normal" }));

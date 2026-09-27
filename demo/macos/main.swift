@@ -12,7 +12,8 @@ import WebKit
 
 /// One of the demo's windows.
 enum DemoPage: Int, CaseIterable {
-    case controls, finder, controlPanel, appearance, about, sharing, alerts
+    case controls, finder, controlPanel, appearance, about, sharing, alerts,
+         editor
 
     /// The page's window id (demo/windows.ts), as the Finder page names
     /// the window it wants opened.
@@ -25,6 +26,7 @@ enum DemoPage: Int, CaseIterable {
         case .about: return "about"
         case .sharing: return "sharing"
         case .alerts: return "alerts"
+        case .editor: return "editor"
         }
     }
 
@@ -38,11 +40,13 @@ enum DemoPage: Int, CaseIterable {
         case .about: return "about.html"
         case .sharing: return "sharing.html"
         case .alerts: return "alerts.html"
+        case .editor: return "editor.html"
         }
     }
 
     /// For the Demo and Window menus: the title the page draws
-    /// (demo/windows.ts).
+    /// (demo/windows.ts), or for Foolscap, whose window shows its
+    /// document's name, the application's.
     var title: String {
         switch self {
         case .controls: return "Controls"
@@ -52,6 +56,7 @@ enum DemoPage: Int, CaseIterable {
         case .about: return "About Osmium UI"
         case .sharing: return "File Sharing"
         case .alerts: return "Alerts"
+        case .editor: return "Foolscap"
         }
     }
 
@@ -65,22 +70,24 @@ enum DemoPage: Int, CaseIterable {
         case .about: return "About"
         case .sharing: return "Sharing"
         case .alerts: return "Alerts"
+        case .editor: return "Editor"
         }
     }
 
     /// The standard size (the zoom box's, and the first size of a
     /// window that isn't in the launch layout): the window plus the 1px
     /// drop shadow the page paints below and to the right of it. The
-    /// Finder's shows all 24 items.
+    /// Finder's shows all 26 items.
     var size: NSSize {
         switch self {
         case .controls: return NSSize(width: 461, height: 331)
-        case .finder: return NSSize(width: 501, height: 542)
+        case .finder: return NSSize(width: 501, height: 580)
         case .controlPanel: return NSSize(width: 521, height: 381)
         case .appearance: return NSSize(width: 461, height: 221)
         case .about: return NSSize(width: 341, height: 221)
         case .sharing: return NSSize(width: 381, height: 331)
         case .alerts: return NSSize(width: 441, height: 241)
+        case .editor: return NSSize(width: 481, height: 341)
         }
     }
 
@@ -93,7 +100,11 @@ enum DemoPage: Int, CaseIterable {
     /// The smallest size of a resizable window (zoom and grow boxes);
     /// nil for a fixed-size one.
     var minSize: NSSize? {
-        self == .finder ? NSSize(width: 301, height: 181) : nil
+        switch self {
+        case .finder: return NSSize(width: 301, height: 181)
+        case .editor: return NSSize(width: 201, height: 121)
+        default: return nil
+        }
     }
 }
 
@@ -254,7 +265,7 @@ final class AppDelegate: NSObject, NSApplicationDelegate,
                          action: #selector(NSText.selectAll(_:)),
                          keyEquivalent: "a")
 
-        // ⌘1 to ⌘7, in DemoPage order.
+        // ⌘1 to ⌘8, in DemoPage order.
         let demoMenu = submenu("Demo", in: bar)
         for (i, page) in DemoPage.allCases.enumerated() {
             demoMenu.addItem(pageItem(page, key: String(i + 1)))

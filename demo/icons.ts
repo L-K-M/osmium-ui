@@ -9,7 +9,7 @@ import { registerSprites } from "../src/index.js";
 
 const PALETTE = {
   y: "#ffcc00", o: "#ff9900", t: "#339999", u: "#66cccc",
-  g: "#33cc33", G: "#006600", s: "#99ccff",
+  g: "#33cc33", G: "#006600", s: "#99ccff", v: "#ffffcc", r: "#cc3333",
 } as const;
 
 // ---- menu bar -------------------------------------------------------
@@ -180,6 +180,78 @@ const README = [
   "................................",
 ];
 
+/** Foolscap, the demo's text editor: a legal pad and its pencil. */
+const FOOLSCAP = [
+  "................................",
+  "................................",
+  "....00000000000000000000..000...",
+  "....08888888888888888880.0rrr0..",
+  "....00000000000000000000.0rrr0..",
+  "....0vvrvvvvvvvvvvvvvvv0.00000..",
+  "....0vvrvvvvvvvvvvvvvvv0.08880..",
+  "....0ssrsssssssssssssss0.00000..",
+  "....0vvrvvvvvvvvvvvvvvv0.0yyo0..",
+  "....0vvrvvvvvvvvvvvvvvv0.0yyo0..",
+  "....0ssrsssssssssssssss0.0yyo0..",
+  "....0vvrvvvvvvvvvvvvvvv0.0yyo0..",
+  "....0vvrvvvvvvvvvvvvvvv0.0yyo0..",
+  "....0ssrsssssssssssssss0.0yyo0..",
+  "....0vvrvvvvvvvvvvvvvvv0.0yyo0..",
+  "....0vvrvvvvvvvvvvvvvvv0.0yyo0..",
+  "....0ssrsssssssssssssss0.0yyo0..",
+  "....0vvrvvvvvvvvvvvvvvv0.0yyo0..",
+  "....0vvrvvvvvvvvvvvvvvv0.0yyo0..",
+  "....0ssrsssssssssssssss0.0yyo0..",
+  "....0vvrvvvvvvvvvvvvvvv0.0yyo0..",
+  "....0vvrvvvvvvvvvvvvvvv0.0yyo0..",
+  "....0ssrsssssssssssssss0.0yyo0..",
+  "....0vvrvvvvvvvvvvvvvvv0.0yyo0..",
+  "....0vvrvvvvvvvvvvvvvvv0.00000..",
+  "....0ssrsssssssssssssss0.0ddd0..",
+  "....0vvrvvvvvvvvvvvvvvv0..0d0...",
+  "....0vvrvvvvvvvvvvvvvvv0..000...",
+  "....0ssrsssssssssssssss0...0....",
+  "....00000000000000000000........",
+  "................................",
+  "................................",
+];
+
+/** A Foolscap document: a page of ruled yellow paper. */
+const FOOLSCAP_DOC = [
+  "................................",
+  ".....000000000000000............",
+  ".....0vvvvvvvvvvvvv00...........",
+  ".....0vvvvvvvvvvvvv0d0..........",
+  ".....0vvvvvvvvvvvvv0dd0.........",
+  ".....0vvvvvvvvvvvvv0ddd0........",
+  ".....0vvvvvvvvvvvvv0dddd0.......",
+  ".....0vvvvvvvvvvvvv0ddddd0......",
+  ".....0vvvvvvvvvvvvv00000000.....",
+  ".....0vvssssssssssvvvvvvvd0.....",
+  ".....0vvvvvvvvvvvvvvvvvvvd0.....",
+  ".....0vvssssssssssvvvvvvvd0.....",
+  ".....0vvvvvvvvvvvvvvvvvvvd0.....",
+  ".....0vvssssssssssssssssvd0.....",
+  ".....0vvvvvvvvvvvvvvvvvvvd0.....",
+  ".....0vvssssssssssssssvvvd0.....",
+  ".....0vvvvvvvvvvvvvvvvvvvd0.....",
+  ".....0vvssssssssssssssssvd0.....",
+  ".....0vvvvvvvvvvvvvvvvvvvd0.....",
+  ".....0vvsssssssvvvvvvvvvvd0.....",
+  ".....0vvvvvvvvvvvvvvvvvvvd0.....",
+  ".....0vvsssssssssssssssvvd0.....",
+  ".....0vvvvvvvvvvvvvvvvvvvd0.....",
+  ".....0vvssssssssssssvvvvvd0.....",
+  ".....0vvvvvvvvvvvvvvvvvvvd0.....",
+  ".....0vvssssssssssssssssvd0.....",
+  ".....0vvvvvvvvvvvvvvvvvvvd0.....",
+  ".....0vvsssssssssvvvvvvvvd0.....",
+  ".....0vvvvvvvvvvvvvvvvvvvd0.....",
+  ".....0dddddddddddddddddddd0.....",
+  ".....0000000000000000000000.....",
+  "................................",
+];
+
 /** Osmium UI itself (About Osmium UI): the menu bar's crystal, larger. */
 const CRYSTAL = [
   "................................",
@@ -235,6 +307,26 @@ const SMALL_TEXT = [
   "..0fffffffffd0..",
   "..0dddddddddd0..",
   "..000000000000..",
+];
+
+/** Foolscap in a list: the pad and pencil, small. */
+const SMALL_FOOLSCAP = [
+  "................",
+  ".00000000000....",
+  ".08888888880..0.",
+  ".00000000000.0y0",
+  ".0vrvvvvvvv0.0y0",
+  ".0srsssssss0.0y0",
+  ".0vrvvvvvvv0.0y0",
+  ".0vrvvvvvvv0.0y0",
+  ".0srsssssss0.0y0",
+  ".0vrvvvvvvv0.0y0",
+  ".0vrvvvvvvv0.0d0",
+  ".0srsssssss0..0.",
+  ".0vrvvvvvvv0....",
+  ".0vrvvvvvvv0....",
+  ".00000000000....",
+  "................",
 ];
 
 const SMALL_APP = [
@@ -467,6 +559,9 @@ const SPRITES = {
   "icon-panel": PANEL,
   "icon-readme": README,
   "icon-osmium": CRYSTAL,
+  "icon-foolscap": FOOLSCAP,
+  "icon-foolscap-doc": FOOLSCAP_DOC,
+  "small-foolscap": SMALL_FOOLSCAP,
   "small-text": SMALL_TEXT,
   "small-app": SMALL_APP,
   "small-panel": SMALL_PANEL,

@@ -237,3 +237,40 @@ html.desk { height: 100%; background: #9999cc; }
   left: 121px; top: 0; width: 1px; height: 1px;
   padding: 0; border: 0; opacity: 0; pointer-events: none;
 }
+
+/* ---- Foolscap (editor.ts) ------------------------------------------------ */
+/* The text view fills the document window's content area, its scroll
+   bar and bottom strip on the content's edges. */
+.edt { position: absolute; inset: 0; }
+
+/* ---- demo dialogs (dialog.ts) --------------------------------------------- */
+/* A movable modal dialog over the desktop, and the layer under it that
+   takes presses outside. */
+.dlg-layer { position: fixed; inset: 0; touch-action: none; }
+.dlg.osm-window { position: fixed; }
+.dlg .osm-content { background: var(--osm-dialog); }
+
+/* Open: a 328 x 172 content area, the document list on the left and the
+   buttons in a column on the right, as in Standard File. */
+.dlg-open { position: absolute; inset: 0; }
+.dlg-open > * { position: absolute; }
+.dlg-open-list { left: 12px; top: 12px; width: 200px; height: 146px; }
+.dlg-open-row {
+  padding-left: 24px; font: var(--osm-font-system); line-height: 16px;
+  background: var(--dlg-icon) 4px 0 / 16px 16px no-repeat;
+}
+.dlg-open-ok { right: 12px; top: 132px; }
+.dlg-open-cancel { right: 15px; top: 102px; }
+.dlg-open-rule { left: 224px; right: 12px; top: 90px; }
+.dlg-open-disk { right: 15px; top: 12px; }
+.dlg-open-file { display: none; }
+
+/* Save As: a 308 x 132 content area, the name field under its label and
+   a note, the buttons along the bottom as in Controls. */
+.dlg-save { position: absolute; inset: 0; }
+.dlg-save > * { position: absolute; margin: 0; }
+.dlg-save-label { left: 12px; top: 12px; }
+.dlg-save-name { left: 14px; top: 33px; width: 280px; }
+.dlg-save-note { left: 12px; right: 12px; top: 63px; }
+.dlg-save-ok { right: 12px; top: 96px; }
+.dlg-save-cancel { right: 89px; top: 99px; }
