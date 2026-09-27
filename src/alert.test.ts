@@ -618,6 +618,9 @@ describe("onModalChange", () => {
     await a.result;
     expect(drawn).toEqual([true, false]);
     unsubscribe();
+    win.destroy();
+    el.remove();
+    vi.mocked(console.error).mockRestore();
   });
 });
 

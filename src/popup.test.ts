@@ -178,6 +178,7 @@ describe("dimmed items", () => {
     key(menu(), "ArrowDown");
     key(menu(), "Enter");
     await blink();
+    expect(document.querySelector(".osm-menu")).not.toBeNull();
     expect(lit()).toBeUndefined();
     expect(chosen).toEqual([]);
     key(menu(), "Escape");
@@ -226,7 +227,10 @@ describe("destroy", () => {
       onChange: () => {},
     });
   });
-  afterEach(() => vi.restoreAllMocks());
+  afterEach(() => {
+    popup.destroy(); // a second destroy() does nothing
+    vi.restoreAllMocks();
+  });
 
   it("closes an open menu and stops opening it", () => {
     key(btn, "ArrowDown");

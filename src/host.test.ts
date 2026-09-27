@@ -210,10 +210,12 @@ describe("destroy", () => {
   });
 
   it("no longer closes on Escape, even one pressed just before", async () => {
+    const listeners = watchListeners();
     const { ops, hosted: h } = host();
     document.body.dispatchEvent(new KeyboardEvent(
       "keydown", { key: "Escape", bubbles: true }));
     h.destroy();
+    expect(listeners.left()).toEqual([]);
     document.body.dispatchEvent(new KeyboardEvent(
       "keydown", { key: "Escape", bubbles: true }));
     await wait();
@@ -234,6 +236,16 @@ describe("destroy", () => {
       el.querySelector(part)!.dispatchEvent(new PointerEvent(
         "pointerdown", { bubbles: true, button: 0, pointerId: 1 }));
     }
+    expect(ops).toEqual([]);
+    expect(h.shaded).toBe(false);
+  });
+
+  it("makes close() and setShaded() do nothing", () => {
+    const { ops, hosted: h } = host();
+    h.destroy();
+    ops.length = 0;
+    h.setShaded(true);
+    h.close();
     expect(ops).toEqual([]);
     expect(h.shaded).toBe(false);
   });

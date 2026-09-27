@@ -72,8 +72,9 @@ export interface HostedWindow {
    * to the page (Escape, resize, a grow in progress, and the window's
    * own, see OsmiumWindow.destroy), so windows can be hosted and
    * destroyed again and again without leaks. The chrome stays but its
-   * boxes no longer act; take the element out yourself, and host the
-   * next window on a fresh element. */
+   * boxes no longer act, and close() and setShaded() do nothing; take
+   * the element out yourself, and host the next window on a fresh
+   * element. */
   destroy(): void;
 }
 
@@ -202,8 +203,8 @@ export function hostWindow(el: HTMLElement,
   return {
     window: win,
     get shaded() { return shaded; },
-    setShaded: (on) => { if (on !== shaded) setShade(on); },
-    close,
+    setShaded: (on) => { if (!destroyed && on !== shaded) setShade(on); },
+    close: () => { if (!destroyed) close(); },
     destroy() {
       if (destroyed) return;
       destroyed = true;

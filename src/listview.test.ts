@@ -365,7 +365,10 @@ describe("empty and loading", () => {
 });
 
 describe("destroy", () => {
-  afterEach(() => vi.unstubAllGlobals());
+  afterEach(() => {
+    vi.restoreAllMocks();
+    vi.unstubAllGlobals();
+  });
 
   it("destroys the scroll bars, leaving nothing observing or listening", () => {
     // Every ResizeObserver the list makes, and whether it was let go.
