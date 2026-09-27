@@ -255,6 +255,47 @@
   box-shadow: 1px 0 0 #000, 2px 0 0 #555, 3px 0 0 #888;
 }
 
+/* Indeterminate progress bar, the Appearance Manager's barber pole:
+   add osm-indeterminate to .osm-progress (any fill inside is hidden),
+   give it role="progressbar" and no aria-valuenow. Inside the same rim
+   and black edge, the track fills with the stripe tile (sprites.ts),
+   which moves 4px right per step as Mac OS 8.0's CDEF moves it. The
+   steps come alternately 6 and 19 ticks apart (a 50-tick cycle), the
+   pace of the Finder's "Preparing to copy…" bar in an emulator; the
+   CDEF itself steps whenever its application idles it, at most every
+   2 ticks. QuickDraw never started a stripe in the track's last
+   column, which repeats the one before it: a second layer 1px further
+   right shows through the 1px of padding there. With
+   prefers-reduced-motion the stripes hold still, at the CDEF's first
+   frame. */
+.osm-progress.osm-indeterminate > .osm-progress-track {
+  padding-right: 1px;
+  background:
+    var(--osm-sprite-barber) 8px 0 / 16px 10px repeat-x padding-box
+      content-box,
+    var(--osm-sprite-barber) 9px 0 / 16px 10px repeat-x padding-box;
+  animation: osm-barber 831ms step-end infinite;
+}
+.osm-indeterminate > .osm-progress-track > .osm-progress-fill {
+  display: none;
+}
+/* Inactive window: A2 and dd stripes that keep moving, in the 55 edge
+   without a rim (see .osm-inactive above). */
+.osm-inactive .osm-progress.osm-indeterminate > .osm-progress-track {
+  background-image: var(--osm-sprite-barber-inactive),
+    var(--osm-sprite-barber-inactive);
+}
+@keyframes osm-barber {
+  0% { background-position: 8px 0, 9px 0; }
+  12% { background-position: 12px 0, 13px 0; }
+  50% { background-position: 16px 0, 17px 0; }
+  62% { background-position: 20px 0, 21px 0; }
+  100% { background-position: 24px 0, 25px 0; }
+}
+@media (prefers-reduced-motion: reduce) {
+  .osm-progress.osm-indeterminate > .osm-progress-track { animation: none; }
+}
+
 /* ---- push buttons ---------------------------------------------------- */
 /* 20px tall, drawn from a 9-slice (4px ends, stretched middle). The
    title is Charcoal 12 with its baseline on row 13; controls.ts
@@ -587,6 +628,44 @@
     var(--osm-accent-4);
   color: #fff;
 }
+/* A contextual menu's (contextmenu.ts) first and last items take over
+   the bevel rows they sit on: highlighted, the top row turns A3 and the
+   bottom row A5, the corners the A4 fill, as the bevel leaves them dd
+   (Finder 8.0's Help and Make Alias, Mac OS 8.0; a lone item gets both,
+   which wasn't seen). Menu bar menus draw their first item the same way
+   (Finder 8.0's File menu), which .osm-pulldown doesn't do yet. */
+.osm-contextmenu > .osm-menu-item.osm-highlight:first-child {
+  background:
+    linear-gradient(var(--osm-accent-3), var(--osm-accent-3))
+      0 0 / calc(100% - 1px) 1px no-repeat,
+    linear-gradient(var(--osm-accent-3), var(--osm-accent-3))
+      0 0 / 1px 100% no-repeat,
+    linear-gradient(var(--osm-accent-5), var(--osm-accent-5))
+      right 0 top 1px / 1px calc(100% - 1px) no-repeat,
+    var(--osm-accent-4);
+}
+.osm-contextmenu > .osm-menu-item.osm-highlight:last-child {
+  background:
+    linear-gradient(var(--osm-accent-3), var(--osm-accent-3))
+      0 0 / 1px calc(100% - 1px) no-repeat,
+    linear-gradient(var(--osm-accent-5), var(--osm-accent-5))
+      left 1px bottom 0 / calc(100% - 1px) 1px no-repeat,
+    linear-gradient(var(--osm-accent-5), var(--osm-accent-5))
+      right 0 top 0 / 1px 100% no-repeat,
+    var(--osm-accent-4);
+}
+.osm-contextmenu > .osm-menu-item.osm-highlight:only-child {
+  background:
+    linear-gradient(var(--osm-accent-3), var(--osm-accent-3))
+      0 0 / calc(100% - 1px) 1px no-repeat,
+    linear-gradient(var(--osm-accent-3), var(--osm-accent-3))
+      0 0 / 1px calc(100% - 1px) no-repeat,
+    linear-gradient(var(--osm-accent-5), var(--osm-accent-5))
+      left 1px bottom 0 / calc(100% - 1px) 1px no-repeat,
+    linear-gradient(var(--osm-accent-5), var(--osm-accent-5))
+      right 0 top 1px / 1px calc(100% - 1px) no-repeat,
+    var(--osm-accent-4);
+}
 .osm-menu-item[aria-disabled="true"] { color: #888; }
 /* A separator (MENU_SEPARATOR): 6px, an engraved line on rows 2 and 3
    across the whole menu, bevel included (Mac OS 8.0's Apple menu). */
@@ -798,7 +877,32 @@
     #ddd;
   font: var(--osm-font-small); line-height: 13px;
   text-align: center; white-space: nowrap; overflow: hidden;
+  /* Holds chasing arrows at the Finder's spot, below. */
+  position: relative;
 }
+
+/* Chasing arrows (mountChasingArrows): one of eight 16x16 frames, the
+   set bits black, 88 in an inactive window, over whatever is behind;
+   blank while stopped (no data-frame). */
+.osm-arrows {
+  display: inline-block; width: 16px; height: 16px; vertical-align: top;
+}
+.osm-arrows[data-frame] {
+  background: var(--osm-sprite-arrows) no-repeat;
+}
+.osm-inactive .osm-arrows[data-frame] {
+  background-image: var(--osm-sprite-arrows-inactive);
+}
+.osm-arrows[data-frame="1"] { background-position: -16px 0; }
+.osm-arrows[data-frame="2"] { background-position: -32px 0; }
+.osm-arrows[data-frame="3"] { background-position: -48px 0; }
+.osm-arrows[data-frame="4"] { background-position: -64px 0; }
+.osm-arrows[data-frame="5"] { background-position: -80px 0; }
+.osm-arrows[data-frame="6"] { background-position: -96px 0; }
+.osm-arrows[data-frame="7"] { background-position: -112px 0; }
+/* In a Finder window header, Mac OS 8.0's Finder puts them 4px in from
+   the header's left pixel and 2px down from its top one. */
+.osm-placard > .osm-arrows { position: absolute; left: 4px; top: 2px; }
 
 /* Finder list-view column headers, 21px: raised cc cells; the sorted
    column's cell is sunk (88 face), and its cells shade dd while the

@@ -28,6 +28,10 @@ export interface OsmiumTextArea {
    * scroll bar current by themselves; call this after setting
    * `textarea.value` from script. */
   update(): void;
+  /** Take the scroll bar out and stop following the text (its resize
+   * observer and listeners go). The framed textarea stays, without a
+   * scroll bar; update() throws afterwards. */
+  destroy(): void;
 }
 
 /** Wire a multi-line edit text: `host` (it becomes .osm-edit-area)
@@ -44,10 +48,27 @@ export function mountTextArea(host: HTMLElement): OsmiumTextArea {
   host.classList.add("osm-edit-area");
   const line = parseFloat(getComputedStyle(textarea).lineHeight) || LINE_H;
   const sb = attachScrollbar(host, textarea, line);
+  let destroyed = false;
+  const update = () => {
+    if (destroyed) throw new Error("this text area was destroyed");
+    sb.update();
+  };
   // Text that starts to overflow doesn't always scroll (the caret may
   // still be in view), so no scroll event would re-read the extent.
-  textarea.addEventListener("input", () => sb.update());
+  textarea.addEventListener("input", update);
   // The fonts change the text's height once they are in.
-  void installOsmium().catch(() => {}).finally(() => sb.update());
-  return { element: host, textarea, update: () => sb.update() };
+  void installOsmium().catch(() => {}).finally(() => {
+    if (!destroyed) sb.update();
+  });
+  return {
+    element: host,
+    textarea,
+    update,
+    destroy() {
+      if (destroyed) return;
+      destroyed = true;
+      textarea.removeEventListener("input", update);
+      sb.destroy();
+    },
+  };
 }

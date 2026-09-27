@@ -72,6 +72,16 @@ export function progress(value: number): { bar: HTMLElement;
   return { bar, set };
 }
 
+/** An indeterminate progress bar, the barber pole. ARIA marks progress
+ * of unknown length as a progressbar without aria-valuenow. */
+export function indeterminate(label: string): HTMLElement {
+  const bar = el("div", "osm-progress osm-indeterminate");
+  bar.setAttribute("role", "progressbar");
+  bar.setAttribute("aria-label", label);
+  bar.append(el("div", "osm-progress-track"));
+  return bar;
+}
+
 /** Eat the click that follows a press, so a press that only closed a
  * menu or activated a window can't also press what was under it. */
 export function swallowClick(): void {

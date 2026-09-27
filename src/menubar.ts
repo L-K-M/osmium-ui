@@ -8,7 +8,9 @@
 // items and menus, Return chooses and Escape closes. A keyboard
 // equivalent (Command, or Control where there is no Command key, plus
 // the item's key) chooses its item without opening the menu, the menu's
-// title flashing as MenuKey's HiliteMenu makes it.
+// title flashing as MenuKey's HiliteMenu makes it. The open menu's
+// list (items, highlight, arrow-key stepping, the chosen item's blink)
+// is menu.ts's, shared with contextual menus (contextmenu.ts).
 //
 // Geometry, from Mac OS 8.0 screenshots: titles are spaced 13px apart
 // (pen to pen minus advance); a title's highlight runs 9px either side
@@ -20,10 +22,12 @@
 // an item with a key needs its text width plus 61px of menu (outline
 // included), 32px more than one without (text plus 29px).
 import {
-  MENU_SEPARATOR, inside, menuSeparator, part, swallowClick, textWidth,
+  MENU_SEPARATOR, inside, part, swallowClick, textWidth,
 } from "./controls.js";
 import type { MenuSeparator } from "./controls.js";
 import { installOsmium } from "./install.js";
+import { openMenuList } from "./menu.js";
+import type { MenuList } from "./menu.js";
 import { closeWhenModal, isMenuOpen, isModal } from "./modal.js";
 
 /** What a keyboard equivalent does to the browser's own handling of the
@@ -186,8 +190,7 @@ export function mountMenuBar(bar: HTMLElement, initial: readonly Menu[],
         if (open >= 0 || !["Enter", " ", "ArrowDown"].includes(e.key)) return;
         e.preventDefault();
         start(i);
-        const n = entries.length;
-        for (let k = 0; k < n; k++) if (enabled(k)) { highlight(k); break; }
+        menu?.step(1);
       });
       return t;
     });
@@ -210,9 +213,7 @@ export function mountMenuBar(bar: HTMLElement, initial: readonly Menu[],
 
   // ---- the open menu ----------------------------------------------------
   let open = -1;
-  let list: HTMLElement | null = null;
-  let entries: readonly MenuEntry[] = [];
-  let hi = -1;
+  let menu: MenuList | null = null;
   // Where the keyboard goes back to when the menu closes.
   let returnFocus: Element | null = null;
   // Unregisters close from the alerts' menu closing (modal.ts).
@@ -221,46 +222,6 @@ export function mountMenuBar(bar: HTMLElement, initial: readonly Menu[],
   build(initial);
   void installOsmium().catch(() => {}).finally(layout);
 
-  function itemEls(): HTMLElement[] {
-    return list ? Array.from(list.children) as HTMLElement[] : [];
-  }
-
-  function highlight(i: number): void {
-    hi = i;
-    itemEls().forEach((li, k) => li.classList.toggle("osm-highlight", k === i));
-  }
-
-  function enabled(i: number): boolean {
-    const e = entries[i];
-    return e !== undefined && e !== MENU_SEPARATOR && !!e.action;
-  }
-
-  /** "Meta+Z" or "Control+Z", for aria-keyshortcuts. */
-  function shortcut(key: string): string {
-    return `${modifier === "meta" ? "Meta" : "Control"}+${key.toUpperCase()}`;
-  }
-
-  function itemElement(e: MenuItem): HTMLElement {
-    const li = part("li", "osm-menu-item");
-    li.textContent = e.title;
-    li.setAttribute("role", e.checked === undefined ? "menuitem"
-                                                    : "menuitemcheckbox");
-    if (e.checked !== undefined)
-      li.setAttribute("aria-checked", String(e.checked));
-    if (!e.action) li.setAttribute("aria-disabled", "true");
-    if (e.key) {
-      // The symbol and letter are drawn; assistive tech reads the
-      // shortcut from aria-keyshortcuts instead.
-      li.classList.add("osm-has-key");
-      const key = part("span", "osm-menu-key");
-      key.textContent = `⌘${e.key.toUpperCase()}`;
-      key.setAttribute("aria-hidden", "true");
-      li.append(key);
-      li.setAttribute("aria-keyshortcuts", shortcut(e.key));
-    }
-    return li;
-  }
-
   function show(i: number): void {
     if (i === open) return;
     hide();
@@ -268,14 +229,9 @@ export function mountMenuBar(bar: HTMLElement, initial: readonly Menu[],
     const t = titles[i]!;
     t.classList.add("osm-open");
     t.setAttribute("aria-expanded", "true");
-    entries = menus[i]!.items();
-    list = part("ul", "osm-menu osm-pulldown");
-    list.setAttribute("role", "menu");
-    list.setAttribute("aria-label", menus[i]!.title);
-    list.tabIndex = -1;
-    for (const e of entries)
-      list.append(e === MENU_SEPARATOR ? menuSeparator() : itemElement(e));
-    document.body.append(list);
+    menu = openMenuList(menus[i]!.items(), menus[i]!.title, "osm-pulldown",
+                        modifier);
+    const list = menu.element;
     // Hung from the title's highlight, kept on screen with its shadow.
     const r = t.getBoundingClientRect();
     const left = Math.max(0, Math.min(Math.round(r.left),
@@ -283,21 +239,19 @@ export function mountMenuBar(bar: HTMLElement, initial: readonly Menu[],
     list.style.left = `${left}px`;
     list.style.top = `${Math.round(bar.getBoundingClientRect().top) + MENU_TOP}px`;
     list.focus({ preventScroll: true });
-    hi = -1;
   }
 
   function hide(): void {
     if (open < 0) return;
     titles[open]?.classList.remove("osm-open");
     titles[open]?.setAttribute("aria-expanded", "false");
-    list?.remove();
-    list = null;
+    menu?.remove();
+    menu = null;
     open = -1;
-    hi = -1;
   }
 
   function close(): void {
-    const hadFocus = list?.contains(document.activeElement) ?? false;
+    const hadFocus = menu?.element.contains(document.activeElement) ?? false;
     hide();
     document.removeEventListener("pointerdown", onOutside, true);
     window.removeEventListener("blur", close);
@@ -318,17 +272,10 @@ export function mountMenuBar(bar: HTMLElement, initial: readonly Menu[],
 
   /** Blink the chosen item once, close the menu, then act. */
   function choose(i: number): void {
-    const e = entries[i];
-    const m = list;
-    if (!enabled(i) || !m || e === undefined || e === MENU_SEPARATOR) return;
-    const action = e.action!;
-    highlight(-1);
-    setTimeout(() => { if (list === m) highlight(i); }, 50);
-    setTimeout(() => {
-      if (list !== m) return;
+    menu?.choose(i, (action) => {
       close();
       action();
-    }, 100);
+    });
   }
 
   function titleAt(x: number, y: number): number {
@@ -336,8 +283,11 @@ export function mountMenuBar(bar: HTMLElement, initial: readonly Menu[],
   }
 
   function itemAt(x: number, y: number): number {
-    if (!list || !inside(list, x, y)) return -1;
-    return itemEls().findIndex((li) => inside(li, x, y));
+    return menu?.itemAt(x, y) ?? -1;
+  }
+
+  function enabled(i: number): boolean {
+    return menu?.enabled(i) ?? false;
   }
 
   // Pointer tracking while a menu is open: over the bar, the title
@@ -345,8 +295,7 @@ export function mountMenuBar(bar: HTMLElement, initial: readonly Menu[],
   function track(x: number, y: number): void {
     const t = titleAt(x, y);
     if (t >= 0 && t !== open) show(t);
-    const i = itemAt(x, y);
-    highlight(enabled(i) ? i : -1);
+    menu?.highlight(itemAt(x, y));
   }
 
   bar.addEventListener("pointerdown", (e) => {
@@ -393,7 +342,7 @@ export function mountMenuBar(bar: HTMLElement, initial: readonly Menu[],
   // does nothing else; one inside the menu chooses on release.
   function onOutside(e: PointerEvent): void {
     if (titleAt(e.clientX, e.clientY) >= 0) return; // the bar's own
-    if (list?.contains(e.target as Node)) {
+    if (menu?.element.contains(e.target as Node)) {
       e.preventDefault();
       const up = (ev: PointerEvent) => {
         window.removeEventListener("pointerup", up, true);
@@ -412,22 +361,15 @@ export function mountMenuBar(bar: HTMLElement, initial: readonly Menu[],
   // Keyboard, while a menu is open: arrows move through items and
   // menus, Return chooses, Escape closes.
   document.addEventListener("keydown", (e) => {
-    if (detached() || open < 0) return;
-    const n = entries.length;
-    const step = (d: number) => {
-      for (let k = 1; k <= n; k++) {
-        const i = ((hi < 0 ? (d > 0 ? -1 : n) : hi) + d * k + n * 2) % n;
-        if (enabled(i)) { highlight(i); return; }
-      }
-    };
-    if (e.key === "ArrowDown") step(1);
-    else if (e.key === "ArrowUp") step(-1);
+    if (detached() || open < 0 || !menu) return;
+    if (e.key === "ArrowDown") menu.step(1);
+    else if (e.key === "ArrowUp") menu.step(-1);
     else if (e.key === "ArrowLeft" || e.key === "ArrowRight") {
       const d = e.key === "ArrowLeft" ? -1 : 1;
       show((open + d + menus.length) % menus.length);
-      step(1);
+      menu.step(1);
     } else if (e.key === "Enter" || e.key === " ") {
-      if (hi >= 0 && !e.repeat) choose(hi);
+      if (menu.highlighted >= 0 && !e.repeat) choose(menu.highlighted);
     } else if (e.key === "Escape" || e.key === "Tab") close();
     else return;
     e.preventDefault();

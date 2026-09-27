@@ -29,10 +29,13 @@ information window (class `osm-info`, whose text dims when inactive).
 **Controls.**
 - Push buttons, including the default button's ring, pressed and dimmed.
 - Checkboxes and sliders with tick marks.
-- Pop-up buttons with their menus, and separators in them.
+- Pop-up buttons with their menus, and separators and dimmed items in
+  them.
 - The menu bar, with pull-down menus, check marks and keyboard
   equivalents, and menus an application swaps in while its window is in
   front.
+- Contextual menus (Control-click or right-click), placed and tracked
+  as Finder 8.0's are.
 - Group boxes and bevel buttons.
 - Tab controls, measured from Mac OS 8.5's Appearance control panel.
 - Scroll bars, vertical and horizontal, and list boxes.
@@ -40,13 +43,16 @@ information window (class `osm-info`, whose text dims when inactive).
 - List views over any data: sortable columns, the Finder's sort order
   button, resizable columns, icons and controls in rows, and thousands
   of rows kept up to date by key.
-- Progress bars, separators, wells, and label/value rows.
+- Progress bars, including the indeterminate barber pole, separators,
+  wells, and label/value rows.
 - Edit text fields, one-line and multi-line.
 - Document text views: a document window's wrapped text with its scroll
   bar, as TeachText and SimpleText show it, with TextEdit's undo, its
   highlighting and read-only documents.
 - Balloon Help: help balloons measured from Mac OS 8.0, with the Help
   menu's Show Balloons / Hide Balloons command.
+- Chasing arrows: Mac OS 8.0's own eight frames, turning at the
+  Finder's pace, gray in an inactive window.
 - Alert boxes: stop, caution and note alerts, modal or movable. The
   modal frame, the stop and caution icons and the layout are measured
   from Mac OS 8.0's Finder; the movable title bar and the note icon
@@ -78,7 +84,7 @@ Native `<button>` and `<input>` elements stay underneath, so keyboard
 navigation and assistive technology keep working.
 
 <p align="center">
-  <img src="docs/controls.png" width="492" alt="A dialog with push buttons, checkboxes, sliders, a progress bar, a pop-up button and text in Charcoal 12, Geneva 10 and Geneva 9">
+  <img src="docs/controls.png" width="492" alt="A dialog with push buttons, checkboxes, sliders, a progress bar, a pop-up button, an indeterminate progress bar and text in Charcoal 12, Geneva 10 and Geneva 9">
   <img src="docs/finder.png" width="532" alt="A Finder list view with a placard, sortable column headers, icons, a selected row and scroll bars">
   <img src="docs/panel.png" width="552" alt="A control panel with bevel buttons, a list box, a preview well and a caption area">
   <img src="docs/appearance.png" width="492" alt="An Appearance window with Appearance, Fonts and Options tabs over a pane of titled pop-up buttons with captions">
@@ -217,9 +223,9 @@ window.
 | Push button | `<button class="osm-button">`, add `osm-default` for the ring | `pushButton(el, action)`, `setButtonTitle(el, text)` |
 | Checkbox | `<label class="osm-checkbox"><input type="checkbox"> Title</label>` | `trackHighlight(label)` |
 | Slider | `<div class="osm-slider"><input type="range" min="0" max="100"></div>` (125px wide, 100 steps) | native input |
-| Pop-up button | `<button class="osm-popup">`, with an optional `<label class="osm-popup-title">` | `mountPopup(el, { items, selected, onChange })`; put `MENU_SEPARATOR` among the items for a dividing line |
+| Pop-up button | `<button class="osm-popup">`, with an optional `<label class="osm-popup-title">` | `mountPopup(el, { items, selected, onChange })`; put `MENU_SEPARATOR` among the items for a dividing line, and `{ title, disabled: true }` for a dimmed item that can't be chosen. `destroy()` closes its menu and removes its listeners |
 | Menu bar | a `<div>` along the top of the page | `mountMenuBar(el, [{ title, items: () => [{ title, action, key }, MENU_SEPARATOR, …] }])`; an item without an `action` is dimmed, `key` is its keyboard equivalent, `checked` draws a check mark, and `icon` names a 16x16 sprite to show instead of a title; see [Menu bar](#menu-bar) |
-| List box | `<div>` with a height | `mountList(el, { rowHeight, label, onSelect })`, then `setRows(rows)`. `scrollbars: "both"` adds a horizontal bar (give the rows a `min-width`), and `header` keeps a list view's column headers scrolled with the rows |
+| List box | `<div>` with a height | `mountList(el, { rowHeight, label, onSelect })`, then `setRows(rows)`. `scrollbars: "both"` adds a horizontal bar (give the rows a `min-width`), and `header` keeps a list view's column headers scrolled with the rows. `destroy()` takes it out of the element again |
 | Scroll bar | a positioned `host` with a scrolling child `view` that leaves 15px on the right (or, for a horizontal bar, at the bottom) and hides its native scroll bars (as `mountList` sets up) | `attachScrollbar(host, view, lineHeight)`, or `attachScrollbar(host, view, step, "horizontal")` |
 | Bevel button | `<button class="osm-bevel">`, a 32x32 icon in `--osm-icon`, `osm-selected` for pushed in, a `.osm-bevel-caption` below. 40x40 as in Monitors & Sound; set an even `width` for wider ones, such as Desktop Pictures' 54px | `trackPress(el, action)` |
 | Group box | `<div class="osm-group"><div class="osm-group-title">Title</div>…</div>` | none |
@@ -227,11 +233,12 @@ window.
 | List-view header | `<div class="osm-colheads"><button class="osm-colhead">Name</button>…</div>`, add `osm-sorted` to one header | none |
 | List view | `<div>` with a size | `mountListView(el, { label, columns, key, cell })`, then `setRows(rows)`; see [List view](#list-view) |
 | Placard | `<div class="osm-placard">3 items</div>` | `centerText(el)` |
-| Progress bar | `.osm-progress > .osm-progress-track > .osm-progress-fill`, set `--osm-value` (0 to 1) | none |
+| Progress bar | `.osm-progress > .osm-progress-track > .osm-progress-fill`, set `--osm-value` (0 to 1); add `osm-indeterminate` for the barber pole, see [Indeterminate progress bar](#indeterminate-progress-bar) | none |
 | Label/value rows | `<div class="osm-fields">` of `.osm-label` and value pairs | none |
 | Separator, well | `<div class="osm-separator">`, `<div class="osm-well">` | none |
 | Edit text | `<input class="osm-edit">` (22px), add `osm-compact` for 20px; `<div class="osm-edit-area"><textarea></textarea></div>` for several lines | native input; `mountTextArea(el)` adds a scroll bar to a multi-line field; `setEnabled(field, on)` |
 | Text view | a `<div>` filling a document window's content | `mountTextView(el, { label, text, mode, font })`; see [Text view](#text-view) |
+| Chasing arrows | `<span class="osm-arrows" role="img" aria-label="Working">` (16 x 16); inside a placard it sits where the Finder puts it | `mountChasingArrows(el)`, then `start()` and `stop()`; see [Chasing arrows](#chasing-arrows) |
 | Help balloon | none: attach it to any element | `attachBalloon(el, { content })`, and `balloonMenuItem()` in a Help menu; see [Balloon Help](#balloon-help) |
 | Alert | built for you | `showAlert({ kind, message, explanation, buttons })`, see [Alerts](#alerts) |
 
@@ -243,6 +250,52 @@ custom properties.
 
 The demo's source (`demo/`) uses every control. It's the best place
 to see complete markup.
+
+### Indeterminate progress bar
+
+When there's no telling how long something will take, add
+`osm-indeterminate` to a progress bar. It shows Mac OS 8's barber pole,
+stripes in the accent color that move to the right:
+
+```html
+<div class="osm-progress osm-indeterminate" role="progressbar"
+     aria-label="Preparing to copy">
+  <div class="osm-progress-track"></div>
+</div>
+```
+
+Leave out `aria-valuenow`: a progress bar without a value is how ARIA
+marks progress of unknown length. A `.osm-progress-fill` inside stays
+hidden while the class is on. In an inactive window the stripes dim
+and keep moving, as on a Mac. With `prefers-reduced-motion` they stand
+still. Remove the bar, or the class, when the work ends: while the
+stripes move, Chromium recalculates style every frame, not only at
+each step.
+
+How faithful it is:
+
+- The stripes are Mac OS 8.0's, read from the code that draws them
+  (the Appearance Extension's progress bar CDEF, which 8.1 shares) and
+  checked against the Finder's "Preparing to copy…" bar in an
+  emulator. Captures in Lavender and Ivy, active and inactive, and in
+  Mac OS 8.5's Lavender render with 0 differing pixels, rim and edge
+  included. Other accents use the same entries of their own tables,
+  which is what the CDEF does; 8.5's other variations weren't captured.
+- Each step moves the stripes 4px, as every captured step did.
+- The pace is the Finder's, not the control's. A Mac OS 8 application
+  moved the stripes each time it gave the control idle time, at most
+  every 2 ticks (1/30 s). Osmium steps alternately 6 and 19 ticks
+  apart, the pace of Mac OS 8.0's Finder preparing a copy in the
+  emulator (Infinite Mac, at an unknown emulated CPU speed), so a real
+  Mac may have been faster or slower. Which steps got the short wait
+  varied between runs. 8.5's Finder, in the same emulator, stepped
+  every 16 to 34 ticks. The stripes move on their own in Osmium, as
+  long as the element is shown.
+- The Finder showed the first frame longer than Osmium's 6 ticks:
+  about 13 (4 to 23 in ten runs), because the control's first idle
+  call redraws that frame before it steps.
+- The black-and-white stripes Mac OS drew on a 1-bit screen aren't
+  included.
 
 ### Edit text
 
@@ -273,7 +326,8 @@ For several lines, put a `<textarea>` in an `osm-edit-area`. On its own
 it is the Dialog Manager's multi-line edit text: the text wraps and is
 clipped, and it scrolls with the caret but has no scroll bar.
 `mountTextArea` adds an Osmium scroll bar that follows typing; call its
-`update()` after setting the text from a script. Disable a text area
+`update()` after setting the text from a script, and `destroy()` to
+take the scroll bar out and stop following the text. Disable a text area
 with `setEnabled`: the `disabled` attribute alone dims only its text,
 not its frame or scroll bar. Give the area a height of 16px per line
 plus 6px, so 54px for three lines:
@@ -466,6 +520,88 @@ Menu bar menus leave 9px after an item without a key and fit a key
 equivalent in 32px more, as SimpleText's File, Edit and Help menus do;
 rendered, they match those menus with 0 differing pixels.
 
+### Contextual menus
+
+`showContextMenu` shows a Mac OS 8 contextual menu at a point in client
+coordinates. Its entries are the menu bar's: items with a `title`, an
+`action` (dimmed without one) and `checked`, and `MENU_SEPARATOR`. A
+`key` isn't drawn, because Mac OS 8 draws contextual menus without
+keys. Call it while handling the press that asks for the menu (a
+`contextmenu` event, say), so that a press-drag-release chooses:
+
+```ts
+const list = mountListView(el, {
+  // ...
+  onContextMenu(key, e) {
+    showContextMenu({ x: e.clientX, y: e.clientY }, [
+      { title: "Help", action: showHelp },
+      MENU_SEPARATOR,
+      { title: "Open", action: () => open(key) },
+      { title: "Move To Trash" }, // dimmed
+    ], { label: key });
+  },
+});
+```
+
+The Mac OS 8 guidelines make the first item Help, and put every item in
+the menu bar too. `onClose(chosen)` is called once, after a chosen
+item's action. The returned handle has the menu's `element`, `open` and
+`close()`. One contextual menu is open at a time; an alert
+(`showAlert`) closes it like other menus, and while one is up nothing
+opens (`open` is false and `onClose(false)` comes in a microtask). The
+list is a `ul.osm-menu.osm-pulldown.osm-contextmenu` with
+`role="menu"`, appended to `<body>`.
+
+Measured in Mac OS 8.0 with Finder 8.0 (in an emulator, 640 x 480):
+- **Placement.** The menu's outline has its top-left pixel on the hot
+  spot. When the menu would run past the right edge (its content, inside
+  the outline), it flips: the outline's right column lands 1px left of
+  the hot spot. Either way (a flipped menu too, at a hot spot x of 638
+  or 639) the menu is then pushed left and up to keep 3 columns right
+  of its outline and 5 rows below it (its 1px shadow and 2 or 4 more).
+  It never flips upward.
+- **Tracking.** The menu opens during the press. Released after about
+  half a second, the press chooses the item under the pointer (11 of
+  11 trials), or closes the menu off the items. Released sooner off
+  the items, it leaves the menu open. A click outside an open menu only
+  closes it: nothing under it gets the click, a menu bar title
+  included. A click on a separator closes it too.
+- **Look.** A menu bar menu's: outline, bevel, shadow, 16px items,
+  6px separators, and the widest item plus 29px. A highlighted first or
+  last item also colors the bevel row it sits on (Mac OS 8.0's menu bar
+  menus do so too; Osmium's don't yet). Rendered at 1x,
+  five captured menus (a list-view row, an icon, empty window space,
+  the desktop and the Trash, two of them flipped and two pushed back)
+  and five highlights (first, middle and last items) match with 0
+  differing pixels, with the submenu triangles Osmium doesn't draw and
+  the emulator's pointer masked out.
+
+Not measured, or not Mac OS 8.0:
+- The Finder's contextual menus have no dimmed items or check marks.
+  They are drawn as in menu bar menus (dimmed text 88 on dd, as in Mac
+  OS 8.0's Application menu).
+- The half second: the menu stayed open after a 520 ms press and closed
+  after 550 ms. Osmium uses 533 ms, assuming the default double-click
+  time of 32 ticks is the limit.
+- A press released over an item within the half second: in 47
+  emulator trials it chose the item 22 times and left the menu open,
+  the item highlighted, 25 times. Neither the time on the item nor the
+  time since the press made a difference, and the menu stayed open
+  even when it had been seen up with the item highlighted. Emulated
+  input arrives late, so Mac OS 8.0's rule isn't known. Here a release
+  over an item always chooses, as the longer presses did.
+- Menus that would pass the left or top edge (not captured): here they
+  are kept inside the window.
+- Menus taller than the window (not captured; Mac OS presumably
+  scrolls them with scroll arrows): here the menu scrolls with a scroll
+  bar, and has no shadow while it does.
+- Keys: Mac OS 8.0 ignores the keyboard while a menu is open. Here the
+  menu bar menus' keys work (the arrow keys, Return, Space, Escape and
+  Tab), and typing an item's first letter highlights it, which only
+  contextual menus do.
+- Mac OS 8.5 draws contextual menus 4px wider, with the text 2px
+  further in. Osmium draws Mac OS 8.0's.
+
 ### Balloon Help
 
 Give any element a help balloon, and put the Show Balloons command in
@@ -550,6 +686,59 @@ The balloon's shape, its eight tails and the text layout were compared
 pixel for pixel with 13 Mac OS 8.0 balloons captured in an emulator,
 covering all eight tails: 0 differing pixels, text included.
 
+### Chasing arrows
+
+Chasing arrows say that something of unknown length is under way, as
+in a Finder window's header while the window fills:
+
+```ts
+import { mountChasingArrows } from "osmium-ui";
+
+const arrows = mountChasingArrows(span); // stopped: nothing drawn
+arrows.start(); // frame 0, then one frame every 6 ticks (100 ms)
+// … when the work is done:
+arrows.stop();  // blank again
+```
+
+In a window whose `.osm-inactive` class is set, the arrows keep turning
+in 88 gray instead of black, as they do in Mac OS 8.0. With the reader's
+`prefers-reduced-motion` setting, running arrows hold frame 0 (Mac OS
+had no such setting). A stopped control is `aria-hidden`; a running one
+is an image named "Working" unless you name it. It is not a live region,
+so starting and stopping isn't announced: mark the region being filled
+`aria-busy` if screen readers should know. `destroy()` stops the arrows
+and removes the reduced-motion listener; the element stays blank and
+`aria-hidden`.
+
+What was measured and what wasn't:
+
+- The eight frames are the bitmaps in Mac OS 8.0's Appearance
+  Extension (resource CDEF 7, "Chasing Arrows"; Mac OS 8.1's copy is
+  the same). Its code steps 0 to 7 and round, draws in black, or in
+  8888/8888/8888 when the control is inactive or disabled, and steps
+  only when the application idles it, at most once every 2 ticks.
+- Captured from Mac OS 8.0's Finder in an emulator: all eight frames,
+  active and inactive, match these bitmaps with 0 differing pixels, and
+  Osmium's renders match the captures with 0 differing pixels over the
+  arrows and a 1px margin. The arrows kept turning in an inactive
+  window. The Finder stepped every 6 ticks while it wasn't busy; that
+  pace is the emulator's Finder, not checked on real hardware. Osmium
+  steps every 100 ms (6 ticks are 99.75 ms; browser timers take whole
+  milliseconds).
+- Opening a window, the Finder blanked the header while the arrows
+  turned and put its text back after. Expanding all folders, it blanked
+  the header too (the captures end before the arrows stopped). Expanding
+  one folder, it kept the text beside the arrows. In an `.osm-placard`
+  the arrows are absolutely positioned, so they don't move its text.
+- Inside an `.osm-placard` the arrows sit 4px right of the header's
+  left pixel and 2px below its top one, as in the Finder.
+- Not captured: the disabled look (the CDEF's code draws it like the
+  inactive one; Osmium has no disabled state for arrows).
+
+The same captures show two things `.osm-placard` doesn't do yet: in an
+inactive window the Finder draws its header flat (dd, without the white
+and aa edges), and the header's bottom-left pixel is dd, not aa.
+
 ### Alerts
 
 `showAlert` puts up a Mac OS 8 alert box, laid out with the metrics of
@@ -582,6 +771,13 @@ ring until you press Tab; Tab and Shift-Tab then stay among its
 buttons. While it is up the rest of the page is `inert`, menu bar
 titles dim, `bindDialogKeys` handlers stand down, and a window with
 `"page"` activation draws inactive.
+
+`isModal()` says whether an alert is up. `onModalChange(listener)`
+calls `listener(true)` when the first alert opens and `listener(false)`
+when the last one closes, not for alerts opening over or closing under
+another; the function it returns unsubscribes. By then a `parent` is
+drawn as the alert left it: [Native windows](#native-windows-on-macos)
+shows a `"manual"` window following both its shell and the alerts.
 
 Some of the alert is derived rather than measured (the explanation's
 spacing, the third button's place, how buttons and the alert grow);
@@ -723,6 +919,16 @@ sends one) is for the selected row.
 placeholder's, while there are none) and `viewportHeight` the height
 they have now; a zoom box or "resize to fit" adds the difference.
 
+**Placeholders.** While there are no rows, the list shows `loadingText`
+after `setLoading("loading")` and `emptyText` after
+`setLoading("loaded")` (the default). `setEmptyText` and
+`setLoadingText` change them later (to show a scan's progress, say),
+updating a shown placeholder in place; `""` shows none.
+
+**Taking it down.** `destroy()` releases every node from `cell`,
+destroys the scroll bars, disconnects the observers, removes the
+listeners and empties the host.
+
 **Long lists.** Up to 1000 rows, every row is in the DOM, laid out
 lazily with `content-visibility`. Above that (`rendering: "auto"`, the
 default) only the rows in and near the view, the selected row and rows
@@ -777,10 +983,11 @@ What differs from Mac OS 8:
 Sprites are pixel grids, one character per pixel. Hex digits are gray
 levels (`0` is black, `f` white), other letters are palette colors
 (`g` to `z`, or uppercase), and `.` is transparent. Osmium's own
-letters are the accent ramp (`w`, `q`, `p`, `m`, `l`, `n` from lightest
-to darkest, Lavender unless the sprite follows the accent, and `h`, a
-progress bar's center row) and the alert icons' colors (`R`, `P`, `M`,
-`N`, `Y`, `K`, `k`, `y`, `s`); your palette may redefine any of them.
+letters are the accent ramp (`w`, `q`, `p`, `m`, `l`, `j`, `n` from
+lightest to darkest, Lavender unless the sprite follows the accent, and
+`h`, a progress bar's center row) and the alert icons' colors (`R`, `P`,
+`M`, `N`, `Y`, `K`, `k`, `y`, `s`); your palette may redefine any of
+them.
 Register yours and use them as custom properties:
 
 ```ts
@@ -893,6 +1100,41 @@ counts as native.
 Escape closes a hosted window unless the page handles the key itself,
 the focus is in a text field, or an alert is up. Pass `escape: "ignore"` for a window
 that shouldn't close.
+
+A hosted window is active while its page has the focus. A shell that
+knows better which window is active (one whose web view keeps the
+focus while the app is in the background, say) passes
+`activation: "manual"`: the page's focus and blur then leave the window
+alone, and only `hosted.window.setActive()` and alerts with the window
+as `parent` change it. An alert draws the window inactive while it is
+up; closing it reactivates the window if it was active when the alert
+opened, and never deactivates it. So follow the shell and the alerts
+together:
+
+```ts
+import { hostWindow, isModal, onModalChange } from "osmium-ui";
+
+const hosted = hostWindow(document.getElementById("win")!, {
+  title: "Tank Overview", activation: "manual",
+});
+let key = true;
+const sync = () => hosted.window.setActive(key && !isModal());
+const unsubscribe = onModalChange(sync);
+// Where the shell reports its window's key state changing:
+function shellKeyChanged(isKey: boolean) { key = isKey; sync(); }
+// When the component goes away:
+function teardown() { unsubscribe(); hosted.destroy(); }
+```
+
+`hosted.destroy()` removes every listener and observer `hostWindow`
+and the window added to the page (Escape, resize, a grow in progress,
+focus, blur, the alerts' modal change and the title's resize observer),
+so a component can host a window, take it down and host one again
+without leaks. An `onModalChange` subscription is the app's own: call
+its `unsubscribe()` too. The chrome stays in the element but its boxes,
+titlebar and grow box no longer act; remove the element yourself, and
+host the next window on a fresh one. A window from `mountWindow` has
+the same `destroy()`.
 
 In a plain browser tab, the same page fills the tab and does what a tab
 can.

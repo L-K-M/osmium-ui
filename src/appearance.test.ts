@@ -65,7 +65,8 @@ const HIGHLIGHTS_85: readonly [string, string][] = [
 ];
 
 const ACCENT_SPRITES = [
-  "fill", "fill-left", "fill-right", "slider-thumb", "slider-thumb-pressed",
+  "fill", "fill-left", "fill-right", "barber", "barber-inactive",
+  "slider-thumb", "slider-thumb-pressed",
   "scroll-thumb", "scroll-thumb-pressed", "scroll-hthumb",
   "scroll-hthumb-pressed",
 ];
@@ -173,8 +174,10 @@ describe("the default appearance", () => {
   it("draws every built-in sprite byte for byte as before", () => {
     // SHA-256 of every built-in sprite's SVG, captured on main before
     // the accent keys w and h replaced gray e and white f. Sprites added
-    // since (the list view's sort order button) are left out.
-    const added = new Set(["sortdir", "sortdir-reversed"]);
+    // since (the list view's sort order button, the chasing arrows, the
+    // indeterminate progress bar) are left out.
+    const added = new Set(["sortdir", "sortdir-reversed", "arrows",
+                           "arrows-inactive", "barber", "barber-inactive"]);
     const all = allSprites().filter(([n]) => !added.has(n))
       .map(([n, r]) => n + "\n" + spriteSvg(r)).join("\n");
     expect(createHash("sha256").update(all).digest("hex")).toBe(
@@ -219,6 +222,26 @@ describe("setAppearance", () => {
     expect(center()).toBe("#fffee6");
     A.setAppearance({ accent: { color: "#007aff" } });
     expect(center()).toBe("#ffffff");
+  });
+
+  it("draws the barber pole's stripes in the accent", () => {
+    // Stripe colors per row, A5 A4 A3 A2 A1 A2 A3 A4 A5 A6, as Mac OS
+    // 8.0 drew them in Ivy (captured) and the CDEF's table says for any
+    // accent; A2 when inactive.
+    const fills = (name: string) => new Set([...decodeURIComponent(
+      prop(`--osm-sprite-${name}`)).matchAll(/fill="(#[0-9a-f]{6})"/g)]
+      .map((m) => m[1]));
+    const grays = ["#555555", "#777777", "#aaaaaa", "#bbbbbb", "#ffffff",
+                   "#dddddd", "#999999"];
+    for (const [release, list, name] of [["8.0", ACCENTS_80, "Ivy"],
+                                         ["8.5", VARIATIONS_85, "Sunny"]] as const) {
+      A.setAppearance({ accent: { release, name } as never });
+      const r = ramp(list.find(([n]) => n === name)![1]);
+      expect(fills("barber"), name)
+        .toEqual(new Set([...grays, r[1], r[2], r[3], r[4], r[5], r[6]]));
+      expect(fills("barber-inactive"), name)
+        .toEqual(new Set(["#dddddd", r[2]]));
+    }
   });
 
   it("inverts only a Black & White highlight", () => {

@@ -3,8 +3,9 @@
 // corners, copied from a running Mac OS 8.0 (Keyboard and General
 // Controls control panels, Finder windows, an alert) and from
 // guidebookgallery.org screenshots (Open dialog, Monitors & Sound,
-// Desktop Pictures). Tabs come from Mac OS 8.5 and help balloons from
-// an emulated Mac OS 8.0 (see below). Same palette keys as sprites.ts.
+// Desktop Pictures). Tabs come from Mac OS 8.5, help balloons from an
+// emulated Mac OS 8.0, and the chasing arrows from Mac OS 8.0's
+// Appearance Extension (see below). Same palette keys as sprites.ts.
 //
 // Scroll and slider thumbs are drawn in the accent ramp, so
 // setAppearance (appearance.ts) can redraw them: the top-left corner
@@ -995,6 +996,176 @@ const SORTDIR_REVERSED = [
   ...SORTDIR.slice(13),
 ];
 
+// ---- chasing arrows: eight 16 x 16 frames ---------------------------
+// The Appearance Manager's asynchronous arrows (kControlChasingArrowsProc,
+// procID 112). Mac OS 8.0's Appearance Extension draws them in CDEF 7
+// "Chasing Arrows" (2439 bytes; identical bitmaps in Mac OS 8.1's
+// Appearance Extension): eight 1-bit 16 x 16 bitmaps from byte 0x778
+// of the resource data, 64 bytes a frame (the image, 2 bytes a row,
+// then an identical copy the CDEF never reads). The CDEF erases the
+// control's rectangle with its embedder's background and CopyBits the
+// frame srcOr in black, or in RGB 8888/8888/8888 when the control is
+// inactive or disabled on a screen of 256 colors (or 16 grays) or
+// more. So '0' below is the image's set bits, '.' the background, and
+// the inactive frames are the same bits in 88.
+// Checked against Mac OS 8.0's Finder in the Infinite Mac emulator
+// (infinitemac.org/1997/Mac%20OS%208.0), its canvas sampled at 60 Hz
+// while the Finder expanded every folder of a list-view window: the
+// header's arrows at screen 34,76-49,91 (the header's top left pixel
+// at 30,74). All eight frames, black while the window was active (96
+// steps) and 88 after another window was clicked (24 steps), match
+// these grids with 0 differing pixels. chasingarrows.ts has the timing.
+const ARROWS: readonly (readonly string[])[] = [
+  [ // frame 0, CDEF 7 bytes 0x778-0x797
+    ".......0........",
+    ".......00.......",
+    "......0000......",
+    "....00.00.......",
+    "...0...0........",
+    "...0........0...",
+    "..0..........0..",
+    "..0..........0..",
+    "..0..........0..",
+    "..0..........0..",
+    "...0........0...",
+    "........0...0...",
+    ".......00.00....",
+    "......0000......",
+    ".......00.......",
+    "........0.......",
+  ],
+  [ // frame 1, CDEF 7 bytes 0x7b8-0x7d7
+    "................",
+    ".........0......",
+    "......00000.....",
+    "....00..0000....",
+    "...0....0.......",
+    "...0............",
+    "..0.............",
+    "..0..........0..",
+    "..0..........0..",
+    ".............0..",
+    "............0...",
+    ".......0....0...",
+    "....0000..00....",
+    ".....00000......",
+    "......0.........",
+    "................",
+  ],
+  [ // frame 2, CDEF 7 bytes 0x7f8-0x817
+    "................",
+    "................",
+    "......0000..0...",
+    "....00....000...",
+    "...0......000...",
+    "...0........0...",
+    "..0.............",
+    "................",
+    "................",
+    ".............0..",
+    "...0........0...",
+    "...000......0...",
+    "...000....00....",
+    "...0..0000......",
+    "................",
+    "................",
+  ],
+  [ // frame 3, CDEF 7 bytes 0x838-0x857
+    "................",
+    "................",
+    "......0000......",
+    "....00....00....",
+    "...0........0.0.",
+    "............000.",
+    "...........000..",
+    ".............0..",
+    "..0.............",
+    "..000...........",
+    ".000............",
+    ".0.0........0...",
+    "....00....00....",
+    "......0000......",
+    "................",
+    "................",
+  ],
+  [ // frame 4, CDEF 7 bytes 0x878-0x897
+    "................",
+    "................",
+    "......0000......",
+    ".....0....00....",
+    "............0...",
+    "............0...",
+    "..0..........0..",
+    ".000.......00000",
+    "00000.......000.",
+    "..0..........0..",
+    "...0............",
+    "...0............",
+    "....00....0.....",
+    "......0000......",
+    "................",
+    "................",
+  ],
+  [ // frame 5, CDEF 7 bytes 0x8b8-0x8d7
+    "................",
+    "................",
+    ".......000......",
+    "..........00....",
+    "...0........0...",
+    "..00........0...",
+    ".000.........0..",
+    "..000........0..",
+    "..0........000..",
+    "..0.........000.",
+    "...0........00..",
+    "...0........0...",
+    "....00..........",
+    "......000.......",
+    "................",
+    "................",
+  ],
+  [ // frame 6, CDEF 7 bytes 0x8f8-0x917
+    "................",
+    "................",
+    ".........0......",
+    "..0000....00....",
+    "...00.......0...",
+    "...00.......0...",
+    "..0..........0..",
+    "..0..........0..",
+    "..0..........0..",
+    "..0..........0..",
+    "...0.......00...",
+    "...0.......00...",
+    "....00....0000..",
+    "......0.........",
+    "................",
+    "................",
+  ],
+  [ // frame 7, CDEF 7 bytes 0x938-0x957
+    "................",
+    "....00..........",
+    ".....000........",
+    "....000....0....",
+    "...0..0.....0...",
+    "...0........0...",
+    "..0..........0..",
+    "..0..........0..",
+    "..0..........0..",
+    "..0..........0..",
+    "...0........0...",
+    "...0.....0..0...",
+    "....0....000....",
+    "........000.....",
+    "..........00....",
+    "................",
+  ],
+];
+/** The frames side by side, 128 x 16: frame k at x = 16k. */
+const arrowsSheet = (ink: string): string[] =>
+  ARROWS[0]!.map((_, y) => ARROWS.map((f) => f[y]!).join("")
+    .replace(/0/g, ink));
+
 /** Name → grid, published as --osm-sprite-<name> by spriteCss(). */
 export const CONTROL_SPRITES: Record<string, readonly string[]> = {
   button: BUTTON,
@@ -1056,4 +1227,6 @@ export const CONTROL_SPRITES: Record<string, readonly string[]> = {
   "balloon-left-bottom": BALLOON_LEFT_BOTTOM,
   sortdir: SORTDIR,
   "sortdir-reversed": SORTDIR_REVERSED,
+  arrows: arrowsSheet("0"),
+  "arrows-inactive": arrowsSheet("8"),
 };

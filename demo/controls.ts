@@ -2,14 +2,17 @@
 // buttons (Beep plays a system beep at the Volume slider's level),
 // checkboxes, Keyboard-style sliders (Level drives the progress bar),
 // a titled pop-up choosing the sample text shown in the three bitmap
-// fonts, a separator, and Cancel / OK with the Return and Escape keys.
+// fonts, a separator, an indeterminate progress bar that keeps
+// working, and Cancel / OK with the Return and Escape keys.
 // Every control has a help balloon; Beep's opens on hover even while
 // Balloon Help is off, the way an app without a Help menu would use it.
 import {
   attachBalloon, bindDialogKeys, centerText, mountPopup, pushButton,
   setEnabled, trackHighlight,
 } from "../src/index.js";
-import { button, checkbox, el, group, progress, slider } from "./dom.js";
+import {
+  button, checkbox, el, group, indeterminate, progress, slider,
+} from "./dom.js";
 import type { WindowContent, WindowEnv } from "./windows.js";
 
 const SAMPLES: readonly { name: string; text: string }[] = [
@@ -87,6 +90,13 @@ export function buildControls(content: HTMLElement,
   });
   showSample(0);
 
+  // An indeterminate progress bar, left of the dialog's buttons.
+  // The bar names itself; its caption would say it twice.
+  const busy = el("div", "ctl-busy");
+  const busyCaption = el("div", "osm-caption", "Working");
+  busyCaption.setAttribute("aria-hidden", "true");
+  busy.append(busyCaption, indeterminate("Working"));
+
   // The dialog's own buttons: Return presses OK, Escape Cancel. Both
   // dismiss the dialog (it keeps its settings).
   const cancel = button("Cancel", "ctl-cancel");
@@ -101,7 +111,7 @@ export function buildControls(content: HTMLElement,
   pushButton(dimBtn, () => {});
 
   root.append(buttons, boxes, sliders, sampleRow, well,
-              el("div", "osm-separator ctl-rule"), cancel, ok);
+              el("div", "osm-separator ctl-rule"), busy, cancel, ok);
   content.append(root);
 
   const trigger = env.balloons;
@@ -142,6 +152,9 @@ export function buildControls(content: HTMLElement,
                                              content: progressHelp });
   level.input.addEventListener("input",
                                () => meterBalloon.setContent(progressHelp));
+  attachBalloon(busy, { trigger, content: "Indeterminate progress " +
+    "bar\n\nShows that work is going on when there is no telling how " +
+    "long it will take." });
   attachBalloon(pop, { trigger, content: "Sample pop-up menu\n\n" +
     "Choose the text shown below in each of the kit's three fonts." });
   attachBalloon(cancel, { trigger, variant: "bottom-left",

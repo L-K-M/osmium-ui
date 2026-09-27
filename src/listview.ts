@@ -26,7 +26,9 @@
 //             div.osm-lv-row [row] > div.osm-lv-cell [gridcell] ...
 //     button.osm-lv-sortdir                    outside the grid, which
 //     div.osm-list-empty.osm-lv-empty [status] may own only rows
-import { attachScrollbar, centerText, part, trackPress } from "./controls.js";
+import {
+  attachScrollbar, centerText, part, stopCentering, trackPress,
+} from "./controls.js";
 import type { ListScrollbars } from "./controls.js";
 import { installOsmium } from "./install.js";
 
@@ -236,10 +238,16 @@ export interface OsmiumListView<T> {
   setSort(sort: ListViewSort | null): void;
   /** Which placeholder shows while there are no rows. */
   setLoading(state: ListLoadState): void;
+  /** Replace the text shown while there are no rows and loading is over
+   * (emptyText), updating a shown placeholder in place; "" shows none. */
+  setEmptyText(text: string): void;
+  /** Replace the text shown while there are no rows yet (loadingText),
+   * updating a shown placeholder in place; "" shows none. */
+  setLoadingText(text: string): void;
   /** Give the list the keyboard. */
   focus(): void;
-  /** Release every node from `cell`, stop observing and listening, and
-   * empty the host. */
+  /** Release every node from `cell`, destroy the scroll bars, stop
+   * observing and listening, and empty the host. */
   destroy(): void;
 }
 
@@ -496,6 +504,8 @@ export function mountListView<T>(host: HTMLElement,
   let pendingRefresh = false;
   let selectedKey: string | null = null;
   let loadState: ListLoadState = "loaded";
+  let emptyText = opts.emptyText;
+  let loadingText = opts.loadingText;
   let sortedIndex = -1;
   /** Rows with elements, in display order (all of `shown`, or the ones
    * "window" rendering keeps). */
@@ -503,6 +513,10 @@ export function mountListView<T>(host: HTMLElement,
   const rendering = opts.rendering ?? "auto";
   let windowed = false;
   let destroyed = false;
+  // The host's listeners, removed by destroy() (its children's go with
+  // them).
+  const listening = new AbortController();
+  const signal = listening.signal;
 
   // ---- columns and widths ----------------------------------------------
 
@@ -957,7 +971,7 @@ export function mountListView<T>(host: HTMLElement,
       window.addEventListener("blur", endPress);
     }
     pressing.add(e.pointerId);
-  }, true);
+  }, { capture: true, signal });
 
   function rerenderAll(): void {
     for (const r of shown) renderRow(r);
@@ -1101,7 +1115,7 @@ export function mountListView<T>(host: HTMLElement,
     e.preventDefault();
     select(r.key, "notify");
     opts.onContextMenu(r.key, e);
-  });
+  }, { signal });
 
   // ---- keyboard --------------------------------------------------------
 
@@ -1170,7 +1184,7 @@ export function mountListView<T>(host: HTMLElement,
 
   function showEmpty(): void {
     const text = shown.length ? ""
-      : (loadState === "loading" ? opts.loadingText : opts.emptyText) ?? "";
+      : (loadState === "loading" ? loadingText : emptyText) ?? "";
     if (empty.textContent !== text) empty.textContent = text;
     empty.hidden = !text;
     if (text) centerText(empty);
@@ -1230,6 +1244,16 @@ export function mountListView<T>(host: HTMLElement,
       loadState = state;
       showEmpty();
     },
+    setEmptyText(text) {
+      alive();
+      emptyText = text;
+      showEmpty();
+    },
+    setLoadingText(text) {
+      alive();
+      loadingText = text;
+      showEmpty();
+    },
     focus() {
       grid.focus({ preventScroll: true });
     },
@@ -1239,7 +1263,11 @@ export function mountListView<T>(host: HTMLElement,
       clearTimeout(flushTimer);
       flushTimer = undefined;
       stopWatchingPress();
+      listening.abort();
       ro.disconnect();
+      sb.destroy();
+      hsb?.destroy();
+      stopCentering(empty);
       for (const { dom } of rendered) if (dom) releaseDom(dom);
       shown = [];
       rendered = [];

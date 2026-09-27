@@ -1,3 +1,5 @@
+import { readFileSync } from "node:fs";
+import { join } from "node:path";
 import { describe, expect, it } from "vitest";
 import { SPRITES, allSprites, spriteCss, spriteSvg } from "./sprites.js";
 import { titleLeft } from "./window.js";
@@ -157,6 +159,146 @@ describe("sprites", () => {
       expect(at("slider-thumb", x!, y!)).toBe("w");
     expect(SPRITES.fill[4]).toBe("h");
     expect(SPRITES.fillLeft.slice(3, 6)).toEqual(["mh", "mh", "mh"]);
+  });
+});
+
+// Mac OS 8.0's Appearance Extension, 'CDEF' 5 "Progress Bar": the
+// accent entry and the gray of each of the barber pole's ten rows (the
+// table the CDEF builds at 0x12e2), A5 A4 A3 A2 A1 A2 A3 A4 A5 A6 over
+// 55 77 aa bb ff dd bb 99 77 55; A2 over dd in an inactive window.
+const POLE = { accent: "jlmpqpmljn", gray: "57abfdb975" };
+const POLE_INACTIVE = { accent: "pppppppppp", gray: "dddddddddd" };
+
+/** Mac OS 8.0's CDEF 5 drawing the barber pole's rows (0x1054-0x1264),
+ * emulated for an inner width `w`. Its phases 1 to 4 start row 0 with
+ * an 8px gray run, a 4px accent run, an 8px accent run and a 4px gray
+ * run; each row's first run is 1px longer than the row above's, and
+ * after 8px it becomes 1px of the other color. Every run is a QuickDraw
+ * Line clamped to right - 1, where the pen stops. Returns "A" (accent)
+ * or "g" (gray) per pixel of each row. */
+function cdefRows(w: number, phase: 1 | 2 | 3 | 4): string[] {
+  let [len, grayFirst]: [number, boolean] = [
+    ...([[8, true], [4, false], [8, false], [4, true]] as const)[phase - 1]!];
+  const rows: string[] = [];
+  for (let r = 0; r < 10; r++) {
+    const px: string[] = [];
+    let h = 0;
+    let color = grayFirst ? "g" : "A";
+    let run: number = len;
+    do {
+      let d = run;
+      if (h + d >= w - 1) d = w - h - 1;
+      if (d > 0) {
+        for (let x = h; x <= h + d; x++) px[x] = color;
+        h += d;
+      }
+      color = color === "A" ? "g" : "A";
+      run = 8;
+    } while (w - 1 > h);
+    rows.push(px.join(""));
+    if (++len > 8) {
+      len = 1;
+      grayFirst = !grayFirst;
+    }
+  }
+  return rows;
+}
+
+describe("the indeterminate progress bar", () => {
+  const css = readFileSync(join(process.cwd(), "osmium.css"), "utf8");
+  const TICK = 1000 / 60.15;
+
+  it("tiles the CDEF's stripes, one pixel further right each row", () => {
+    for (const [tile, rows] of [[SPRITES.barber, POLE],
+                                [SPRITES.barberInactive, POLE_INACTIVE]] as const) {
+      expect(tile).toHaveLength(10);
+      tile.forEach((row, r) => {
+        const want = Array.from({ length: 16 }, (_, x) =>
+          (x - r + 16) % 16 < 8 ? rows.accent[r] : rows.gray[r]).join("");
+        expect(row, `row ${r}`).toBe(want);
+      });
+    }
+    // Lavender's A5, a key only the barber pole uses.
+    expect(spriteSvg(["j"])).toContain('fill="#000088"');
+  });
+
+  it("steps 4px right, alternately 6 and 19 ticks apart", () => {
+    const frames = [...css.matchAll(
+      /(\d+)% \{ background-position: (\d+)px 0, (\d+)px 0; \}/g)]
+      .map((m) => m.slice(1).map(Number) as [number, number, number]);
+    expect(frames.map(([pct]) => pct)).toEqual([0, 12, 50, 62, 100]);
+    frames.forEach(([, a, b], i) => {
+      expect(a).toBe(8 + 4 * i);
+      expect(b).toBe(a + 1);
+    });
+    const ms = Number(css.match(
+      /animation: osm-barber (\d+)ms step-end infinite;/)![1]);
+    expect(ms / TICK).toBeCloseTo(50, 1);
+    const holds = frames.slice(1).map(([pct], i) =>
+      Math.round((pct - frames[i]![0]) / 100 * ms / TICK));
+    expect(holds).toEqual([6, 19, 6, 19]);
+  });
+
+  it("holds still for reduced motion", () => {
+    expect(css).toMatch(/@media \(prefers-reduced-motion: reduce\) \{\s*\.osm-progress\.osm-indeterminate > \.osm-progress-track \{ animation: none; \}/);
+  });
+
+  it("dims to A2 and dd in an inactive window", () => {
+    expect(css).toMatch(/\.osm-inactive \.osm-progress\.osm-indeterminate > \.osm-progress-track \{\s*background-image: var\(--osm-sprite-barber-inactive\),\s*var\(--osm-sprite-barber-inactive\);/);
+  });
+
+  it("draws the CDEF's phases at any width, last column too", () => {
+    // Paints the track as osmium.css declares it. Its padding box is
+    // the CDEF's inner rect, w px wide inside the black edge, and the
+    // rule's own padding narrows the content box. Each background layer
+    // repeats the tile along x from its origin box's left edge, moved
+    // by its position, and paints only inside its clip box (one box
+    // sets both, none means padding-box and border-box); the first
+    // layer is on top. Unanimated, and at each keyframe, the track must
+    // show what the CDEF draws in its first phase and in the phase that
+    // step brings, including the last column, which QuickDraw never
+    // started a stripe in and which repeats the one before it.
+    const rule = css.match(
+      /^\.osm-progress\.osm-indeterminate > \.osm-progress-track \{([^}]*)\}/m)![1]!;
+    expect(rule.match(/padding[\w-]*:/g)).toEqual(["padding-right:"]);
+    const pad = Number(rule.match(/padding-right: (\d+)px;/)?.[1] ?? 0);
+    const layers = rule.match(/background:([^;]*);/)![1]!.split(",").map((l) => {
+      const m = l.trim().replace(/\s+/g, " ").match(
+        /^var\(--osm-sprite-barber\) (-?\d+)px 0 \/ 16px 10px repeat-x((?: [a-z]+-box){0,2})$/);
+      expect(m, l).not.toBeNull();
+      const b = m![2]!.split(" ").filter(Boolean);
+      return { x: Number(m![1]), origin: b[0] ?? "padding-box",
+               clip: b[1] ?? b[0] ?? "border-box" };
+    });
+    const frames = [...css.matchAll(
+      /(\d+)% \{ background-position: ([^;]+); \}/g)].map((m) =>
+      m[2]!.split(",").map((p) => Number(p.trim().match(/^(-?\d+)px 0$/)![1])));
+    expect(frames).toHaveLength(5);
+    const paint = (w: number, xs: readonly number[]) => {
+      const box: Record<string, readonly [number, number]> = {
+        "border-box": [-1, w + 1], "padding-box": [0, w],
+        "content-box": [0, w - pad],
+      };
+      return SPRITES.barber.map((line, r) =>
+        Array.from({ length: w }, (_, x) => {
+          let px = "?";
+          for (let i = layers.length - 1; i >= 0; i--) {
+            const { origin, clip } = layers[i]!;
+            if (x < box[clip]![0] || x >= box[clip]![1]) continue;
+            const col = (((x - box[origin]![0] - xs[i]!) % 16) + 16) % 16;
+            px = line[col] === POLE.accent[r] ? "A" : "g";
+          }
+          return px;
+        }).join(""));
+    };
+    const cases: [string, readonly number[], 1 | 2 | 3 | 4][] = [
+      ["unanimated", layers.map((l) => l.x), 1],
+      ...frames.map((xs, i) => [`keyframe ${i}`, xs, (i % 4) + 1] as
+        [string, number[], 1 | 2 | 3 | 4]),
+    ];
+    for (let w = 2; w <= 200; w++)
+      for (const [name, xs, phase] of cases)
+        expect(paint(w, xs), `width ${w}, ${name}`).toEqual(cdefRows(w, phase));
   });
 });
 

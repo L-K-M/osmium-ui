@@ -26,7 +26,7 @@ export {
 } from "./controls.js";
 export type {
   ListOptions, ListScroll, ListScrollbars, MenuSeparator, OsmiumList, Popup,
-  PopupOptions, ScrollAxis, Scrollbar, SetRowsOptions,
+  PopupItem, PopupOptions, ScrollAxis, Scrollbar, SetRowsOptions,
 } from "./controls.js";
 export { mountListView } from "./listview.js";
 export type {
@@ -40,6 +40,10 @@ export type {
   CommandKey, KeyDispatch, Menu, MenuBarOptions, MenuEntry, MenuItem,
   OsmiumMenuBar,
 } from "./menubar.js";
+export { showContextMenu } from "./contextmenu.js";
+export type {
+  ContextMenuOptions, MenuPoint, OsmiumContextMenu,
+} from "./contextmenu.js";
 export { mountTabs } from "./tabs.js";
 export type { OsmiumTabs, TabsOptions } from "./tabs.js";
 export { mountTextArea } from "./edittext.js";
@@ -56,6 +60,9 @@ export type {
   BalloonContent, BalloonHelpState, BalloonOptions, BalloonTip,
   BalloonTrigger, BalloonVariant, OsmiumBalloon,
 } from "./balloon.js";
+export { mountChasingArrows } from "./chasingarrows.js";
+export type { OsmiumChasingArrows } from "./chasingarrows.js";
+export { isModal, onModalChange } from "./modal.js";
 export { showAlert } from "./alert.js";
 export type {
   AlertButton, AlertButtons, AlertKind, AlertModality, AlertOptions,

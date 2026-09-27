@@ -2,6 +2,104 @@
 
 ## Unreleased
 
+- Hosted windows take `activation`: `"page"` (the default, as before)
+  or `"manual"`, where the page's focus and blur leave the window alone
+  and only `window.setActive()` and alerts with the window as `parent`
+  change it. An alert still draws its parent inactive, and reactivates
+  it on closing if it was active before. `isModal()` and
+  `onModalChange(listener)` are exported; the listener hears the page
+  turn modal and back, once each time the alert stack goes from empty
+  to not and back, after the parent is redrawn. `HostedWindow.destroy()` and
+  `OsmiumWindow.destroy()` remove every listener and observer they
+  added to the page (Escape, resize, a grow in progress, focus, blur,
+  the modal change, the title's resize observer), so windows can be
+  hosted and taken down again and again without leaks; the chrome stays
+  but no longer acts.
+- List views take `setEmptyText` and `setLoadingText`, which update a
+  shown placeholder in place. Their `destroy()` now also destroys the
+  scroll bars, stops re-centering the placeholder and removes the
+  host's listeners, so no resize observer is left observing and a host
+  can take a new list view. List boxes (`mountList`) and text areas
+  (`mountTextArea`) get a `destroy()` as well.
+- Pop-up menus take `{ title, disabled }` items besides strings and
+  `MENU_SEPARATOR`: a disabled one is drawn dimmed, like a menu bar's
+  dimmed items, and the pointer, the arrow keys and type-select pass it
+  by; it can still be the current item. String items and enabled
+  object items are drawn as before. `Popup.destroy()` closes an open
+  menu, ends a press on the button and removes every listener and
+  registration the pop-up made.
+- Add contextual menus (`showContextMenu`): a Mac OS 8 menu at a point,
+  for Control-click, right-click and the menu key, drawn and keyed with
+  the menu bar's code (now shared in `src/menu.ts`). Measured in Mac OS
+  8.0's Finder 8.0 in an emulator: the outline's top-left pixel on the
+  hot spot; a flip to the left of the hot spot when the menu would pass
+  the right edge; the push back that keeps 3 columns right of and 5 rows
+  below the outline, a flipped menu's too; after about half a second
+  (520 ms stayed open, 550 ms closed; 533 ms, 32 ticks, is assumed), the
+  release of the opening press choosing the item under it or else
+  closing the menu, and a sooner one off the items leaving it open; a
+  click outside only closing the menu; and a highlighted first or last
+  item coloring its bevel row. Five captured menus and five highlights
+  render with 0 differing pixels, submenu triangles and the emulator's
+  pointer masked. Not measured: dimmed items and check marks (the
+  Finder's contextual menus have none; they are the menu bar's),
+  placement past the left or top edge, and menus taller than the window.
+  Released over an item within the half second, the emulator chose it in
+  22 of 47 trials and left the menu open in the rest, so that isn't
+  known; here such a release always chooses. The keyboard (arrows,
+  Return, Space, Escape, Tab, first letters) is Osmium's; Mac OS 8.0
+  ignores keys in menus. An alert closes the menu, and none opens under
+  one. The demo's Finder rows, desktop and desktop icons have contextual
+  menus.
+- Add chasing arrows (`mountChasingArrows`, `.osm-arrows`): the
+  Appearance Manager's asynchronous arrows, 16 x 16, with `start()`,
+  `stop()` and `destroy()`. The eight frames are the bitmaps in Mac OS
+  8.0's Appearance Extension (CDEF 7, "Chasing Arrows"), in black, or
+  in 88 in an inactive window, where they keep turning. Captured from
+  Mac OS 8.0's Finder in an emulator (a window header while it expands
+  folders), all eight frames match those bitmaps in both states, and
+  Osmium's renders match the captures with 0 differing pixels over the
+  arrows and a 1px margin. They step every 6 ticks (100 ms), the
+  Finder's pace in the emulator when it wasn't busy (the CDEF allows
+  2); not checked on real hardware.
+  Inside a placard they sit where the Finder puts them, 4px in and 2px
+  down. Not Mac OS: stopped arrows draw nothing and are `aria-hidden`,
+  and `prefers-reduced-motion` holds frame 0. The disabled look was
+  not captured and isn't offered.
+- The demo's Finder window turns chasing arrows in its header for two
+  seconds whenever it opens, in place of the header's text.
+- Add the indeterminate progress bar, Mac OS 8's barber pole: add
+  `osm-indeterminate` to `.osm-progress` (CSS only; mark it
+  `role="progressbar"` without `aria-valuenow`). The stripe tile is
+  read from Mac OS 8.0's Appearance Extension ('CDEF' 5, the same in
+  8.1): each row 8px of an accent color and 8px of a gray, one pixel
+  further right than the row above, the accent running A5 A4 A3 A2 A1
+  A2 A3 A4 A5 A6 down the ten rows over 55 77 aa bb ff dd bb 99 77 55,
+  and A2 over dd in an inactive window, where the rim goes and the
+  stripes keep moving. QuickDraw never started a stripe in the last
+  column, which repeats the one before it; Osmium does the same at any
+  width. The stripes follow `setAppearance`, through a new accent
+  palette key, `j` (A5). Captures of the Finder's "Preparing to copy…"
+  bar render with 0 differing pixels over the bar, its rim and 1px of
+  window around it: Mac OS 8.0 in Lavender and Ivy, active and
+  inactive, and Mac OS 8.5 in Lavender. Every captured step (96 in 8.0,
+  13 in 8.5) moved the stripes 4px right, as the CDEF's four phases do.
+  The pace is the Finder's, not the control's: the CDEF steps whenever
+  the application idles it, at most every 2 ticks. Osmium steps
+  alternately 6 and 19 ticks apart (a 50-tick cycle), the pace 8.0's
+  Finder kept in the emulator (Infinite Mac, at an unknown emulated
+  CPU speed) while it counted the items to copy: 84 intervals in 12
+  runs, 5 to 9 and 16 to 21 ticks, with the short wait on different
+  steps from run to run. 8.5's Finder there stepped every 16 to 34
+  ticks. The first frame is 8.0's CDEF's first, which stays still
+  under `prefers-reduced-motion`. The Finder showed it for about 13
+  ticks (4 to 23), as the CDEF's first idle call redraws it before
+  stepping; Osmium shows it for 6. Derived, not captured: 8.0 accents
+  other than Lavender and Ivy (the CDEF reads the same entries of any
+  table) and 8.5 variations other than Lavender. Not included: the
+  1-bit black and white stripes.
+- The demo's Controls dialog has an indeterminate progress bar beside
+  its buttons.
 - Add text views (`mountTextView`): a document window's text as
   TeachText and SimpleText show it in Mac OS 8, on a native textarea.
   White, wrapped to the width with no horizontal scrolling, a vertical
