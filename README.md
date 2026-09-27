@@ -44,6 +44,10 @@ information window (class `osm-info`, whose text dims when inactive).
   from Mac OS 8.0's Finder; the movable title bar and the note icon
   come from the Mac OS 8 HIG's figures.
 
+**Colors.** The Appearance control panel's accent and highlight
+colors, from Apple's own tables for Mac OS 8.0 and 8.5, or any color
+(see [Accent and highlight colors](#accent-and-highlight-colors)).
+
 **Fonts.** Charcoal 12, Geneva 10 and Geneva 9 as bitmap strikes. They
 are compiled into TrueType fonts in the browser at startup, with
 QuickDraw-style synthesized bold for Charcoal 12 and Geneva 10, so
@@ -411,12 +415,69 @@ Some of the alert is derived rather than measured (the explanation's
 spacing, the third button's place, how buttons and the alert grow);
 the CHANGELOG lists which parts.
 
+### Accent and highlight colors
+
+Mac OS 8's Appearance control panel has two color settings. The
+accent color (8.5 calls it the variation) draws menu highlights,
+scroll and slider thumbs, progress bars and focus rings; the highlight
+color draws selected list rows and selected text. Osmium starts with
+Lavender and the Purple highlight. `setAppearance` changes either for
+the whole page, at any time:
+
+```ts
+import { nearestAccent, setAppearance } from "osmium-ui";
+
+setAppearance({ accent: { release: "8.0", name: "Gold" } });
+setAppearance({ highlight: "black-white" });
+// Any color: a derived accent ramp, or the panel's Other… highlight.
+setAppearance({ accent: { color: "#007AFF" },
+                highlight: { color: "#b3d7ff" } });
+// Or Apple's table that looks closest to a color, such as the host
+// system's accent.
+setAppearance({ accent: nearestAccent("#007AFF", "8.5") });
+```
+
+The named colors are Apple's own tables, read from the system
+software: Mac OS 8.0's 18 accent colors and 9 highlight colors
+(`release: "8.0"`), and Mac OS 8.5's 20 variations and 9 highlight
+colors (`release: "8.5"`). Some names mean different colors in the two
+releases. A progress bar's center row is white with an 8.0 accent and
+the accent's lightest color with an 8.5 one, as each release draws it.
+Black & White is only a highlight: it inverts, white text on black. A
+colored highlight keeps black text, as on a Mac, so choose a light one.
+`getAppearance()` returns the current setting. Invalid input throws
+and changes nothing.
+
+Not Mac OS:
+
+- An accent from `{ color }` is derived around that color (it becomes
+  the swatch color, A3). Apple offered only its tables.
+- Focus rings use the accent's A3, as Mac OS draws an edit text's
+  ring, unless A3 has less than 3:1 contrast on the `#dddddd` dialog
+  face; then they use the first darker accent color that has it. Gold
+  and Pistachio, for example, get darker rings than Apple's.
+- The Mac OS 8.0 default highlight is unclear: captures from one
+  machine show Black & White, from another Purple. Osmium uses Purple,
+  the default of Mac OS 8.5's standard theme.
+
+Menu highlights keep Apple's white text on every accent, which is hard
+to read on the light 8.5 variations: about 1.9:1 on Pistachio, 2.2:1 on
+Sunny and 3.5:1 on Poppy.
+
+Your own styles can follow the setting through custom properties on
+the root: `--osm-accent-0` (lightest) to `--osm-accent-7` (black),
+`--osm-highlight` and `--osm-highlight-text`, and `--osm-focus-ring`.
+
 ### Your own icons
 
 Sprites are pixel grids, one character per pixel. Hex digits are gray
 levels (`0` is black, `f` white), other letters are palette colors
-(`g` to `z`, or uppercase), and `.` is transparent. Register yours and
-use them as custom properties:
+(`g` to `z`, or uppercase), and `.` is transparent. Osmium's own
+letters are the accent ramp (`w`, `q`, `p`, `m`, `l`, `n` from lightest
+to darkest, Lavender unless the sprite follows the accent, and `h`, a
+progress bar's center row) and the alert icons' colors (`R`, `P`, `M`,
+`N`, `Y`, `K`, `k`, `y`, `s`); your palette may redefine any of them.
+Register yours and use them as custom properties:
 
 ```ts
 import { registerSprites } from "osmium-ui";
@@ -431,6 +492,10 @@ registerSprites({
 // Now available as var(--osm-sprite-icon-disk), for example as a
 // bevel button's --osm-icon.
 ```
+
+Icons keep their colors when the accent changes. For a sprite drawn in
+the accent ramp that should follow it, as the demo's menu bar logo
+does, pass `{ accent: "follow" }` as a third argument.
 
 ## Native windows on macOS
 
