@@ -12,6 +12,7 @@ import { MENU_SEPARATOR, bindDialogKeys, mountPopup } from "./controls.js";
 import { hostWindow } from "./host.js";
 import type { WindowOp } from "./host.js";
 import { mountMenuBar } from "./menubar.js";
+import { isModal, onModalChange } from "./modal.js";
 import { mountWindow } from "./window.js";
 
 const FLASH = 150; // past the 8-tick (133 ms) flash
@@ -578,6 +579,45 @@ describe("alerts and windows", () => {
     key(document.body, "Escape");
     await wait();
     expect(ops.some((o) => o.op === "winClose")).toBe(true);
+  });
+});
+
+describe("onModalChange", () => {
+  it("reports the page turning modal and back, once each", async () => {
+    const seen: boolean[] = [];
+    const unsubscribe = onModalChange((m) => seen.push(m));
+    const a = show();
+    expect(seen).toEqual([true]);
+    const b = show(); // over the first: still modal
+    a.close();
+    await a.result;
+    expect(seen).toEqual([true]);
+    b.close();
+    await b.result;
+    expect(seen).toEqual([true, false]);
+    unsubscribe();
+    const c = show();
+    c.close();
+    await c.result;
+    expect(seen).toEqual([true, false]);
+    unsubscribe(); // again: nothing to do
+  });
+
+  it("runs after the parent window is drawn as the alert left it", async () => {
+    vi.spyOn(console, "error").mockImplementation(() => {});
+    const el = document.createElement("div");
+    document.body.append(el);
+    const win = mountWindow(el, { title: "Report", activation: "manual" });
+    const drawn: boolean[] = [];
+    const unsubscribe = onModalChange((m) => {
+      expect(isModal()).toBe(m);
+      drawn.push(el.classList.contains("osm-inactive"));
+    });
+    const a = show({ parent: win });
+    a.close();
+    await a.result;
+    expect(drawn).toEqual([true, false]);
+    unsubscribe();
   });
 });
 

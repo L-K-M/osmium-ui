@@ -19,7 +19,7 @@
 // document window that shouldn't.
 import { isModal } from "./modal.js";
 import { mountWindow } from "./window.js";
-import type { OsmiumWindow } from "./window.js";
+import type { Activation, OsmiumWindow } from "./window.js";
 
 export interface Size { w: number; h: number }
 
@@ -44,6 +44,11 @@ export interface HostOptions {
   native?: boolean;
   /** What Escape does. Defaults to "close". */
   escape?: EscapeKey;
+  /** What draws the window active. Defaults to "page": the page's
+   * focus, and inactive while an alert is up. With "manual" only
+   * `window.setActive` and alerts with this window as `parent` do: the
+   * app follows the native window's key state itself. */
+  activation?: Activation;
 }
 
 /** What Escape does in a hosted window. */
@@ -63,6 +68,11 @@ export interface HostedWindow {
    * does. */
   setShaded(on: boolean): void;
   close(): void;
+  /** Remove every listener and observer hostWindow and the window added
+   * to the page (Escape, resize, a grow in progress, and the window's
+   * own, see OsmiumWindow.destroy), so the window can be hosted again
+   * without leaks. The chrome stays; take the element out yourself. */
+  destroy(): void;
 }
 
 type Handlers = { osmium?: { postMessage(m: unknown): void } };
@@ -84,6 +94,7 @@ export function hostWindow(el: HTMLElement,
   const native = opts.native ?? (opts.post !== undefined || !!handler());
   const post = opts.post ?? ((op: WindowOp) => handler()?.postMessage(op));
   let shaded = false;
+  let destroyed = false;
 
   const close = () => {
     post({ op: "winClose" });
@@ -109,9 +120,12 @@ export function hostWindow(el: HTMLElement,
     post({ op: "winShade", on });
   };
 
+  /** Ends the grow in a browser tab that is in progress, if one is. */
+  let endGrow: (() => void) | null = null;
   const grow = (e: PointerEvent) => {
     e.preventDefault();
     if (native) { post({ op: "winGrow" }); return; }
+    endGrow?.(); // one grow at a time
     // In a tab: resize the drawn window itself, top-left pinned.
     const min = opts.grow!.min;
     const r = el.getBoundingClientRect();
@@ -125,11 +139,15 @@ export function hostWindow(el: HTMLElement,
         el.style.height = `${Math.max(min.h, h0 + ev.clientY - y0)}px`;
     };
     const up = (ev: PointerEvent) => {
-      if (ev.pointerId !== e.pointerId) return;
+      if (ev.pointerId === e.pointerId) stop();
+    };
+    const stop = () => {
       window.removeEventListener("pointermove", move);
       window.removeEventListener("pointerup", up);
       window.removeEventListener("pointercancel", up);
+      endGrow = null;
     };
+    endGrow = stop;
     window.addEventListener("pointermove", move);
     window.addEventListener("pointerup", up);
     window.addEventListener("pointercancel", up);
@@ -137,6 +155,7 @@ export function hostWindow(el: HTMLElement,
 
   const win = mountWindow(el, {
     title: opts.title,
+    ...(opts.activation ? { activation: opts.activation } : {}),
     onClose: close,
     ...(opts.zoom ? { onZoom: zoom } : {}),
     onCollapse: () => setShade(!shaded),
@@ -154,33 +173,42 @@ export function hostWindow(el: HTMLElement,
   // search field clears), or a dialog's bindDialogKeys takes it from a
   // single-line edit text to press Cancel. While an alert is up
   // (showAlert), Escape is the alert's.
-  if ((opts.escape ?? "close") === "close") {
-    window.addEventListener("keydown", (e) => {
-      if (e.key !== "Escape" || e.repeat || isModal()) return;
-      const t = e.target instanceof Element ? e.target : null;
-      if (t?.closest("input:not([type=checkbox]):not([type=range]), " +
-                     "textarea, [contenteditable]")) return;
-      setTimeout(() => { if (!e.defaultPrevented) close(); });
-    });
-  }
+  const onEscape = (e: KeyboardEvent) => {
+    if (e.key !== "Escape" || e.repeat || isModal()) return;
+    const t = e.target instanceof Element ? e.target : null;
+    if (t?.closest("input:not([type=checkbox]):not([type=range]), " +
+                   "textarea, [contenteditable]")) return;
+    setTimeout(() => { if (!e.defaultPrevented && !destroyed) close(); });
+  };
+  const closeOnEscape = (opts.escape ?? "close") === "close";
+  if (closeOnEscape) window.addEventListener("keydown", onEscape);
 
   // A reload resets the page's fold state: put the native window back
   // in step (a no-op when it isn't shaded; ignored in a tab).
   post({ op: "winShade", on: false });
   let lastH = window.innerHeight;
-  window.addEventListener("resize", () => {
+  const onResize = () => {
     const h = window.innerHeight;
     if (shaded && lastH <= SHADED_MAX_H && h > SHADED_MAX_H) {
       shaded = false;
       win.setShaded(false);
     }
     lastH = h;
-  });
+  };
+  window.addEventListener("resize", onResize);
 
   return {
     window: win,
     get shaded() { return shaded; },
     setShaded: (on) => { if (on !== shaded) setShade(on); },
     close,
+    destroy() {
+      if (destroyed) return;
+      destroyed = true;
+      endGrow?.();
+      if (closeOnEscape) window.removeEventListener("keydown", onEscape);
+      window.removeEventListener("resize", onResize);
+      win.destroy();
+    },
   };
 }

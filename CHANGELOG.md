@@ -2,6 +2,31 @@
 
 ## Unreleased
 
+- Hosted windows take `activation`: `"page"` (the default, as before)
+  or `"manual"`, where the page's focus and blur leave the window alone
+  and only `window.setActive()` and alerts with the window as `parent`
+  change it. An alert still draws its parent inactive and gives it back
+  the state it found. `isModal()` and `onModalChange(listener)` are
+  exported; the listener hears the page turn modal and back, once each
+  time the alert stack goes from empty to not and back, after the
+  parent is redrawn. `HostedWindow.destroy()` and
+  `OsmiumWindow.destroy()` remove every listener and observer they
+  added to the page (Escape, resize, a grow in progress, focus, blur,
+  the modal change, the title's resize observer), so a window can be
+  hosted and taken down again and again without leaks.
+- List views take `setEmptyText` and `setLoadingText`, which update a
+  shown placeholder in place. Their `destroy()` now also destroys the
+  scroll bars, stops re-centering the placeholder and removes the
+  host's listeners, so no resize observer is left observing and a host
+  can take a new list view. List boxes (`mountList`) and text areas
+  (`mountTextArea`) get a `destroy()` as well.
+- Pop-up menus take `{ title, disabled }` items besides strings and
+  `MENU_SEPARATOR`: a disabled one is drawn dimmed, like a menu bar's
+  dimmed items, and the pointer, the arrow keys and type-select pass it
+  by; it can still be the current item. String items and enabled
+  object items are drawn as before. `Popup.destroy()` closes an open
+  menu, ends a press on the button and removes every listener and
+  registration the pop-up made.
 - Add text views (`mountTextView`): a document window's text as
   TeachText and SimpleText show it in Mac OS 8, on a native textarea.
   White, wrapped to the width with no horizontal scrolling, a vertical

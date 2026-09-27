@@ -117,13 +117,20 @@ export function centerText(el: HTMLElement, roundUp = false): void {
     el.style.textIndent = `${centeredOffset(inner, adv, roundUp)}px`;
   };
   if (!centered.has(el)) {
-    centered.add(el);
-    new ResizeObserver(apply).observe(el);
+    const ro = new ResizeObserver(apply);
+    centered.set(el, ro);
+    ro.observe(el);
     void installOsmium().catch(() => {}).finally(apply);
   }
   apply();
 }
-const centered = new WeakSet<HTMLElement>();
+const centered = new WeakMap<HTMLElement, ResizeObserver>();
+
+/** Stop re-centering `el` when it resizes: its owner is going away. */
+export function stopCentering(el: HTMLElement): void {
+  centered.get(el)?.disconnect();
+  centered.delete(el);
+}
 
 // ---- push buttons -----------------------------------------------------
 
@@ -289,10 +296,20 @@ export function swallowClick(): void {
   setTimeout(() => document.addEventListener("pointerdown", done, true));
 }
 
+/** A pop-up menu item as an object: a `disabled` one is drawn dimmed,
+ * and neither the pointer nor the keyboard (arrows, type-select) can
+ * highlight or choose it. */
+export interface PopupItem {
+  readonly title: string;
+  readonly disabled?: boolean;
+}
+
 export interface PopupOptions {
-  /** The menu's items, with MENU_SEPARATOR for a dividing line. */
-  items: readonly (string | MenuSeparator)[];
-  /** The current item's index; never a separator's. */
+  /** The menu's items: titles, PopupItem objects, and MENU_SEPARATOR
+   * for a dividing line. */
+  items: readonly (string | PopupItem | MenuSeparator)[];
+  /** The current item's index; never a separator's. A dimmed item can
+   * be current: the button shows it and the menu checks it. */
   selected: number;
   onChange(index: number): void;
   label?: string;
@@ -300,8 +317,14 @@ export interface PopupOptions {
 
 export interface Popup {
   readonly selected: number;
-  setItems(items: readonly (string | MenuSeparator)[], selected: number): void;
+  setItems(items: readonly (string | PopupItem | MenuSeparator)[],
+           selected: number): void;
   setSelected(index: number): void;
+  /** Close an open menu, end a press on the button, and remove every
+   * listener and registration the pop-up made, so the button can be
+   * mounted again. The button keeps its title; setItems and
+   * setSelected throw afterwards. */
+  destroy(): void;
 }
 
 let popupSeq = 0;
@@ -331,14 +354,27 @@ export function mountPopup(btn: HTMLButtonElement,
   let returnFocus: HTMLElement | null = null;
   // Unregisters close from the alerts' menu closing (modal.ts).
   let unwatchModal: (() => void) | null = null;
+  // The button's listeners, and the window's during a press on it,
+  // removed by destroy().
+  const listening = new AbortController();
+  const signal = listening.signal;
+  let destroyed = false;
   const id = `osm-popup-${++popupSeq}`;
   btn.setAttribute("aria-haspopup", "listbox");
   btn.setAttribute("aria-expanded", "false");
 
-  const isItem = (i: number) => typeof items[i] === "string";
+  /** Entry `i`'s title; null for a separator or past the end. */
+  const titleOf = (i: number): string | null => {
+    const t = items[i];
+    return typeof t === "string" ? t : typeof t === "object" ? t.title : null;
+  };
+  /** Whether entry `i` is an item that can be highlighted and chosen. */
+  const choosable = (i: number): boolean => {
+    const t = items[i];
+    return typeof t === "string" || (typeof t === "object" && !t.disabled);
+  };
   const render = () => {
-    const text = items[selected];
-    btn.textContent = typeof text === "string" ? text : "";
+    btn.textContent = titleOf(selected) ?? "";
     // An aria-label replaces a button's content in its name, so it
     // carries the current item too.
     if (opts.label)
@@ -348,7 +384,7 @@ export function mountPopup(btn: HTMLButtonElement,
 
   function highlight(i: number): void {
     if (!menu) return;
-    hi = isItem(i) ? i : -1;
+    hi = choosable(i) ? i : -1;
     Array.from(menu.children).forEach((li, k) =>
       li.classList.toggle("osm-highlight", k === hi));
     if (hi >= 0) menu.setAttribute("aria-activedescendant", `${id}-${hi}`);
@@ -361,11 +397,11 @@ export function mountPopup(btn: HTMLButtonElement,
     return Array.from(menu.children).findIndex((li) => inside(li, x, y));
   }
 
-  /** The next item from `from` in direction `d`, skipping separators;
-   * `from` itself when there's none. */
+  /** The next item from `from` in direction `d`, skipping separators
+   * and dimmed items; `from` itself when there's none. */
   function nextItem(from: number, d: 1 | -1): number {
     for (let i = from + d; i >= 0 && i < items.length; i += d)
-      if (isItem(i)) return i;
+      if (choosable(i)) return i;
     return from;
   }
 
@@ -381,8 +417,8 @@ export function mountPopup(btn: HTMLButtonElement,
     menu.setAttribute("role", "listbox");
     menu.tabIndex = -1;
     if (opts.label) menu.setAttribute("aria-label", opts.label);
-    items.forEach((text, i) => {
-      if (text === MENU_SEPARATOR) {
+    items.forEach((item, i) => {
+      if (item === MENU_SEPARATOR) {
         menu!.appendChild(menuSeparator());
         return;
       }
@@ -390,15 +426,18 @@ export function mountPopup(btn: HTMLButtonElement,
       li.id = `${id}-${i}`;
       li.setAttribute("role", "option");
       li.setAttribute("aria-selected", String(i === selected));
-      li.textContent = text;
+      if (!choosable(i)) li.setAttribute("aria-disabled", "true");
+      li.textContent = titleOf(i);
       menu!.appendChild(li);
     });
     document.body.appendChild(menu);
     // The menu covers the text part of the button (outline to the
     // arrow's separator) and grows to fit its widest item, kept on
     // screen together with its 2px shadow.
-    const widest = Math.max(0, ...items.map((t) =>
-      typeof t === "string" ? textWidth(t, btn) : 0));
+    const widest = Math.max(0, ...items.map((_, i) => {
+      const t = titleOf(i);
+      return t === null ? 0 : textWidth(t, btn);
+    }));
     const w = Math.max(Math.round(r.width) - ARROW_W, widest + ITEM_PAD);
     const h = entryTop(items, items.length) + 2;
     const above = entryTop(items, Math.max(0, selected));
@@ -465,7 +504,7 @@ export function mountPopup(btn: HTMLButtonElement,
 
   function choose(i: number): void {
     const m = menu;
-    if (!m || !isItem(i)) return;
+    if (!m || !choosable(i)) return;
     // One blink of the chosen item, then the menu goes away.
     m.querySelectorAll(".osm-menu-item").forEach((li) =>
       li.classList.remove("osm-highlight"));
@@ -508,8 +547,7 @@ export function mountPopup(btn: HTMLButtonElement,
       const from = hi + 1;
       for (let d = 0; d < n; d++) {
         const i = (from + d) % n;
-        const t = items[i];
-        if (typeof t === "string" && t.toLowerCase().startsWith(k)) {
+        if (choosable(i) && titleOf(i)!.toLowerCase().startsWith(k)) {
           highlight(i);
           break;
         }
@@ -534,9 +572,10 @@ export function mountPopup(btn: HTMLButtonElement,
       if (ev.type === "pointercancel") return;
       const i = itemAt(ev.clientX, ev.clientY);
       const moved = Math.abs(ev.clientX - x0) + Math.abs(ev.clientY - y0) > 3;
-      // A drag that ends on a separator chooses nothing.
+      // A drag that ends on a separator or a dimmed item chooses
+      // nothing.
       if (i >= 0 && moved) {
-        if (isItem(i)) choose(i); else close();
+        if (choosable(i)) choose(i); else close();
       } else if (moved && !inside(btn, ev.clientX, ev.clientY) &&
                !(menu && inside(menu, ev.clientX, ev.clientY))) close();
     };
@@ -544,32 +583,47 @@ export function mountPopup(btn: HTMLButtonElement,
       if (ev.pointerId === e.pointerId)
         highlight(itemAt(ev.clientX, ev.clientY));
     };
-    window.addEventListener("pointerup", up, true);
-    window.addEventListener("pointercancel", up, true);
-    window.addEventListener("pointermove", move, true);
-  });
+    const capture = { capture: true, signal };
+    window.addEventListener("pointerup", up, capture);
+    window.addEventListener("pointercancel", up, capture);
+    window.addEventListener("pointermove", move, capture);
+  }, { signal });
   btn.addEventListener("keydown", (e) => {
     if (["ArrowDown", "ArrowUp", " ", "Enter"].includes(e.key)) {
       e.preventDefault();
       if (!e.repeat) open(true);
     }
-  });
+  }, { signal });
   btn.addEventListener("click", (e) => {
     if (e.detail === 0 && !menu) open(true); // assistive tech
-  });
+  }, { signal });
+
+  const alive = () => {
+    if (destroyed) throw new Error("this pop-up was destroyed");
+  };
 
   return {
     get selected() { return selected; },
     setItems(next, sel) {
+      alive();
       close();
       items = [...next];
       selected = sel;
       render();
     },
     setSelected(i) {
+      alive();
       close();
       selected = i;
       render();
+    },
+    destroy() {
+      if (destroyed) return;
+      destroyed = true;
+      close();
+      listening.abort();
+      btn.removeAttribute("aria-haspopup");
+      btn.removeAttribute("aria-expanded");
     },
   };
 }
@@ -843,6 +897,10 @@ export interface OsmiumList {
   select(index: number, notify?: boolean): void;
   /** Placeholder line shown centered when there are no rows. */
   setEmpty(text: string): void;
+  /** Take the list out of `host`: destroy its scroll bars, stop
+   * observing and listening, and remove what mounting added to the
+   * host. The other methods throw afterwards. */
+  destroy(): void;
 }
 
 let listSeq = 0;
@@ -882,6 +940,9 @@ export function mountList(host: HTMLElement, opts: ListOptions): OsmiumList {
     }, { passive: true });
   }
   const empty = part("div", "osm-list-empty");
+  // The host's listeners, removed by destroy() (the view's go with it).
+  const listening = new AbortController();
+  let destroyed = false;
   let rows: HTMLElement[] = [];
   let sel = -1;
   let typed = "";
@@ -1000,13 +1061,18 @@ export function mountList(host: HTMLElement, opts: ListOptions): OsmiumList {
     if (i === null) return;
     e.preventDefault();
     select(i);
-  });
+  }, { signal: listening.signal });
+
+  const alive = () => {
+    if (destroyed) throw new Error("this list was destroyed");
+  };
 
   return {
     element: host,
     get selected() { return sel; },
     get rows() { return rows; },
     setRows(next, { keep = -1, scroll = "top" } = {}) {
+      alive();
       const top = view.scrollTop;
       view.textContent = "";
       rows = next;
@@ -1026,14 +1092,27 @@ export function mountList(host: HTMLElement, opts: ListOptions): OsmiumList {
       sb.update();
       hsb?.update();
     },
-    select: (i, notify) => select(i, notify),
+    select: (i, notify) => { alive(); select(i, notify); },
     setEmpty(text) {
+      alive();
       empty.textContent = text;
       if (!rows.length) {
         view.textContent = "";
         if (text) view.appendChild(empty);
       }
       if (text) centerText(empty);
+    },
+    destroy() {
+      if (destroyed) return;
+      destroyed = true;
+      listening.abort();
+      sb.destroy();
+      hsb?.destroy();
+      stopCentering(empty);
+      view.remove();
+      host.classList.remove("osm-list");
+      for (const name of ["role", "aria-label", "aria-activedescendant",
+                          "tabindex"]) host.removeAttribute(name);
     },
   };
 }

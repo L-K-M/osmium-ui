@@ -29,6 +29,23 @@ export function isModal(): boolean {
   return document.documentElement.classList.contains(MODAL_CLASS);
 }
 
+/** Call `listener` with isModal()'s new value each time the page turns
+ * modal (the first alert opens) or stops (the last one closes); alerts
+ * opening over or closing under another don't call it. A parent window
+ * (showAlert's `parent`) is already drawn as the alert left it when the
+ * listener runs. Returns a function that unsubscribes it. */
+export function onModalChange(listener: (modal: boolean) => void): () => void {
+  let last = isModal();
+  const changed = () => {
+    const now = isModal();
+    if (now === last) return;
+    last = now;
+    listener(now);
+  };
+  window.addEventListener(MODAL_CHANGE, changed);
+  return () => window.removeEventListener(MODAL_CHANGE, changed);
+}
+
 // Open pop-up and menu bar menus register here, so an alert can close
 // them as it opens: a menu left open under it would keep taking Return
 // and Escape (menus listen in the capture phase).

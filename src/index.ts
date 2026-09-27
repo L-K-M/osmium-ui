@@ -26,7 +26,7 @@ export {
 } from "./controls.js";
 export type {
   ListOptions, ListScroll, ListScrollbars, MenuSeparator, OsmiumList, Popup,
-  PopupOptions, ScrollAxis, Scrollbar, SetRowsOptions,
+  PopupItem, PopupOptions, ScrollAxis, Scrollbar, SetRowsOptions,
 } from "./controls.js";
 export { mountListView } from "./listview.js";
 export type {
@@ -56,6 +56,7 @@ export type {
   BalloonContent, BalloonHelpState, BalloonOptions, BalloonTip,
   BalloonTrigger, BalloonVariant, OsmiumBalloon,
 } from "./balloon.js";
+export { isModal, onModalChange } from "./modal.js";
 export { showAlert } from "./alert.js";
 export type {
   AlertButton, AlertButtons, AlertKind, AlertModality, AlertOptions,

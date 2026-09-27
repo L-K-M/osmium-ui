@@ -86,6 +86,49 @@ describe("mountTextArea", () => {
   });
 });
 
+describe("mountTextArea's destroy", () => {
+  beforeEach(() => { document.body.textContent = ""; });
+  afterEach(() => {
+    vi.unstubAllGlobals();
+    vi.restoreAllMocks();
+  });
+
+  it("takes the scroll bar out and stops following the text", () => {
+    // Every ResizeObserver the text area makes, and whether it was let go.
+    const made: { disconnected: boolean }[] = [];
+    vi.stubGlobal("ResizeObserver", class {
+      private readonly rec = { disconnected: false };
+      constructor() { made.push(this.rec); }
+      observe() {}
+      unobserve() {}
+      disconnect() { this.rec.disconnected = true; }
+    });
+    const host = document.createElement("div");
+    const ta = document.createElement("textarea");
+    host.append(ta);
+    document.body.append(host);
+    const add = vi.spyOn(ta, "addEventListener");
+    const remove = vi.spyOn(ta, "removeEventListener");
+    const area = mountTextArea(host);
+    expect(made).toHaveLength(1);
+    expect(add.mock.calls.map((c) => c[0]).sort()).toEqual(["input", "scroll"]);
+
+    area.destroy();
+    expect(made[0]!.disconnected).toBe(true);
+    for (const [type, fn] of add.mock.calls) {
+      expect(remove.mock.calls.some((c) => c[0] === type && c[1] === fn))
+        .toBe(true);
+    }
+    // The framed textarea stays, without its scroll bar.
+    expect(host.querySelector(".osm-scrollbar")).toBeNull();
+    expect(host.classList.contains("osm-has-scrollbar")).toBe(false);
+    expect(host.classList.contains("osm-edit-area")).toBe(true);
+    expect(ta.parentElement).toBe(host);
+    expect(() => area.update()).toThrow(/destroyed/);
+    area.destroy(); // again: nothing to do
+  });
+});
+
 describe("attachScrollbar's destroy", () => {
   beforeEach(() => {
     document.body.textContent = "";

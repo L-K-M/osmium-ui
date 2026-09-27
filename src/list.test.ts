@@ -1,5 +1,5 @@
 // @vitest-environment happy-dom
-import { beforeEach, describe, expect, it } from "vitest";
+import { afterEach, beforeEach, describe, expect, it, vi } from "vitest";
 import { mountList } from "./controls.js";
 
 const ROW_H = 16;
@@ -80,5 +80,47 @@ describe("mountList", () => {
     view.dispatchEvent(new Event("scroll"));
     tap(view, 3 * ROW_H + 4, "mouse");
     expect(picked).toEqual([3]);
+  });
+});
+
+describe("mountList's destroy", () => {
+  afterEach(() => vi.unstubAllGlobals());
+
+  it("destroys its scroll bars, stops observing and cleans the host", () => {
+    // Every ResizeObserver the list makes, and whether it was let go.
+    const made: { targets: Node[]; disconnected: boolean }[] = [];
+    vi.stubGlobal("ResizeObserver", class {
+      private readonly rec = { targets: [] as Node[], disconnected: false };
+      constructor() { made.push(this.rec); }
+      observe(target: Node) { this.rec.targets.push(target); }
+      unobserve() {}
+      disconnect() { this.rec.disconnected = true; }
+    });
+    document.body.textContent = "";
+    const host = document.createElement("div");
+    document.body.append(host);
+    const picked: number[] = [];
+    const list = mountList(host, {
+      rowHeight: ROW_H, label: "Items", onSelect: (i) => picked.push(i),
+      scrollbars: "both",
+    });
+    list.setEmpty("No items"); // centered: observed too
+    list.setRows([document.createElement("div"),
+                  document.createElement("div")]);
+    // Two scroll bars and the placeholder.
+    expect(made).toHaveLength(3);
+
+    list.destroy();
+    expect(made.every((o) => o.disconnected)).toBe(true);
+    expect(host.children.length).toBe(0);
+    expect(host.className).toBe("");
+    for (const name of ["role", "aria-label", "tabindex"])
+      expect(host.hasAttribute(name)).toBe(false);
+    host.dispatchEvent(new KeyboardEvent("keydown", { key: "ArrowDown" }));
+    expect(picked).toEqual([]);
+    expect(() => list.setRows([])).toThrow(/destroyed/);
+    expect(() => list.select(1)).toThrow(/destroyed/);
+    expect(() => list.setEmpty("")).toThrow(/destroyed/);
+    list.destroy(); // again: nothing to do
   });
 });

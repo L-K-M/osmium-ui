@@ -40,6 +40,12 @@ export interface OsmiumWindow {
    * Deactivating hides a focused edit text's caret and ring but leaves
    * it the DOM focus: blur it, or typing still reaches it. */
   setActive(on: boolean): void;
+  /** Stop following the page: disconnect the title's resize observer
+   * and remove the focus, blur and modal-change listeners of "page"
+   * activation, so the window can be mounted again without leaks. The
+   * chrome stays and the methods still draw; take the element out of
+   * the page yourself. */
+  destroy(): void;
 }
 
 /** Where the Window Manager starts a title: centered on the whole
@@ -113,12 +119,14 @@ export function mountWindow(el: HTMLElement,
                          `${titleLeft(el.offsetWidth, adv)}px`);
     el.style.setProperty("--osm-title-w", `${adv}px`);
   };
-  new ResizeObserver(layout).observe(el);
+  const resize = new ResizeObserver(layout);
+  resize.observe(el);
+  let destroyed = false;
   installOsmium()
     .catch((err: unknown) => {
       console.error("Osmium fonts unavailable; using fallbacks", err);
     })
-    .finally(layout);
+    .finally(() => { if (!destroyed) layout(); });
 
   const setActive = (on: boolean) =>
     el.classList.toggle("osm-inactive", !on);
@@ -136,15 +144,18 @@ export function mountWindow(el: HTMLElement,
     }
     el.classList.toggle("osm-shaded", on);
   };
+  let unfollow = () => {};
   if ((opts.activation ?? "page") === "page") {
     // Active while the page has focus: the native shell gives every
     // Osmium window its own page, so page focus is window focus. An
     // alert (showAlert) is the front window while it's up, so the
     // window draws inactive behind it.
     const syncFocus = () => setActive(document.hasFocus() && !isModal());
-    window.addEventListener("focus", syncFocus);
-    window.addEventListener("blur", syncFocus);
-    window.addEventListener(MODAL_CHANGE, syncFocus);
+    const events = ["focus", "blur", MODAL_CHANGE];
+    for (const type of events) window.addEventListener(type, syncFocus);
+    unfollow = () => {
+      for (const type of events) window.removeEventListener(type, syncFocus);
+    };
     syncFocus();
   }
 
@@ -154,5 +165,11 @@ export function mountWindow(el: HTMLElement,
     setTitle(text) { title.textContent = text; layout(); },
     setShaded,
     setActive,
+    destroy() {
+      if (destroyed) return;
+      destroyed = true;
+      resize.disconnect();
+      unfollow();
+    },
   };
 }

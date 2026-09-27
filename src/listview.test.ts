@@ -333,6 +333,71 @@ describe("empty and loading", () => {
     list.setRows(hosts(1));
     expect(empty.hidden).toBe(true);
   });
+
+  it("changes the placeholder texts in place", () => {
+    const { list, q } = mount({ emptyText: "No hosts yet." }, []);
+    const empty = q(".osm-lv-empty");
+    list.setEmptyText("No hosts on this network.");
+    expect(q(".osm-lv-empty")).toBe(empty);
+    expect(empty.textContent).toBe("No hosts on this network.");
+    expect(empty.hidden).toBe(false);
+    // The loading text waits for loading, and the empty text for rows
+    // to go.
+    list.setLoadingText("Scanning 10.0.0.0/24...");
+    expect(empty.textContent).toBe("No hosts on this network.");
+    list.setLoading("loading");
+    expect(empty.textContent).toBe("Scanning 10.0.0.0/24...");
+    list.setLoadingText("Scanning 10.0.1.0/24...");
+    expect(empty.textContent).toBe("Scanning 10.0.1.0/24...");
+    list.setLoadingText("");
+    expect(empty.hidden).toBe(true);
+    list.setLoading("loaded");
+    list.setRows(hosts(1));
+    list.setEmptyText("Nothing here.");
+    expect(empty.hidden).toBe(true);
+    list.setRows([]);
+    expect(empty.textContent).toBe("Nothing here.");
+    expect(empty.hidden).toBe(false);
+    list.destroy();
+    expect(() => list.setEmptyText("x")).toThrow(/destroyed/);
+    expect(() => list.setLoadingText("x")).toThrow(/destroyed/);
+  });
+});
+
+describe("destroy", () => {
+  afterEach(() => vi.unstubAllGlobals());
+
+  it("destroys the scroll bars, leaving nothing observing or listening", () => {
+    // Every ResizeObserver the list makes, and whether it was let go.
+    const made: { targets: Node[]; disconnected: boolean }[] = [];
+    vi.stubGlobal("ResizeObserver", class {
+      private readonly rec = { targets: [] as Node[], disconnected: false };
+      constructor() { made.push(this.rec); }
+      observe(target: Node) { this.rec.targets.push(target); }
+      unobserve() {}
+      disconnect() { this.rec.disconnected = true; }
+    });
+    const add = vi.spyOn(HTMLElement.prototype, "addEventListener");
+    const { list, host, view, q } = mount({ emptyText: "No hosts." }, []);
+    const empty = q(".osm-lv-empty");
+    // Two scroll bars, the columns' layout and the centered placeholder.
+    expect(made).toHaveLength(4);
+    expect(made.flatMap((o) => o.targets)).toContain(empty);
+    const scroll = vi.spyOn(view, "removeEventListener");
+    list.destroy();
+    expect(made.every((o) => o.disconnected)).toBe(true);
+    expect(scroll.mock.calls.filter((c) => c[0] === "scroll")).toHaveLength(2);
+    expect(host.children.length).toBe(0);
+    // The host outlives the list: its listeners go too.
+    const onHost = add.mock.calls
+      .filter((_, i) => add.mock.contexts[i] === host);
+    expect(onHost.map((c) => c[0]).sort())
+      .toEqual(["contextmenu", "pointerdown"]);
+    for (const [, , o] of onHost) {
+      expect((o as AddEventListenerOptions | undefined)?.signal?.aborted)
+        .toBe(true);
+    }
+  });
 });
 
 describe("pointer", () => {

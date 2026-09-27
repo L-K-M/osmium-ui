@@ -29,7 +29,8 @@ information window (class `osm-info`, whose text dims when inactive).
 **Controls.**
 - Push buttons, including the default button's ring, pressed and dimmed.
 - Checkboxes and sliders with tick marks.
-- Pop-up buttons with their menus, and separators in them.
+- Pop-up buttons with their menus, and separators and dimmed items in
+  them.
 - The menu bar, with pull-down menus, check marks and keyboard
   equivalents, and menus an application swaps in while its window is in
   front.
@@ -217,9 +218,9 @@ window.
 | Push button | `<button class="osm-button">`, add `osm-default` for the ring | `pushButton(el, action)`, `setButtonTitle(el, text)` |
 | Checkbox | `<label class="osm-checkbox"><input type="checkbox"> Title</label>` | `trackHighlight(label)` |
 | Slider | `<div class="osm-slider"><input type="range" min="0" max="100"></div>` (125px wide, 100 steps) | native input |
-| Pop-up button | `<button class="osm-popup">`, with an optional `<label class="osm-popup-title">` | `mountPopup(el, { items, selected, onChange })`; put `MENU_SEPARATOR` among the items for a dividing line |
+| Pop-up button | `<button class="osm-popup">`, with an optional `<label class="osm-popup-title">` | `mountPopup(el, { items, selected, onChange })`; put `MENU_SEPARATOR` among the items for a dividing line, and `{ title, disabled: true }` for a dimmed item that can't be chosen. `destroy()` closes its menu and removes its listeners |
 | Menu bar | a `<div>` along the top of the page | `mountMenuBar(el, [{ title, items: () => [{ title, action, key }, MENU_SEPARATOR, …] }])`; an item without an `action` is dimmed, `key` is its keyboard equivalent, `checked` draws a check mark, and `icon` names a 16x16 sprite to show instead of a title; see [Menu bar](#menu-bar) |
-| List box | `<div>` with a height | `mountList(el, { rowHeight, label, onSelect })`, then `setRows(rows)`. `scrollbars: "both"` adds a horizontal bar (give the rows a `min-width`), and `header` keeps a list view's column headers scrolled with the rows |
+| List box | `<div>` with a height | `mountList(el, { rowHeight, label, onSelect })`, then `setRows(rows)`. `scrollbars: "both"` adds a horizontal bar (give the rows a `min-width`), and `header` keeps a list view's column headers scrolled with the rows. `destroy()` takes it out of the element again |
 | Scroll bar | a positioned `host` with a scrolling child `view` that leaves 15px on the right (or, for a horizontal bar, at the bottom) and hides its native scroll bars (as `mountList` sets up) | `attachScrollbar(host, view, lineHeight)`, or `attachScrollbar(host, view, step, "horizontal")` |
 | Bevel button | `<button class="osm-bevel">`, a 32x32 icon in `--osm-icon`, `osm-selected` for pushed in, a `.osm-bevel-caption` below. 40x40 as in Monitors & Sound; set an even `width` for wider ones, such as Desktop Pictures' 54px | `trackPress(el, action)` |
 | Group box | `<div class="osm-group"><div class="osm-group-title">Title</div>…</div>` | none |
@@ -273,7 +274,8 @@ For several lines, put a `<textarea>` in an `osm-edit-area`. On its own
 it is the Dialog Manager's multi-line edit text: the text wraps and is
 clipped, and it scrolls with the caret but has no scroll bar.
 `mountTextArea` adds an Osmium scroll bar that follows typing; call its
-`update()` after setting the text from a script. Disable a text area
+`update()` after setting the text from a script, and `destroy()` to
+take the scroll bar out and stop following the text. Disable a text area
 with `setEnabled`: the `disabled` attribute alone dims only its text,
 not its frame or scroll bar. Give the area a height of 16px per line
 plus 6px, so 54px for three lines:
@@ -583,6 +585,13 @@ buttons. While it is up the rest of the page is `inert`, menu bar
 titles dim, `bindDialogKeys` handlers stand down, and a window with
 `"page"` activation draws inactive.
 
+`isModal()` says whether an alert is up. `onModalChange(listener)`
+calls `listener(true)` when the first alert opens and `listener(false)`
+when the last one closes, not for alerts opening over or closing under
+another; the function it returns unsubscribes. By then a `parent` is
+drawn as the alert left it: [Native windows](#native-windows-on-macos)
+shows a `"manual"` window following both its shell and the alerts.
+
 Some of the alert is derived rather than measured (the explanation's
 spacing, the third button's place, how buttons and the alert grow);
 the CHANGELOG lists which parts.
@@ -722,6 +731,16 @@ sends one) is for the selected row.
 **Resize to fit.** `contentHeight` is the height the rows need (or the
 placeholder's, while there are none) and `viewportHeight` the height
 they have now; a zoom box or "resize to fit" adds the difference.
+
+**Placeholders.** While there are no rows, the list shows `loadingText`
+after `setLoading("loading")` and `emptyText` after
+`setLoading("loaded")` (the default). `setEmptyText` and
+`setLoadingText` change them later (to show a scan's progress, say),
+updating a shown placeholder in place; `""` shows none.
+
+**Taking it down.** `destroy()` releases every node from `cell`,
+destroys the scroll bars, disconnects the observers, removes the
+listeners and empties the host.
 
 **Long lists.** Up to 1000 rows, every row is in the DOM, laid out
 lazily with `content-visibility`. Above that (`rendering: "auto"`, the
@@ -893,6 +912,34 @@ counts as native.
 Escape closes a hosted window unless the page handles the key itself,
 the focus is in a text field, or an alert is up. Pass `escape: "ignore"` for a window
 that shouldn't close.
+
+A hosted window is active while its page has the focus. A shell that
+knows better which window is active (one whose web view keeps the
+focus while the app is in the background, say) passes
+`activation: "manual"`: the page's focus and blur then leave the window
+alone, and only `hosted.window.setActive()` and alerts with the window
+as `parent` change it. An alert gives the window back the state it
+found, so follow the shell and the alerts together:
+
+```ts
+import { hostWindow, isModal, onModalChange } from "osmium-ui";
+
+const hosted = hostWindow(document.getElementById("win")!, {
+  title: "Tank Overview", activation: "manual",
+});
+let key = true;
+const sync = () => hosted.window.setActive(key && !isModal());
+const unsubscribe = onModalChange(sync);
+// Where the shell reports its window's key state changing:
+function shellKeyChanged(isKey: boolean) { key = isKey; sync(); }
+```
+
+`hosted.destroy()` removes every listener and observer `hostWindow`
+and the window added to the page (Escape, resize, a grow in progress,
+focus, blur, the alerts' modal change and the title's resize observer),
+so a component can host a window, take it down and host one again
+without leaks. The chrome stays in the element; remove the element
+yourself. A window from `mountWindow` has the same `destroy()`.
 
 In a plain browser tab, the same page fills the tab and does what a tab
 can.
