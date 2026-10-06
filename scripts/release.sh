@@ -55,16 +55,18 @@ if git rev-parse --verify --quiet "refs/tags/$tag" >/dev/null; then
   exit 1
 fi
 
-# package.json is the version consumers resolve; the tag must agree with it.
-npm version "$version" --no-git-tag-version --allow-same-version
-
-# Keep the README release marker in step with the tag.
+# Keep the README release marker in step with the tag. Update it before
+# package.json, so a missing marker aborts before any mutation (the sed is
+# a no-op then and nothing has been touched).
 sed -i '' -E 's|(<!-- version -->)[^<]*(<!-- /version -->)|\1'"$version"'\2|' \
   "$REPOSITORY_ROOT/README.md"
 grep -Fq "<!-- version -->$version<!-- /version -->" "$REPOSITORY_ROOT/README.md" || {
-  echo "error: README.md release marker was not updated to $version" >&2
+  echo "error: README.md release marker was not updated to $version; expected '<!-- version -->$version<!-- /version -->'" >&2
   exit 1
 }
+
+# package.json is the version consumers resolve; the tag must agree with it.
+npm version "$version" --no-git-tag-version --allow-same-version
 
 "$SCRIPT_DIR/build.sh" --clean
 
