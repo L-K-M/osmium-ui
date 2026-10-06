@@ -55,12 +55,27 @@ if git rev-parse --verify --quiet "refs/tags/$tag" >/dev/null; then
   exit 1
 fi
 
+# Keep the README release marker in step with the tag. Update it before
+# package.json, so a missing marker aborts before any mutation (the sed is
+# a no-op then and nothing has been touched). Guard the version first so an
+# npm-rejected tag also aborts before the sed rewrites README.md.
+if ! printf '%s\n' "$version" | grep -Eq '^(0|[1-9][0-9]*)\.(0|[1-9][0-9]*)\.(0|[1-9][0-9]*)(-((0|[1-9][0-9]*|[0-9]*[A-Za-z-][0-9A-Za-z-]*)(\.(0|[1-9][0-9]*|[0-9]*[A-Za-z-][0-9A-Za-z-]*))*))?([+]([0-9A-Za-z-]+(\.[0-9A-Za-z-]+)*))?$'; then
+  echo "error: '$version' is not a plain semver version; aborting before any file is touched" >&2
+  exit 1
+fi
+sed -i '' -E 's|(<!-- version -->)[^<]*(<!-- /version -->)|\1'"$version"'\2|' \
+  "$REPOSITORY_ROOT/README.md"
+grep -Fq "<!-- version -->$version<!-- /version -->" "$REPOSITORY_ROOT/README.md" || {
+  echo "error: README.md release marker was not updated to $version; expected '<!-- version -->$version<!-- /version -->'" >&2
+  exit 1
+}
+
 # package.json is the version consumers resolve; the tag must agree with it.
 npm version "$version" --no-git-tag-version --allow-same-version
 
 "$SCRIPT_DIR/build.sh" --clean
 
-git add package.json package-lock.json
+git add package.json package-lock.json "$REPOSITORY_ROOT/README.md"
 git commit -s -m "Release osmium-ui $version" \
   -m "Bump the package version and publish the release tag."
 git tag -a "$tag" -m "osmium-ui $version"

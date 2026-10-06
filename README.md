@@ -3,6 +3,8 @@
 > [!IMPORTANT]
 > LLM disclosure: This codebase was written with substantial help from large language models: AI coding agents working from the [`AGENTS.md`](AGENTS.md) brief in this repo.
 
+**Latest release:** v<!-- version -->0.3.1<!-- /version --> · [Download](https://github.com/L-K-M/osmium-ui/releases/latest)
+
 The Mac OS 8 look, pixel for pixel, for web pages and WKWebView apps.
 
 <p align="center">
