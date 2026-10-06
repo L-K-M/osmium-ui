@@ -61,6 +61,10 @@ npm version "$version" --no-git-tag-version --allow-same-version
 # Keep the README release marker in step with the tag.
 sed -i '' -E 's|(<!-- version -->)[^<]*(<!-- /version -->)|\1'"$version"'\2|' \
   "$REPOSITORY_ROOT/README.md"
+grep -Fq "<!-- version -->$version<!-- /version -->" "$REPOSITORY_ROOT/README.md" || {
+  echo "error: README.md release marker was not updated to $version" >&2
+  exit 1
+}
 
 "$SCRIPT_DIR/build.sh" --clean
 
