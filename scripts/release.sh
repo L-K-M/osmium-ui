@@ -58,9 +58,13 @@ fi
 # package.json is the version consumers resolve; the tag must agree with it.
 npm version "$version" --no-git-tag-version --allow-same-version
 
+# Keep the README release marker in step with the tag.
+sed -i '' -E 's|(<!-- version -->)[^<]*(<!-- /version -->)|\1'"$version"'\2|' \
+  "$REPOSITORY_ROOT/README.md"
+
 "$SCRIPT_DIR/build.sh" --clean
 
-git add package.json package-lock.json
+git add package.json package-lock.json "$REPOSITORY_ROOT/README.md"
 git commit -s -m "Release osmium-ui $version" \
   -m "Bump the package version and publish the release tag."
 git tag -a "$tag" -m "osmium-ui $version"
