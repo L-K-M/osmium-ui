@@ -52,6 +52,21 @@ jobs:
           npm run typecheck
           npm test
 
+      # Git installs, and the apps that bundle Osmium UI, get what npm
+      # packs. NOTICE scopes the Unlicense to the kit's own code; npm
+      # packs it only because package.json "files" lists it.
+      - name: Check the packed license files
+        run: |
+          npm pack --dry-run --json | node -e '
+            const files = JSON.parse(require("fs").readFileSync(0, "utf8"))[0].files;
+            for (const name of ["LICENSE", "README.md", "NOTICE"]) {
+              if (files.some((f) => f.path === name && f.size > 0)) continue;
+              console.log(`::error::${name} is missing or empty in the package`);
+              process.exitCode = 1;
+            }'
+          grep -q 'src/fonts/' NOTICE
+          sed -n '/^## License/,$p' README.md | grep -q '`NOTICE`'
+
       # A source library: the release is the tag plus notes, no artifacts.
       - name: Publish draft
         uses: softprops/action-gh-release@efb35369e0ad2afab669f228072c1b0d510eae64 # v3.0.3
