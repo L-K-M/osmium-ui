@@ -1,0 +1,25 @@
+Osmium UI
+https://github.com/L-K-M/osmium-ui
+
+Osmium UI's own code is released into the public domain under the
+Unlicense (see LICENSE): the TypeScript and CSS, the Swift window host,
+the TrueType writer and the bitmap font encoding, and the four arrow
+glyphs (U+2190..2193) added to Charcoal 12 and Geneva 10.
+
+The Unlicense does not cover the Mac OS 8 material that Osmium UI
+reproduces. These bitmaps were captured or redrawn pixel for pixel from
+Apple's Mac OS 8.0, 8.5 and 9.0 screen output, from the Mac OS 8 Human
+Interface Guidelines (1997) and from Mac OS 8.0's Appearance Extension:
+
+- the Charcoal 12 and Geneva 12, 10 and 9 bitmap strikes in src/fonts/
+  (every glyph but the four arrows above), from which installOsmium()
+  builds browser fonts at run time;
+- the alert icons in src/alertsprites.ts;
+- the control bitmaps in src/controlsprites.ts;
+- the window sprites in src/sprites.ts.
+
+This project does not dedicate that material to the public domain and
+grants no rights in it. Apple keeps whatever rights it holds in it.
+
+Mac OS, Charcoal, Geneva and Platinum are trademarks of Apple Inc.
+Osmium UI is not affiliated with or endorsed by Apple.
