@@ -64,8 +64,10 @@ jobs:
               console.log(`::error::${name} is missing or empty in the package`);
               process.exitCode = 1;
             }'
-          grep -q 'src/fonts/' NOTICE
-          sed -n '/^## License/,$p' README.md | grep -q '`NOTICE`'
+          grep -q 'src/fonts/' NOTICE ||
+            { echo "::error::NOTICE does not name src/fonts/"; exit 1; }
+          sed -n '/^## License/,$p' README.md | grep -q '`NOTICE`' ||
+            { echo "::error::README's License section does not mention NOTICE"; exit 1; }
 
       # A source library: the release is the tag plus notes, no artifacts.
       - name: Publish draft
