@@ -54,7 +54,7 @@ An information window laid out like Get Info.
 
 On a Mac, the same windows also run as native windows: make -C demo/macos run.
 
-Osmium UI is public domain. Mac OS, Charcoal and Geneva are trademarks of Apple Inc.; Osmium UI is not affiliated with Apple.
+Osmium UI's own code is public domain (the Unlicense); the Mac OS 8 bitmaps it reproduces are not covered. Mac OS, Charcoal and Geneva are trademarks of Apple Inc.; Osmium UI is not affiliated with Apple.
 `;
 
 const PANCAKES = `Pancakes

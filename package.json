@@ -26,7 +26,8 @@
     "!src/**/*.test.ts",
     "osmium.css",
     "macos",
-    "Package.swift"
+    "Package.swift",
+    "NOTICE"
   ],
   "sideEffects": [
     "*.css"

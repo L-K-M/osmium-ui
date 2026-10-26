@@ -11,7 +11,8 @@ declare const OSMIUM_VERSION: string;
 const FIELDS: readonly [label: string, value: string][] = [
   ["Kind", "user interface kit"],
   ["Version", OSMIUM_VERSION],
-  ["License", "The Unlicense (public domain)"],
+  // The Unlicense covers the kit's own code only (README, NOTICE).
+  ["License", "The Unlicense, except the Mac OS 8 bitmaps"],
   ["Fonts", "Charcoal 12, Geneva 12, 10 and 9"],
   ["Where", "github.com/L-K-M/osmium-ui"],
 ];

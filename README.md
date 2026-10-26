@@ -1168,8 +1168,24 @@ aquarium for macOS.
 
 ## License
 
-Public domain, under the [Unlicense](LICENSE).
+Osmium UI's own code is released under the [Unlicense](LICENSE): the
+TypeScript and CSS, the Swift window host, the TrueType writer and the
+font encoding, the four arrow glyphs (U+2190..2193) added to Charcoal
+12 and Geneva 10, and the demo. The package contains no third-party
+code.
 
-The bitmap fonts and control bitmaps are recreations of Mac OS 8.0
-screen output. Mac OS, Charcoal, Geneva and Platinum are trademarks of
-Apple Inc. Osmium UI is not affiliated with or endorsed by Apple.
+The Unlicense does not cover the Mac OS 8 bitmaps that Osmium UI
+reproduces: the Charcoal 12 and Geneva 12, 10 and 9 strikes in
+`src/fonts/`, from which `installOsmium()` builds browser fonts, and
+the alert icons, control bitmaps and window sprites in
+`src/alertsprites.ts`, `src/controlsprites.ts` and `src/sprites.ts`.
+They were captured or redrawn pixel for pixel from Apple's Mac OS 8.0
+and 8.5 screen output, the Mac OS 8 Human Interface Guidelines and Mac
+OS 8.0's Appearance Extension. This project does not dedicate them to
+the public domain and grants no rights in them; Apple keeps whatever
+rights it holds. The screenshots in `docs/` contain them as well.
+`NOTICE` says the same and ships in the package, so apps that bundle
+Osmium UI can carry it with their other notices.
+
+Mac OS, Charcoal, Geneva and Platinum are trademarks of Apple Inc.
+Osmium UI is not affiliated with or endorsed by Apple.

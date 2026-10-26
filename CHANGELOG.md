@@ -2,6 +2,11 @@
 
 ## Unreleased
 
+- The package ships `NOTICE`, and the README's License section says
+  the same: the Unlicense covers Osmium UI's own code, not the Mac OS 8
+  bitmap fonts, icons and control and window bitmaps it reproduces
+  (`src/fonts/`, `src/alertsprites.ts`, `src/controlsprites.ts`,
+  `src/sprites.ts`). The demo's About window and Read Me say so too.
 - Hosted windows take `activation`: `"page"` (the default, as before)
   or `"manual"`, where the page's focus and blur leave the window alone
   and only `window.setActive()` and alerts with the window as `parent`
