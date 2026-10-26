@@ -171,3 +171,16 @@ may waive review; report that waiver rather than claiming review passed.
   status, review rounds completed, and whether it is merged.
 
 <!-- shared-rules:end -->
+
+## Licensing
+
+- Osmium UI's own code is Unlicense (`LICENSE`). The Mac OS 8 bitmaps
+  it reproduces (`src/fonts/`, `src/alertsprites.ts`,
+  `src/controlsprites.ts`, `src/sprites.ts`) are not covered. `NOTICE`
+  and the README's License section say so; update both when you add,
+  move or replace such material, and keep `NOTICE` in package.json
+  `files`. CI checks that `npm pack` includes `LICENSE`, `README.md`
+  and `NOTICE`.
+- Before adding a dependency, vendored file or asset (fonts, images,
+  icons, data), confirm its license allows redistribution in the
+  package. Never vendor third-party code without its license file.
